@@ -1,0 +1,42 @@
+{
+  "name": "it-job-hub-backend",
+  "version": "1.0.0",
+  "description": "Backend API for IT Job Hub platform",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir dist",
+    "prisma:generate": "prisma generate",
+    "prisma:studio": "prisma studio",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^1.0.2",
+    "@elysiajs/jwt": "^1.0.1",
+    "@elysiajs/swagger": "^1.0.5",
+    "@prisma/client": "^6.16.1",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "elysia": "^1.0.15",
+    "elysia-helmet": "^1.0.1",
+    "elysia-rate-limit": "^1.0.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.14.2",
+    "bun-types": "^1.2.21",
+    "prisma": "^6.16.1",
+    "typescript": "^5.4.5"
+  },
+  "keywords": [
+    "elysia",
+    "bun",
+    "api",
+    "jobs",
+    "mongodb"
+  ],
+  "author": "IT Job Hub Team",
+  "license": "MIT"
+}
