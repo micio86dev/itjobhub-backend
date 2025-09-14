@@ -16,6 +16,6 @@ export const setupDatabase = async () => {
 export const prisma = new Proxy({} as any, {
   get(_, prop) {
     return dbClient.db[prop as keyof typeof dbClient.db];
-  }
+  },
 });
 export { dbClient };

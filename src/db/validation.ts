@@ -84,7 +84,8 @@ export const validationRules = {
   users: {
     email: [Validator.required(), Validator.email()],
     password: [Validator.required(), Validator.minLength(8)],
-    name: [Validator.required(), Validator.minLength(2), Validator.maxLength(100)],
+    firstName: [Validator.required(), Validator.minLength(2), Validator.maxLength(100)],
+    lastName: [Validator.required(), Validator.minLength(2), Validator.maxLength(100)],
     role: [Validator.oneOf(['admin', 'user'] as const)]
   },
 

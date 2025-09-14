@@ -1,10 +1,10 @@
-import { Client, types } from 'cassandra-driver';
-import { schema, TableDefinition, TableName, Schema } from './schema';
-import { validateData } from './validation';
-import { DatabaseModels } from './types';
+import { Client, types } from "cassandra-driver";
+import { schema, TableDefinition, TableName, Schema } from "./schema";
+import { validateData } from "./validation";
+import { DatabaseModels } from "./types";
 
 type InferTableType<T extends TableDefinition> = {
-  [K in keyof T['columns']]: T['columns'][K]['required'] extends true
+  [K in keyof T["columns"]]: T["columns"][K]["required"] extends true
     ? any
     : any | null;
 } & { id?: any };
@@ -16,7 +16,7 @@ export interface WhereClause {
 }
 
 export interface OrderBy {
-  [key: string]: 'asc' | 'desc';
+  [key: string]: "asc" | "desc";
 }
 
 export interface SelectOptions {
@@ -35,10 +35,7 @@ export interface DeleteOptions {
 }
 
 export class QueryBuilder<T extends TableName> {
-  constructor(
-    private client: Client,
-    private tableName: T
-  ) {}
+  constructor(private client: Client, private tableName: T) {}
 
   async findMany(options: SelectOptions = {}): Promise<TableTypes[T][]> {
     let query = `SELECT * FROM ${this.tableName}`;
@@ -52,7 +49,7 @@ export class QueryBuilder<T extends TableName> {
     if (options.orderBy) {
       const orderClause = Object.entries(options.orderBy)
         .map(([key, direction]) => `${key} ${direction.toUpperCase()}`)
-        .join(', ');
+        .join(", ");
       query += ` ORDER BY ${orderClause}`;
     }
 
@@ -61,7 +58,7 @@ export class QueryBuilder<T extends TableName> {
     }
 
     if (options.allowFiltering) {
-      query += ' ALLOW FILTERING';
+      query += " ALLOW FILTERING";
     }
 
     const result = await this.client.execute(query, params);
@@ -74,7 +71,7 @@ export class QueryBuilder<T extends TableName> {
   }
 
   async findUnique(where: WhereClause): Promise<TableTypes[T] | null> {
-    return this.findFirst({ where });
+    return this.findFirst(where);
   }
 
   async create(data: Partial<TableTypes[T]>): Promise<TableTypes[T]> {
@@ -87,7 +84,7 @@ export class QueryBuilder<T extends TableName> {
     const enrichedData = { ...data } as any;
     for (const [colName, colDef] of Object.entries(tableDefinition.columns)) {
       if (!(colName in enrichedData) && colDef.default !== undefined) {
-        if (colDef.default === 'now()') {
+        if (colDef.default === "now()") {
           enrichedData[colName as keyof TableTypes[T]] = new Date() as any;
         } else {
           enrichedData[colName as keyof TableTypes[T]] = colDef.default;
@@ -96,15 +93,17 @@ export class QueryBuilder<T extends TableName> {
     }
 
     // Generate UUID for id if not provided
-    if (!enrichedData.id && 'id' in tableDefinition.columns) {
+    if (!enrichedData.id && "id" in tableDefinition.columns) {
       enrichedData.id = types.Uuid.random() as any;
     }
 
     const finalColumns = Object.keys(enrichedData);
     const finalValues = Object.values(enrichedData);
-    const finalPlaceholders = finalColumns.map(() => '?').join(', ');
+    const finalPlaceholders = finalColumns.map(() => "?").join(", ");
 
-    const query = `INSERT INTO ${this.tableName} (${finalColumns.join(', ')}) VALUES (${finalPlaceholders})`;
+    const query = `INSERT INTO ${this.tableName} (${finalColumns.join(
+      ", "
+    )}) VALUES (${finalPlaceholders})`;
 
     await this.client.execute(query, finalValues);
 
@@ -116,23 +115,28 @@ export class QueryBuilder<T extends TableName> {
       }
       return (await this.findUnique(whereClause))!;
     } else {
-      return (await this.findUnique({ [tableDefinition.primaryKey]: enrichedData[tableDefinition.primaryKey as keyof TableTypes[T]] }))!;
+      return (await this.findUnique({
+        [tableDefinition.primaryKey]:
+          enrichedData[tableDefinition.primaryKey as keyof TableTypes[T]],
+      }))!;
     }
   }
 
-  async update(options: UpdateOptions & { data: Partial<TableTypes[T]> }): Promise<TableTypes[T] | null> {
+  async update(
+    options: UpdateOptions & { data: Partial<TableTypes[T]> }
+  ): Promise<TableTypes[T] | null> {
     // Validate update data
     validateData(this.tableName, options.data as any, true);
 
     // Add updated_at timestamp if the field exists
     const updateData = { ...options.data } as any;
-    if ('updated_at' in schema[this.tableName].columns) {
+    if ("updated_at" in schema[this.tableName].columns) {
       updateData.updated_at = new Date();
     }
 
     const setClause = Object.keys(updateData)
-      .map(key => `${key} = ?`)
-      .join(', ');
+      .map((key) => `${key} = ?`)
+      .join(", ");
 
     const params = [...Object.values(updateData)];
     const whereClause = this.buildWhereClause(options.where, params);
@@ -173,7 +177,7 @@ export class QueryBuilder<T extends TableName> {
         params.push(value);
         return `${key} = ?`;
       })
-      .join(' AND ');
+      .join(" AND ");
   }
 }
 
@@ -185,31 +189,31 @@ export class CassandraORM {
   }
 
   get users() {
-    return new QueryBuilder(this.client, 'users');
+    return new QueryBuilder(this.client, "users");
   }
 
   get companies() {
-    return new QueryBuilder(this.client, 'companies');
+    return new QueryBuilder(this.client, "companies");
   }
 
   get jobs() {
-    return new QueryBuilder(this.client, 'jobs');
+    return new QueryBuilder(this.client, "jobs");
   }
 
   get comments() {
-    return new QueryBuilder(this.client, 'comments');
+    return new QueryBuilder(this.client, "comments");
   }
 
   get likes() {
-    return new QueryBuilder(this.client, 'likes');
+    return new QueryBuilder(this.client, "likes");
   }
 
   get user_profiles() {
-    return new QueryBuilder(this.client, 'user_profiles');
+    return new QueryBuilder(this.client, "user_profiles");
   }
 
   get refresh_tokens() {
-    return new QueryBuilder(this.client, 'refresh_tokens');
+    return new QueryBuilder(this.client, "refresh_tokens");
   }
 
   async raw(query: string, params?: any[]): Promise<any> {
@@ -226,14 +230,18 @@ export class CassandraORM {
   private async createTable(tableDefinition: TableDefinition): Promise<void> {
     const columns = Object.entries(tableDefinition.columns)
       .map(([name, def]) => `${name} ${def.type}`)
-      .join(', ');
+      .join(", ");
 
     let primaryKey: string;
     if (Array.isArray(tableDefinition.primaryKey)) {
       if (tableDefinition.clusteringColumns) {
-        primaryKey = `(${tableDefinition.primaryKey[0]})${tableDefinition.clusteringColumns.length > 0 ? ', ' + tableDefinition.clusteringColumns.join(', ') : ''}`;
+        primaryKey = `(${tableDefinition.primaryKey[0]})${
+          tableDefinition.clusteringColumns.length > 0
+            ? ", " + tableDefinition.clusteringColumns.join(", ")
+            : ""
+        }`;
       } else {
-        primaryKey = tableDefinition.primaryKey.join(', ');
+        primaryKey = tableDefinition.primaryKey.join(", ");
       }
     } else {
       primaryKey = tableDefinition.primaryKey;

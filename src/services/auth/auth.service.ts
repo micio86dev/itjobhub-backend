@@ -21,7 +21,7 @@ export interface LoginInput {
  */
 export const registerUser = async (input: RegisterInput) => {
   // Check if user already exists
-  const existingUser = await prisma.user.findUnique({
+  const existingUser = await prisma.users.findUnique({
     where: { email: input.email },
   });
 
@@ -33,7 +33,7 @@ export const registerUser = async (input: RegisterInput) => {
   const hashedPassword = await hashPassword(input.password);
 
   // Create user
-  const user = await prisma.user.create({
+  const user = await prisma.users.create({
     data: {
       email: input.email,
       password: hashedPassword,
@@ -41,6 +41,8 @@ export const registerUser = async (input: RegisterInput) => {
       lastName: input.lastName,
     },
   });
+
+  console.log('asd')
 
   // Generate refresh token
   const payload: UserJwtPayload = {
@@ -80,7 +82,7 @@ export const registerUser = async (input: RegisterInput) => {
  */
 export const loginUser = async (input: LoginInput) => {
   // Find user by email
-  const user = await prisma.user.findUnique({
+  const user = await prisma.users.findUnique({
     where: { email: input.email },
   });
 
@@ -158,7 +160,7 @@ export const refreshAuthToken = async (refreshToken: string) => {
   }
 
   // Get the user data
-  const user = await prisma.user.findUnique({
+  const user = await prisma.users.findUnique({
     where: { id: tokenRecord.userId },
   });
 
