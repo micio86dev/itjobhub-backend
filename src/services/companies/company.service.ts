@@ -21,7 +21,7 @@ export interface CompanyUpdateInput {
  * @returns Created company
  */
 export const createCompany = async (data: CompanyCreateInput) => {
-  return await prisma.company.create({
+  return await prisma.companies.create({
     data
   });
 };
@@ -36,14 +36,14 @@ export const getCompanies = async (page: number = 1, limit: number = 10) => {
   const skip = (page - 1) * limit;
   
   const [companies, total] = await Promise.all([
-    prisma.company.findMany({
+    prisma.companies.findMany({
       skip,
       take: limit,
       orderBy: {
         createdAt: "desc"
       }
     }),
-    prisma.company.count()
+    prisma.companies.count()
   ]);
   
   return {
@@ -63,7 +63,7 @@ export const getCompanies = async (page: number = 1, limit: number = 10) => {
  * @returns Company details
  */
 export const getCompanyById = async (id: string) => {
-  return await prisma.company.findUnique({
+  return await prisma.companies.findUnique({
     where: { id }
   });
 };
@@ -75,7 +75,7 @@ export const getCompanyById = async (id: string) => {
  * @returns Updated company
  */
 export const updateCompany = async (id: string, data: CompanyUpdateInput) => {
-  return await prisma.company.update({
+  return await prisma.companies.update({
     where: { id },
     data
   });
@@ -87,7 +87,7 @@ export const updateCompany = async (id: string, data: CompanyUpdateInput) => {
  * @returns Deletion result
  */
 export const deleteCompany = async (id: string) => {
-  return await prisma.company.delete({
+  return await prisma.companies.delete({
     where: { id }
   });
 };

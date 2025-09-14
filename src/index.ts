@@ -13,9 +13,6 @@ import { likeRoutes } from "./routes/likes";
 import { setupDatabase } from "./config/database";
 import { authMiddleware } from "./middleware/auth";
 
-// Initialize database connection
-setupDatabase();
-
 // Custom key generator to extract IP from request
 const ipKeyGenerator = (req: Request): string => {
   // Try to get IP from various proxy headers
@@ -100,10 +97,25 @@ const app = new Elysia()
   .get("/", () => ({
     message: "IT Job Hub API is running!",
     timestamp: new Date().toISOString(),
-  }))
-  .listen(config.port, () => {
-    console.log(`IT Job Hub API is running on port ${config.port}`);
-    console.log(`Swagger UI available at http://localhost:${config.port}/docs`);
-  });
+  }));
+
+// Initialize database and start server
+async function startServer() {
+  try {
+    // Initialize database connection first
+    await setupDatabase();
+
+    // Start the server after database is ready
+    app.listen(config.port, () => {
+      console.log(`IT Job Hub API is running on port ${config.port}`);
+      console.log(`Swagger UI available at http://localhost:${config.port}/docs`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 export type App = typeof app;

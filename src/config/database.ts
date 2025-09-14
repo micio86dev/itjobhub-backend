@@ -1,12 +1,10 @@
-import { PrismaClient } from "@prisma/client";
-
-// Initialize Prisma Client
-const prisma = new PrismaClient();
+import { dbClient } from "../db/client";
 
 export const setupDatabase = async () => {
   try {
-    // Test the database connection
-    await prisma.$connect();
+    // Connect to Cassandra and initialize schema
+    await dbClient.connect();
+    await dbClient.initializeSchema();
     console.log("Database connected successfully");
   } catch (error) {
     console.error("Database connection failed:", error);
@@ -14,4 +12,10 @@ export const setupDatabase = async () => {
   }
 };
 
-export { prisma };
+// Export db client for backward compatibility
+export const prisma = new Proxy({} as any, {
+  get(_, prop) {
+    return dbClient.db[prop as keyof typeof dbClient.db];
+  }
+});
+export { dbClient };

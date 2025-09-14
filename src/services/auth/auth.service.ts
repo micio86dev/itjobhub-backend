@@ -40,14 +40,6 @@ export const registerUser = async (input: RegisterInput) => {
       firstName: input.firstName,
       lastName: input.lastName,
     },
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      role: true,
-      createdAt: true,
-    },
   });
 
   // Generate refresh token
@@ -70,7 +62,11 @@ export const registerUser = async (input: RegisterInput) => {
 
   return {
     user: {
-      ...user,
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
       createdAt: user.createdAt.toISOString(),
     },
     refreshToken,
@@ -155,11 +151,19 @@ export const refreshAuthToken = async (refreshToken: string) => {
   // Find refresh token in database
   const tokenRecord = await prisma.refreshToken.findUnique({
     where: { token: refreshToken },
-    include: { user: true },
   });
 
   if (!tokenRecord) {
     throw new Error("Invalid refresh token");
+  }
+
+  // Get the user data
+  const user = await prisma.user.findUnique({
+    where: { id: tokenRecord.userId },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
   }
 
   // Check if token is expired
@@ -173,9 +177,9 @@ export const refreshAuthToken = async (refreshToken: string) => {
 
   // Generate new refresh token
   const payload: UserJwtPayload = {
-    id: tokenRecord.user.id,
-    email: tokenRecord.user.email,
-    role: tokenRecord.user.role,
+    id: user.id,
+    email: user.email,
+    role: user.role,
   };
 
   const newRefreshToken = await generateRefreshToken(payload);
@@ -191,12 +195,12 @@ export const refreshAuthToken = async (refreshToken: string) => {
 
   return {
     user: {
-      id: tokenRecord.user.id,
-      email: tokenRecord.user.email,
-      firstName: tokenRecord.user.firstName,
-      lastName: tokenRecord.user.lastName,
-      role: tokenRecord.user.role,
-      createdAt: tokenRecord.user.createdAt.toISOString(),
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      createdAt: user.createdAt.toISOString(),
     },
     refreshToken: newRefreshToken,
   };

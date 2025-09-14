@@ -1,31 +1,34 @@
-import { prisma } from "../../config/database";
+import { dbClient } from "../../config/database";
+import { types } from "../../db";
 
 export interface JobCreateInput {
   title: string;
   description: string;
-  companyId: string;
-  userId: string;
-  type: string;
-  level: string;
+  company_id: string;
   requirements?: string[];
+  benefits?: string[];
   location?: string;
-  salaryMin?: number;
-  salaryMax?: number;
-  seniority?: string;
-  skills?: string[];
+  salary_min?: number;
+  salary_max?: number;
   remote?: boolean;
+  employment_type: 'full-time' | 'part-time' | 'contract' | 'internship';
+  experience_level: 'junior' | 'mid' | 'senior' | 'lead';
+  skills?: string[];
 }
 
 export interface JobUpdateInput {
   title?: string;
   description?: string;
+  requirements?: string[];
+  benefits?: string[];
   location?: string;
-  salaryMin?: number;
-  salaryMax?: number;
-  seniority?: string;
-  skills?: string[];
+  salary_min?: number;
+  salary_max?: number;
   remote?: boolean;
-  active?: boolean;
+  employment_type?: 'full-time' | 'part-time' | 'contract' | 'internship';
+  experience_level?: 'junior' | 'mid' | 'senior' | 'lead';
+  skills?: Set<string>;
+  status?: 'active' | 'closed' | 'draft';
 }
 
 export interface JobImportInput {
@@ -35,12 +38,13 @@ export interface JobImportInput {
     name: string;
     description?: string;
     website?: string;
-    logo?: string;
+    logo_url?: string;
   };
   location?: string;
-  salaryMin?: number;
-  salaryMax?: number;
-  seniority?: string;
+  salary_min?: number;
+  salary_max?: number;
+  employment_type: 'full-time' | 'part-time' | 'contract' | 'internship';
+  experience_level: 'junior' | 'mid' | 'senior' | 'lead';
   skills?: string[];
   remote?: boolean;
 }
@@ -51,86 +55,72 @@ export interface JobImportInput {
  * @returns Created job
  */
 export const createJob = async (data: JobCreateInput) => {
-  return await prisma.job.create({
-    data: {
-      ...data,
-      requirements: data.requirements || [],
-      skills: data.skills || []
-    },
-    include: {
-      company: true
-    }
+  const companyUuid = types.Uuid.fromString(data.company_id);
+
+  return await prismajobs.create({
+    company_id: companyUuid,
+    title: data.title,
+    description: data.description,
+    requirements: data.requirements || [],
+    benefits: data.benefits || [],
+    salary_min: data.salary_min,
+    salary_max: data.salary_max,
+    location: data.location,
+    remote: data.remote || false,
+    employment_type: data.employment_type,
+    experience_level: data.experience_level,
+    skills: data.skills ? new Set(data.skills) : new Set()
   });
 };
 
 /**
  * Get all jobs with pagination
- * @param page - Page number
  * @param limit - Number of items per page
  * @param filters - Optional filters
- * @returns Jobs with pagination info
+ * @returns Jobs with count info
  */
-export const getJobs = async (page: number = 1, limit: number = 10, filters?: any) => {
-  const skip = (page - 1) * limit;
-  
+export const getJobs = async (limit: number = 50, filters?: {
+  company_id?: string;
+  location?: string;
+  experience_level?: string;
+  remote?: boolean;
+  status?: string;
+}) => {
   const where: any = {
-    active: true
+    status: 'active'
   };
-  
-  // Apply filters if provided
+
+  // Apply basic filters (Cassandra has limited filtering)
   if (filters) {
-    if (filters.companyId) {
-      where.companyId = filters.companyId;
+    if (filters.company_id) {
+      where.company_id = types.Uuid.fromString(filters.company_id);
     }
     if (filters.location) {
-      where.location = {
-        contains: filters.location,
-        mode: "insensitive"
-      };
+      where.location = filters.location;
     }
-    if (filters.seniority) {
-      where.seniority = filters.seniority;
-    }
-    if (filters.skills && filters.skills.length > 0) {
-      where.skills = {
-        hasSome: filters.skills
-      };
+    if (filters.experience_level) {
+      where.experience_level = filters.experience_level;
     }
     if (filters.remote !== undefined) {
       where.remote = filters.remote;
     }
+    if (filters.status) {
+      where.status = filters.status;
+    }
   }
-  
-  const [jobs, total] = await Promise.all([
-    prisma.job.findMany({
-      where,
-      skip,
-      take: limit,
-      include: {
-        company: {
-          select: {
-            id: true,
-            name: true,
-            logo: true,
-            trustScore: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: "desc"
-      }
-    }),
-    prisma.job.count({ where })
-  ]);
-  
+
+  const jobs = await prismajobs.findMany({
+    where,
+    limit,
+    allowFiltering: true
+  });
+
+  const total = await prismajobs.count({ where });
+
   return {
     jobs,
-    pagination: {
-      page,
-      limit,
-      total,
-      pages: Math.ceil(total / limit)
-    }
+    total,
+    limit
   };
 };
 
@@ -140,11 +130,9 @@ export const getJobs = async (page: number = 1, limit: number = 10, filters?: an
  * @returns Job details
  */
 export const getJobById = async (id: string) => {
-  return await prisma.job.findUnique({
-    where: { id },
-    include: {
-      company: true
-    }
+  const jobUuid = types.Uuid.fromString(id);
+  return await prismajobs.findUnique({
+    id: jobUuid
   });
 };
 
@@ -155,12 +143,10 @@ export const getJobById = async (id: string) => {
  * @returns Updated job
  */
 export const updateJob = async (id: string, data: JobUpdateInput) => {
-  return await prisma.job.update({
-    where: { id },
-    data,
-    include: {
-      company: true
-    }
+  const jobUuid = types.Uuid.fromString(id);
+  return await prismajobs.update({
+    where: { id: jobUuid },
+    data
   });
 };
 
@@ -170,8 +156,9 @@ export const updateJob = async (id: string, data: JobUpdateInput) => {
  * @returns Deletion result
  */
 export const deleteJob = async (id: string) => {
-  return await prisma.job.delete({
-    where: { id }
+  const jobUuid = types.Uuid.fromString(id);
+  return await prismajobs.delete({
+    where: { id: jobUuid }
   });
 };
 
@@ -184,27 +171,24 @@ export const findOrCreateCompany = async (companyData: {
   name: string;
   description?: string;
   website?: string;
-  logo?: string;
+  logo_url?: string;
 }) => {
-  // First, try to find existing company by name
-  let company = await prisma.company.findFirst({
-    where: {
-      name: {
-        equals: companyData.name,
-        mode: "insensitive"
-      }
-    }
+  // First, try to find existing company by name (using allowFiltering for non-key search)
+  const companies = await prismacompanies.findMany({
+    where: { name: companyData.name },
+    limit: 1,
+    allowFiltering: true
   });
+
+  let company = companies.length > 0 ? companies[0] : null;
 
   // If company doesn't exist, create it
   if (!company) {
-    company = await prisma.company.create({
-      data: {
-        name: companyData.name,
-        description: companyData.description || `Jobs at ${companyData.name}`,
-        website: companyData.website,
-        logo: companyData.logo
-      }
+    company = await prismacompanies.create({
+      name: companyData.name,
+      description: companyData.description || `Jobs at ${companyData.name}`,
+      website: companyData.website,
+      logo_url: companyData.logo_url
     });
   }
 
@@ -221,21 +205,17 @@ export const importJob = async (data: JobImportInput) => {
   const company = await findOrCreateCompany(data.company);
 
   // Create the job with the company relation
-  return await prisma.job.create({
-    data: {
-      title: data.title,
-      description: data.description,
-      companyId: company.id,
-      location: data.location,
-      salaryMin: data.salaryMin,
-      salaryMax: data.salaryMax,
-      seniority: data.seniority,
-      skills: data.skills || [],
-      remote: data.remote || false
-    },
-    include: {
-      company: true
-    }
+  return await prismajobs.create({
+    title: data.title,
+    description: data.description,
+    company_id: company.id,
+    location: data.location,
+    salary_min: data.salary_min,
+    salary_max: data.salary_max,
+    employment_type: data.employment_type,
+    experience_level: data.experience_level,
+    skills: data.skills ? new Set(data.skills) : new Set(),
+    remote: data.remote || false
   });
 };
 
@@ -276,16 +256,13 @@ export const batchImportJobs = async (jobs: JobImportInput[]) => {
   for (const jobData of jobs) {
     try {
       // Track if we're creating a new company
-      const existingCompany = await prisma.company.findFirst({
-        where: {
-          name: {
-            equals: jobData.company.name,
-            mode: "insensitive"
-          }
-        }
+      const existingCompanies = await prismacompanies.findMany({
+        where: { name: jobData.company.name },
+        limit: 1,
+        allowFiltering: true
       });
 
-      if (!existingCompany) {
+      if (existingCompanies.length === 0) {
         results.companiesCreated.add(jobData.company.name);
       }
 

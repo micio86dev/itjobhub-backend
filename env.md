@@ -9,7 +9,11 @@ HOST=localhost
 NODE_ENV=development
 
 # Database
-DATABASE_URL="cassandra://127.0.0.1:9042/itjobhub"
+CASSANDRA_HOST="127.0.0.1"
+CASSANDRA_DC="datacenter1"
+CASSANDRA_KEYSPACE="itjobhub"
+CASSANDRA_USER=
+CASSANDRA_PASSWORD=
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-here
@@ -39,7 +43,11 @@ HOST=0.0.0.0
 NODE_ENV=production
 
 # Database
-DATABASE_URL="cassandra://127.0.0.1:9042/itjobhub"
+CASSANDRA_HOST="127.0.0.1"
+CASSANDRA_DC="datacenter1"
+CASSANDRA_KEYSPACE="itjobhub"
+CASSANDRA_USER=
+CASSANDRA_PASSWORD=
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-here
@@ -69,7 +77,11 @@ HOST=0.0.0.0
 NODE_ENV=production
 
 # Database
-DATABASE_URL="cassandra://127.0.0.1:9042/itjobhub"
+CASSANDRA_HOST="127.0.0.1"
+CASSANDRA_DC="datacenter1"
+CASSANDRA_KEYSPACE="itjobhub"
+CASSANDRA_USER=
+CASSANDRA_PASSWORD=
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-here
