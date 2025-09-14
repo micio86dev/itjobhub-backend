@@ -7,7 +7,7 @@
  */
 export const formatResponse = <T>(
   data: T,
-  message?: string,
+  message: string = "Success",
   status: number = 200
 ) => {
   return {

@@ -82,7 +82,15 @@ export const getUserById = async (userId: string) => {
     profile: user.profile ? {
       ...user.profile,
       createdAt: user.profile.createdAt.toISOString(),
-      updatedAt: user.profile.updatedAt.toISOString()
+      updatedAt: user.profile.updatedAt.toISOString(),
+      // Convert null values to undefined for TypeScript compatibility
+      seniority: user.profile.seniority ?? undefined,
+      availability: user.profile.availability ?? undefined,
+      bio: user.profile.bio ?? undefined,
+      github: user.profile.github ?? undefined,
+      linkedin: user.profile.linkedin ?? undefined,
+      website: user.profile.website ?? undefined,
+      cvUrl: user.profile.cvUrl ?? undefined
     } : undefined
   };
 };

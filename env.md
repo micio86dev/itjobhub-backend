@@ -1,6 +1,7 @@
 # Environment Variables
 
 ## Local Development (.env.local)
+
 ```
 # Server Configuration
 PORT=3001
@@ -8,7 +9,7 @@ HOST=localhost
 NODE_ENV=development
 
 # Database
-DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/itjobhub_dev
+DATABASE_URL="cassandra://127.0.0.1:9042/itjobhub"
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-here
@@ -30,6 +31,7 @@ FEATURE_JOB_POSTING=true
 ```
 
 ## Staging Environment (.env.staging)
+
 ```
 # Server Configuration
 PORT=3001
@@ -37,7 +39,7 @@ HOST=0.0.0.0
 NODE_ENV=production
 
 # Database
-DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/itjobhub_staging
+DATABASE_URL="cassandra://127.0.0.1:9042/itjobhub"
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-here
@@ -59,6 +61,7 @@ FEATURE_JOB_POSTING=true
 ```
 
 ## Production Environment (.env.production)
+
 ```
 # Server Configuration
 PORT=3001
@@ -66,7 +69,7 @@ HOST=0.0.0.0
 NODE_ENV=production
 
 # Database
-DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/itjobhub_prod
+DATABASE_URL="cassandra://127.0.0.1:9042/itjobhub"
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-here

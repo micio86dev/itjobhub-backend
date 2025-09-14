@@ -4,6 +4,10 @@ export interface JobCreateInput {
   title: string;
   description: string;
   companyId: string;
+  userId: string;
+  type: string;
+  level: string;
+  requirements?: string[];
   location?: string;
   salaryMin?: number;
   salaryMax?: number;
@@ -50,6 +54,7 @@ export const createJob = async (data: JobCreateInput) => {
   return await prisma.job.create({
     data: {
       ...data,
+      requirements: data.requirements || [],
       skills: data.skills || []
     },
     include: {

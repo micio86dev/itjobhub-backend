@@ -1,7 +1,6 @@
-import { JWTPayload } from "elysia";
-import { config } from "../config";
+import type { JWTPayloadSpec } from "@elysiajs/jwt";
 
-export interface UserJwtPayload extends JWTPayload {
+export interface UserJwtPayload extends Partial<JWTPayloadSpec> {
   id: string;
   email: string;
   role: string;
@@ -26,7 +25,9 @@ export const generateToken = async (payload: UserJwtPayload): Promise<any> => {
  * @param payload - User data to include in token
  * @returns Refresh token string
  */
-export const generateRefreshToken = async (payload: UserJwtPayload): Promise<string> => {
+export const generateRefreshToken = async (
+  payload: UserJwtPayload
+): Promise<string> => {
   // Generate a random string with user info for refresh token
   const timestamp = Date.now().toString(36);
   const random = Math.random().toString(36).substring(2);

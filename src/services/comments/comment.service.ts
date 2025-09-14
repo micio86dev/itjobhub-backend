@@ -3,7 +3,7 @@ import { prisma } from "../../config/database";
 export interface CommentCreateInput {
   content: string;
   userId: string;
-  jobId?: string;
+  jobId: string;
   parentId?: string;
 }
 

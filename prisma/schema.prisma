@@ -8,7 +8,117 @@ datasource db {
 }
 
 model User {
-  id    String @id @default(auto()) @map("_id") @db.ObjectId
-  email String @unique
-  name  String?
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  firstName String
+  lastName  String
+  password  String
+  role      String   @default("USER")
+  jwt       String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+  profile       Profile?
+  jobs          Job[]
+  comments      Comment[]
+  likes         Like[]
+}
+
+model RefreshToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  token     String   @unique
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+}
+
+model Profile {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @unique @db.ObjectId
+  user         User     @relation(fields: [userId], references: [id])
+  languages    String[]
+  skills       String[]
+  seniority    String?
+  availability String?
+  bio          String?
+  github       String?
+  linkedin     String?
+  website      String?
+  cvUrl        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Company {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  website     String?
+  location    String?
+  industry    String?
+  size        String?
+  logoUrl     String?
+  logo        String?
+  trustScore  Int?     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  jobs Job[]
+}
+
+model Job {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  description  String
+  requirements String[]
+  skills       String[]
+  location     String?
+  type         String
+  level        String
+  salary       String?
+  salaryMin    Int?
+  salaryMax    Int?
+  seniority    String?
+  remote       Boolean  @default(false)
+  companyId    String   @db.ObjectId
+  company      Company  @relation(fields: [companyId], references: [id])
+  userId       String   @db.ObjectId
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  comments Comment[]
+  likes    Like[]
+}
+
+model Comment {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  content  String
+  jobId    String  @db.ObjectId
+  job      Job     @relation(fields: [jobId], references: [id])
+  userId   String  @db.ObjectId
+  user     User    @relation(fields: [userId], references: [id])
+  parentId String? @db.ObjectId
+  parent   Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies  Comment[] @relation("CommentReplies")
+  likes    Like[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Like {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  jobId     String?  @db.ObjectId
+  job       Job?     @relation(fields: [jobId], references: [id])
+  commentId String?  @db.ObjectId
+  comment   Comment? @relation(fields: [commentId], references: [id])
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([jobId, userId])
+  @@unique([commentId, userId])
 }
