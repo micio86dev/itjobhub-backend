@@ -1,5 +1,5 @@
 import { dbClient } from "../../config/database";
-import { types } from "../../db";
+// import { types } from "../../db"; // Removed
 
 export interface JobCreateInput {
   title: string;
@@ -55,21 +55,23 @@ export interface JobImportInput {
  * @returns Created job
  */
 export const createJob = async (data: JobCreateInput) => {
-  const companyUuid = types.Uuid.fromString(data.company_id);
+  const companyUuid = data.company_id;
 
-  return await prismajobs.create({
-    company_id: companyUuid,
-    title: data.title,
-    description: data.description,
-    requirements: data.requirements || [],
-    benefits: data.benefits || [],
-    salary_min: data.salary_min,
-    salary_max: data.salary_max,
-    location: data.location,
-    remote: data.remote || false,
-    employment_type: data.employment_type,
-    experience_level: data.experience_level,
-    skills: data.skills ? new Set(data.skills) : new Set()
+  return await dbClient.job.create({
+    data: {
+      company_id: companyUuid,
+      title: data.title,
+      description: data.description,
+      requirements: data.requirements || [],
+      benefits: data.benefits || [],
+      salary_min: data.salary_min,
+      salary_max: data.salary_max,
+      location: data.location,
+      remote: data.remote || false,
+      employment_type: data.employment_type,
+      experience_level: data.experience_level,
+      skills: data.skills ? Array.from(data.skills) : []
+    }
   });
 };
 
@@ -90,10 +92,10 @@ export const getJobs = async (limit: number = 50, filters?: {
     status: 'active'
   };
 
-  // Apply basic filters (Cassandra has limited filtering)
+  // Apply basic filters
   if (filters) {
     if (filters.company_id) {
-      where.company_id = types.Uuid.fromString(filters.company_id);
+      where.company_id = filters.company_id;
     }
     if (filters.location) {
       where.location = filters.location;
@@ -109,13 +111,12 @@ export const getJobs = async (limit: number = 50, filters?: {
     }
   }
 
-  const jobs = await prismajobs.findMany({
+  const jobs = await dbClient.job.findMany({
     where,
-    limit,
-    allowFiltering: true
+    take: limit
   });
 
-  const total = await prismajobs.count({ where });
+  const total = jobs.length; // Since we don't have count method, use array length
 
   return {
     jobs,
@@ -130,9 +131,9 @@ export const getJobs = async (limit: number = 50, filters?: {
  * @returns Job details
  */
 export const getJobById = async (id: string) => {
-  const jobUuid = types.Uuid.fromString(id);
-  return await prismajobs.findUnique({
-    id: jobUuid
+  const jobUuid = id;
+  return await dbClient.job.findUnique({
+    where: { id: jobUuid }
   });
 };
 
@@ -143,10 +144,13 @@ export const getJobById = async (id: string) => {
  * @returns Updated job
  */
 export const updateJob = async (id: string, data: JobUpdateInput) => {
-  const jobUuid = types.Uuid.fromString(id);
-  return await prismajobs.update({
+  const jobUuid = id;
+  return await dbClient.job.update({
     where: { id: jobUuid },
-    data
+    data: {
+      ...data,
+      skills: data.skills ? Array.from(data.skills) : undefined
+    }
   });
 };
 
@@ -156,8 +160,8 @@ export const updateJob = async (id: string, data: JobUpdateInput) => {
  * @returns Deletion result
  */
 export const deleteJob = async (id: string) => {
-  const jobUuid = types.Uuid.fromString(id);
-  return await prismajobs.delete({
+  const jobUuid = id;
+  return await dbClient.job.delete({
     where: { id: jobUuid }
   });
 };
@@ -173,22 +177,22 @@ export const findOrCreateCompany = async (companyData: {
   website?: string;
   logo_url?: string;
 }) => {
-  // First, try to find existing company by name (using allowFiltering for non-key search)
-  const companies = await prismacompanies.findMany({
-    where: { name: companyData.name },
-    limit: 1,
-    allowFiltering: true
+  // First, try to find existing company by name
+  const company = await dbClient.company.findFirst({
+    where: { name: companyData.name }
   });
 
-  let company = companies.length > 0 ? companies[0] : null;
+  // let company = companies.length > 0 ? companies[0] : null; // Removed
 
   // If company doesn't exist, create it
   if (!company) {
-    company = await prismacompanies.create({
-      name: companyData.name,
-      description: companyData.description || `Jobs at ${companyData.name}`,
-      website: companyData.website,
-      logo_url: companyData.logo_url
+    return await dbClient.company.create({
+      data: {
+        name: companyData.name,
+        description: companyData.description || `Jobs at ${companyData.name}`,
+        website: companyData.website,
+        logo_url: companyData.logo_url
+      }
     });
   }
 
@@ -205,17 +209,19 @@ export const importJob = async (data: JobImportInput) => {
   const company = await findOrCreateCompany(data.company);
 
   // Create the job with the company relation
-  return await prismajobs.create({
-    title: data.title,
-    description: data.description,
-    company_id: company.id,
-    location: data.location,
-    salary_min: data.salary_min,
-    salary_max: data.salary_max,
-    employment_type: data.employment_type,
-    experience_level: data.experience_level,
-    skills: data.skills ? new Set(data.skills) : new Set(),
-    remote: data.remote || false
+  return await dbClient.job.create({
+    data: {
+      title: data.title,
+      description: data.description,
+      company_id: company.id,
+      location: data.location,
+      salary_min: data.salary_min,
+      salary_max: data.salary_max,
+      employment_type: data.employment_type,
+      experience_level: data.experience_level,
+      skills: data.skills ? data.skills : [],
+      remote: data.remote || false
+    }
   });
 };
 
@@ -256,13 +262,11 @@ export const batchImportJobs = async (jobs: JobImportInput[]) => {
   for (const jobData of jobs) {
     try {
       // Track if we're creating a new company
-      const existingCompanies = await prismacompanies.findMany({
-        where: { name: jobData.company.name },
-        limit: 1,
-        allowFiltering: true
+      const existingCompany = await dbClient.company.findFirst({
+        where: { name: jobData.company.name }
       });
 
-      if (existingCompanies.length === 0) {
+      if (!existingCompany) {
         results.companiesCreated.add(jobData.company.name);
       }
 

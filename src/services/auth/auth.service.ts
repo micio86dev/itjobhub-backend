@@ -1,4 +1,4 @@
-import { prisma } from "../../config/database";
+import { dbClient } from "../../config/database";
 import { hashPassword, comparePasswords } from "../../utils/password";
 import { UserJwtPayload } from "../../utils/jwt";
 
@@ -21,7 +21,7 @@ export interface LoginInput {
  */
 export const registerUser = async (input: RegisterInput) => {
   // Check if user already exists
-  const existingUser = await prisma.users.findUnique({
+  const existingUser = await dbClient.user.findUnique({
     where: { email: input.email },
   });
 
@@ -33,16 +33,15 @@ export const registerUser = async (input: RegisterInput) => {
   const hashedPassword = await hashPassword(input.password);
 
   // Create user
-  const user = await prisma.users.create({
+  const user = await dbClient.user.create({
     data: {
       email: input.email,
       password: hashedPassword,
-      firstName: input.firstName,
-      lastName: input.lastName,
-    },
+      first_name: input.firstName,
+      last_name: input.lastName,
+      role: "user", // Should be lowercase to match schema default
+    }
   });
-
-  console.log('asd')
 
   // Generate refresh token
   const payload: UserJwtPayload = {
@@ -54,22 +53,22 @@ export const registerUser = async (input: RegisterInput) => {
   const refreshToken = await generateRefreshToken(payload);
 
   // Store refresh token
-  await prisma.refreshToken.create({
+  await dbClient.refreshToken.create({
     data: {
-      token: refreshToken,
-      userId: user.id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-    },
+      refresh_token: refreshToken,
+      user_id: user.id,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    }
   });
 
   return {
     user: {
       id: user.id,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      firstName: user.first_name,
+      lastName: user.last_name,
       role: user.role,
-      createdAt: user.createdAt.toISOString(),
+      createdAt: user.created_at.toISOString(),
     },
     refreshToken,
   };
@@ -82,7 +81,7 @@ export const registerUser = async (input: RegisterInput) => {
  */
 export const loginUser = async (input: LoginInput) => {
   // Find user by email
-  const user = await prisma.users.findUnique({
+  const user = await dbClient.user.findUnique({
     where: { email: input.email },
   });
 
@@ -109,25 +108,25 @@ export const loginUser = async (input: LoginInput) => {
 
   // Store or update refresh token
   // Find existing refresh token for the user
-  const existingToken = await prisma.refreshToken.findFirst({
-    where: { userId: user.id },
+  const existingTokens = await dbClient.refreshToken.findMany({
+    where: { user_id: user.id },
   });
 
-  if (existingToken) {
-    await prisma.refreshToken.update({
-      where: { token: existingToken.token },
+  if (existingTokens.length > 0) {
+    await dbClient.refreshToken.update({
+      where: { refresh_token: existingTokens[0].refresh_token },
       data: {
-        token: refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        refresh_token: refreshToken,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       },
     });
   } else {
-    await prisma.refreshToken.create({
+    await dbClient.refreshToken.create({
       data: {
-        token: refreshToken,
-        userId: user.id,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-      },
+        refresh_token: refreshToken,
+        user_id: user.id,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      }
     });
   }
 
@@ -136,10 +135,10 @@ export const loginUser = async (input: LoginInput) => {
     user: {
       id: user.id,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      firstName: user.first_name,
+      lastName: user.last_name,
       role: user.role,
-      createdAt: user.createdAt.toISOString(),
+      createdAt: user.created_at.toISOString(),
     },
   };
 };
@@ -151,8 +150,8 @@ export const loginUser = async (input: LoginInput) => {
  */
 export const refreshAuthToken = async (refreshToken: string) => {
   // Find refresh token in database
-  const tokenRecord = await prisma.refreshToken.findUnique({
-    where: { token: refreshToken },
+  const tokenRecord = await dbClient.refreshToken.findUnique({
+    where: { refresh_token: refreshToken },
   });
 
   if (!tokenRecord) {
@@ -160,8 +159,8 @@ export const refreshAuthToken = async (refreshToken: string) => {
   }
 
   // Get the user data
-  const user = await prisma.users.findUnique({
-    where: { id: tokenRecord.userId },
+  const user = await dbClient.user.findUnique({
+    where: { id: tokenRecord.user_id },
   });
 
   if (!user) {
@@ -169,10 +168,10 @@ export const refreshAuthToken = async (refreshToken: string) => {
   }
 
   // Check if token is expired
-  if (tokenRecord.expiresAt < new Date()) {
+  if (tokenRecord.expires_at < new Date()) {
     // Delete expired token
-    await prisma.refreshToken.delete({
-      where: { token: refreshToken },
+    await dbClient.refreshToken.delete({
+      where: { refresh_token: refreshToken },
     });
     throw new Error("Refresh token expired");
   }
@@ -187,11 +186,11 @@ export const refreshAuthToken = async (refreshToken: string) => {
   const newRefreshToken = await generateRefreshToken(payload);
 
   // Update refresh token in database
-  await prisma.refreshToken.update({
-    where: { token: refreshToken },
+  await dbClient.refreshToken.update({
+    where: { refresh_token: refreshToken },
     data: {
-      token: newRefreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      refresh_token: newRefreshToken,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     },
   });
 
@@ -199,10 +198,10 @@ export const refreshAuthToken = async (refreshToken: string) => {
     user: {
       id: user.id,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      firstName: user.first_name,
+      lastName: user.last_name,
       role: user.role,
-      createdAt: user.createdAt.toISOString(),
+      createdAt: user.created_at.toISOString(),
     },
     refreshToken: newRefreshToken,
   };
@@ -214,8 +213,8 @@ export const refreshAuthToken = async (refreshToken: string) => {
  */
 export const logoutUser = async (refreshToken: string) => {
   try {
-    await prisma.refreshToken.delete({
-      where: { token: refreshToken },
+    await dbClient.refreshToken.delete({
+      where: { refresh_token: refreshToken },
     });
   } catch (error) {
     // Ignore errors if token doesn't exist

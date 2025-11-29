@@ -21,5 +21,3 @@ dist/
 
 # Bun lock file
 bun.lock
-
-/src/generated/prisma

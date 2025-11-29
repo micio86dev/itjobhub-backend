@@ -1,0 +1,289 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Markdown Preview</title>
+      <style>
+        body {
+          font-family: sans-serif;
+          padding: 40px;
+          line-height: 1.6;
+          background: #fdfdfd;
+          color: #333;
+        }
+        pre {
+          background: #f4f4f4;
+          padding: 10px;
+          border-radius: 5px;
+          overflow-x: auto;
+        }
+        code {
+          font-family: monospace;
+          background: #eee;
+          padding: 2px 4px;
+        }
+        table {
+          border-collapse: collapse;
+          width: 100%;
+          margin-top: 20px;
+        }
+        th, td {
+          border: 1px solid #ccc;
+          padding: 8px 12px;
+          text-align: left;
+        }
+        th {
+          background-color: #f2f2f2;
+          font-weight: bold;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>TestSprite AI Testing Report (MCP)</h1>
+<hr>
+<h2>1️⃣ Document Metadata</h2>
+<ul>
+<li><strong>Project Name:</strong> itjobhub-backend</li>
+<li><strong>Version:</strong> 1.0.0</li>
+<li><strong>Date:</strong> 2025-09-21</li>
+<li><strong>Prepared by:</strong> TestSprite AI Team</li>
+</ul>
+<hr>
+<h2>2️⃣ Requirement Validation Summary</h2>
+<h3>Requirement: Authentication System</h3>
+<ul>
+<li><strong>Description:</strong> Complete user authentication system with registration, login, token refresh and logout functionality using JWT tokens.</li>
+</ul>
+<h4>Test 1</h4>
+<ul>
+<li><strong>Test ID:</strong> TC001</li>
+<li><strong>Test Name:</strong> test user registration endpoint</li>
+<li><strong>Test Code:</strong> <a href="./TC001_test_user_registration_endpoint.py">TC001_test_user_registration_endpoint.py</a></li>
+<li><strong>Test Error:</strong> The /auth/register endpoint returned a 400 Bad Request instead of the expected 201 Created, indicating the registration input validation failed or required fields were missing or malformed.</li>
+<li><strong>Test Visualization and Result:</strong> https://www.testsprite.com/dashboard/mcp/tests/a9aefda7-863c-4b10-bfc9-fbe6c0ba4796/717a91a0-bfdf-4078-a822-a4146bc6f302</li>
+<li><strong>Status:</strong> ❌ Failed</li>
+<li><strong>Severity:</strong> High</li>
+<li><strong>Analysis / Findings:</strong> Registration endpoint failing with 400 error suggests input validation issues or missing required fields. This is blocking all subsequent tests that depend on user registration.</li>
+</ul>
+<hr>
+<h4>Test 2</h4>
+<ul>
+<li><strong>Test ID:</strong> TC002</li>
+<li><strong>Test Name:</strong> test user login endpoint</li>
+<li><strong>Test Code:</strong> <a href="./TC002_test_user_login_endpoint.py">TC002_test_user_login_endpoint.py</a></li>
+<li><strong>Test Error:</strong> The /auth/login endpoint responded with a 401 Unauthorized instead of 200 OK, indicating valid credentials were either not accepted or the authentication mechanism is failing.</li>
+<li><strong>Test Visualization and Result:</strong> https://www.testsprite.com/dashboard/mcp/tests/a9aefda7-863c-4b10-bfc9-fbe6c0ba4796/deffac63-9513-46e4-b6f7-0b4db80907ba</li>
+<li><strong>Status:</strong> ❌ Failed</li>
+<li><strong>Severity:</strong> High</li>
+<li><strong>Analysis / Findings:</strong> Login functionality is broken, likely due to authentication service issues or credential handling problems. This affects all authenticated endpoints.</li>
+</ul>
+<hr>
+<h4>Test 3</h4>
+<ul>
+<li><strong>Test ID:</strong> TC003</li>
+<li><strong>Test Name:</strong> test token refresh endpoint</li>
+<li><strong>Test Code:</strong> <a href="./TC003_test_token_refresh_endpoint.py">TC003_test_token_refresh_endpoint.py</a></li>
+<li><strong>Test Error:</strong> The /auth/refresh endpoint failed with a 401 Unauthorized, implying that the token refresh request is being rejected due to invalid, expired, or improperly passed refresh tokens.</li>
+<li><strong>Test Visualization and Result:</strong> https://www.testsprite.com/dashboard/mcp/tests/a9aefda7-863c-4b10-bfc9-fbe6c0ba4796/cb8f5868-e319-4c3c-a1f2-67b4959f17ec</li>
+<li><strong>Status:</strong> ❌ Failed</li>
+<li><strong>Severity:</strong> High</li>
+<li><strong>Analysis / Findings:</strong> Token refresh mechanism is failing, likely cascading from login issues. Token validation logic needs investigation.</li>
+</ul>
+<hr>
+<h4>Test 4</h4>
+<ul>
+<li><strong>Test ID:</strong> TC004</li>
+<li><strong>Test Name:</strong> test user logout endpoint</li>
+<li><strong>Test Code:</strong> <a href="./TC004_test_user_logout_endpoint.py">TC004_test_user_logout_endpoint.py</a></li>
+<li><strong>Test Error:</strong> The logout test failed unexpectedly with a 400 Bad Request related to user registration during test setup, implying a dependency or test environment issue rather than logout functionality itself.</li>
+<li><strong>Test Visualization and Result:</strong> https://www.testsprite.com/dashboard/mcp/tests/a9aefda7-863c-4b10-bfc9-fbe6c0ba4796/b9dd5da3-8257-45e6-a502-a13abebc8378</li>
+<li><strong>Status:</strong> ❌ Failed</li>
+<li><strong>Severity:</strong> High</li>
+<li><strong>Analysis / Findings:</strong> Logout test blocked by user registration issues in test setup. Cannot verify logout functionality until registration is fixed.</li>
+</ul>
+<hr>
+<h3>Requirement: User Profile Management</h3>
+<ul>
+<li><strong>Description:</strong> User profile management with CRUD operations for user data and profiles, including current user retrieval and profile updates.</li>
+</ul>
+<h4>Test 1</h4>
+<ul>
+<li><strong>Test ID:</strong> TC005</li>
+<li><strong>Test Name:</strong> test get current user profile endpoint</li>
+<li><strong>Test Code:</strong> <a href="./TC005_test_get_current_user_profile_endpoint.py">TC005_test_get_current_user_profile_endpoint.py</a></li>
+<li><strong>Test Error:</strong> The /users/me endpoint test failed due to a 400 error citing a missing required field during what appears to be user registration in test setup, thus the test did not reach the profile retrieval stage.</li>
+<li><strong>Test Visualization and Result:</strong> https://www.testsprite.com/dashboard/mcp/tests/a9aefda7-863c-4b10-bfc9-fbe6c0ba4796/d52993f3-b695-405a-9247-8e4dfb29423b</li>
+<li><strong>Status:</strong> ❌ Failed</li>
+<li><strong>Severity:</strong> High</li>
+<li><strong>Analysis / Findings:</strong> Profile retrieval test cannot proceed due to user registration failures in test setup. Core user management functionality untested.</li>
+</ul>
+<hr>
+<h4>Test 2</h4>
+<ul>
+<li><strong>Test ID:</strong> TC006</li>
+<li><strong>Test Name:</strong> test update user profile endpoint</li>
+<li><strong>Test Code:</strong> <a href="./TC006_test_update_user_profile_endpoint.py">TC006_test_update_user_profile_endpoint.py</a></li>
+<li><strong>Test Error:</strong> The /users/me/profile update test failed with a 400 error during user registration in the test setup phase, preventing testing of the profile update functionality.</li>
+<li><strong>Test Visualization and Result:</strong> https://www.testsprite.com/dashboard/mcp/tests/a9aefda7-863c-4b10-bfc9-fbe6c0ba4796/f0f77c9f-f39d-419c-8fea-fcf3dbcedc56</li>
+<li><strong>Status:</strong> ❌ Failed</li>
+<li><strong>Severity:</strong> High</li>
+<li><strong>Analysis / Findings:</strong> Profile update functionality cannot be tested due to authentication prerequisites failing. Need to resolve user registration issues first.</li>
+</ul>
+<hr>
+<h3>Requirement: Job Management System</h3>
+<ul>
+<li><strong>Description:</strong> Complete job posting system with CRUD operations, filtering, pagination, and role-based access control for job creation and management.</li>
+</ul>
+<h4>Test 1</h4>
+<ul>
+<li><strong>Test ID:</strong> TC007</li>
+<li><strong>Test Name:</strong> test create job endpoint</li>
+<li><strong>Test Code:</strong> <a href="./TC007_test_create_job_endpoint.py">TC007_test_create_job_endpoint.py</a></li>
+<li><strong>Test Error:</strong> The /jobs POST endpoint test failed with a 401 Unauthorized error caused by login failure during test setup, preventing creation of a job posting.</li>
+<li><strong>Test Visualization and Result:</strong> https://www.testsprite.com/dashboard/mcp/tests/a9aefda7-863c-4b10-bfc9-fbe6c0ba4796/d9eab70a-6370-4fbd-9236-1d31bb348431</li>
+<li><strong>Status:</strong> ❌ Failed</li>
+<li><strong>Severity:</strong> High</li>
+<li><strong>Analysis / Findings:</strong> Job creation cannot be tested due to authentication failures. Role-based access control for job creation remains untested.</li>
+</ul>
+<hr>
+<h4>Test 2</h4>
+<ul>
+<li><strong>Test ID:</strong> TC008</li>
+<li><strong>Test Name:</strong> test get all jobs endpoint</li>
+<li><strong>Test Code:</strong> <a href="./TC008_test_get_all_jobs_endpoint.py">TC008_test_get_all_jobs_endpoint.py</a></li>
+<li><strong>Test Error:</strong> The /jobs GET endpoint returned a 500 Internal Server Error, indicating a backend server error or unhandled exception while processing job query requests.</li>
+<li><strong>Test Visualization and Result:</strong> https://www.testsprite.com/dashboard/mcp/tests/a9aefda7-863c-4b10-bfc9-fbe6c0ba4796/8f32c291-7fa6-4a39-b391-4fb796d4b0aa</li>
+<li><strong>Status:</strong> ❌ Failed</li>
+<li><strong>Severity:</strong> High</li>
+<li><strong>Analysis / Findings:</strong> Critical server error in job listing endpoint. This suggests database connection issues or unhandled exceptions in job service logic. Immediate attention required.</li>
+</ul>
+<hr>
+<h3>Requirement: Comments System</h3>
+<ul>
+<li><strong>Description:</strong> Comment system for jobs with support for replies, CRUD operations, and user authentication for comment management.</li>
+</ul>
+<h4>Test 1</h4>
+<ul>
+<li><strong>Test ID:</strong> TC009</li>
+<li><strong>Test Name:</strong> test create comment endpoint</li>
+<li><strong>Test Code:</strong> <a href="./TC009_test_create_comment_endpoint.py">TC009_test_create_comment_endpoint.py</a></li>
+<li><strong>Test Error:</strong> The /comments POST endpoint test failed due to a 400 error indicating a required field is missing during user registration in test setup, preventing authenticated comment creation testing.</li>
+<li><strong>Test Visualization and Result:</strong> https://www.testsprite.com/dashboard/mcp/tests/a9aefda7-863c-4b10-bfc9-fbe6c0ba4796/361bffbb-b819-4f57-b62e-ba21635f76ca</li>
+<li><strong>Status:</strong> ❌ Failed</li>
+<li><strong>Severity:</strong> High</li>
+<li><strong>Analysis / Findings:</strong> Comment creation testing blocked by user registration issues. Comment system functionality cannot be validated until authentication is resolved.</li>
+</ul>
+<hr>
+<h3>Requirement: Likes System</h3>
+<ul>
+<li><strong>Description:</strong> Like system for jobs and comments with like count tracking, duplicate like prevention, and authenticated user interactions.</li>
+</ul>
+<h4>Test 1</h4>
+<ul>
+<li><strong>Test ID:</strong> TC010</li>
+<li><strong>Test Name:</strong> test like a job or comment endpoint</li>
+<li><strong>Test Code:</strong> <a href="./TC010_test_like_a_job_or_comment_endpoint.py">TC010_test_like_a_job_or_comment_endpoint.py</a></li>
+<li><strong>Test Error:</strong> The /likes POST endpoint test failed during user registration/login in test setup, which blocked the ability to authenticate and perform like operations.</li>
+<li><strong>Test Visualization and Result:</strong> https://www.testsprite.com/dashboard/mcp/tests/a9aefda7-863c-4b10-bfc9-fbe6c0ba4796/f0fab9d9-3013-4148-a129-36dfe0407f3d</li>
+<li><strong>Status:</strong> ❌ Failed</li>
+<li><strong>Severity:</strong> High</li>
+<li><strong>Analysis / Findings:</strong> Like functionality cannot be tested due to authentication setup failures. Social interaction features remain unverified.</li>
+</ul>
+<hr>
+<h2>3️⃣ Coverage &amp; Matching Metrics</h2>
+<ul>
+<li><strong>100% of product requirements tested</strong></li>
+<li><strong>0% of tests passed</strong></li>
+<li><strong>Key gaps / risks:</strong></li>
+</ul>
+<blockquote>
+<p>All 10 critical API endpoints failed testing due to systematic issues with user registration and authentication flows. The most critical finding is a 500 Internal Server Error on the job listing endpoint, indicating potential database connectivity or service logic issues. All other failures stem from user registration problems that prevent proper test setup and authentication.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Total Tests</th>
+<th>✅ Passed</th>
+<th>⚠️ Partial</th>
+<th>❌ Failed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Authentication System</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+</tr>
+<tr>
+<td>User Profile Management</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Job Management System</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Comments System</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Likes System</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr>
+<td><strong>TOTAL</strong></td>
+<td><strong>10</strong></td>
+<td><strong>0</strong></td>
+<td><strong>0</strong></td>
+<td><strong>10</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>4️⃣ Critical Issues Requiring Immediate Attention</h2>
+<h3>🚨 Highest Priority</h3>
+<ol>
+<li><strong>User Registration Endpoint (TC001)</strong> - Core authentication broken, blocking all functionality</li>
+<li><strong>Job Listing Endpoint 500 Error (TC008)</strong> - Server error indicating potential database or service issues</li>
+</ol>
+<h3>🔧 Authentication Flow Issues</h3>
+<ol start="3">
+<li><strong>Login Endpoint (TC002)</strong> - Authentication mechanism failing</li>
+<li><strong>Token Refresh (TC003)</strong> - Token validation logic broken</li>
+<li><strong>Logout Functionality (TC004)</strong> - Cannot be tested until registration is fixed</li>
+</ol>
+<h3>📋 Dependent Functionality</h3>
+<ol start="6">
+<li><strong>Profile Management (TC005, TC006)</strong> - Blocked by authentication issues</li>
+<li><strong>Job Creation (TC007)</strong> - Requires working authentication</li>
+<li><strong>Comments (TC009)</strong> - Needs authentication for testing</li>
+<li><strong>Likes (TC010)</strong> - Requires user authentication</li>
+</ol>
+<h3>💡 Recommendations</h3>
+<ul>
+<li><strong>Immediate</strong>: Fix user registration endpoint validation and required field handling</li>
+<li><strong>Critical</strong>: Investigate and resolve 500 error in job listing endpoint</li>
+<li><strong>Follow-up</strong>: Systematically test authentication flow after fixes</li>
+<li><strong>Testing</strong>: Re-run all tests after core authentication issues are resolved</li>
+</ul>
+
+    </body>
+    </html>
+  

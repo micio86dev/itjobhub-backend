@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "test user registration endpoint",
+    "description": "Verify that the /auth/register endpoint successfully registers a new user with valid input data and returns a 201 status code. Test invalid inputs to ensure proper 400 error responses."
+  },
+  {
+    "id": "TC002",
+    "title": "test user login endpoint",
+    "description": "Verify that the /auth/login endpoint authenticates users with valid credentials and returns a 200 status code along with JWT tokens. Test invalid credentials to ensure a 401 error is returned."
+  },
+  {
+    "id": "TC003",
+    "title": "test token refresh endpoint",
+    "description": "Verify that the /auth/refresh endpoint successfully refreshes the JWT token when provided a valid refresh token and returns a 200 status code. Test invalid or expired tokens to ensure a 401 error is returned."
+  },
+  {
+    "id": "TC004",
+    "title": "test user logout endpoint",
+    "description": "Verify that the /auth/logout endpoint successfully logs out the user and invalidates tokens, returning a 200 status code. Test failure scenarios to ensure a 500 error is returned when logout fails."
+  },
+  {
+    "id": "TC005",
+    "title": "test get current user profile endpoint",
+    "description": "Verify that the /users/me endpoint returns the current authenticated user's profile data with a 200 status code. Test unauthorized access to ensure a 401 error is returned and non-existent users return a 404 error."
+  },
+  {
+    "id": "TC006",
+    "title": "test update user profile endpoint",
+    "description": "Verify that the /users/me/profile endpoint allows authenticated users to update their profile with valid data and returns a 200 status code. Test unauthorized access to ensure a 401 error is returned."
+  },
+  {
+    "id": "TC007",
+    "title": "test create job endpoint",
+    "description": "Verify that the /jobs POST endpoint allows authorized users to create a new job with valid data and returns a 201 status code. Test unauthorized and forbidden access to ensure 401 and 403 errors are returned respectively."
+  },
+  {
+    "id": "TC008",
+    "title": "test get all jobs endpoint",
+    "description": "Verify that the /jobs GET endpoint returns a paginated list of jobs filtered by query parameters such as companyId, location, seniority, remote, and skills, with a 200 status code."
+  },
+  {
+    "id": "TC009",
+    "title": "test create comment endpoint",
+    "description": "Verify that the /comments POST endpoint allows authenticated users to create a new comment with valid content and returns a 201 status code. Test unauthorized access to ensure a 401 error is returned."
+  },
+  {
+    "id": "TC010",
+    "title": "test like a job or comment endpoint",
+    "description": "Verify that the /likes POST endpoint allows authenticated users to like a job or comment and returns a 200 status code. Test duplicate likes to ensure a 409 error is returned and invalid requests return a 400 error."
+  }
+]

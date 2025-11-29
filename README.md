@@ -41,14 +41,6 @@ Backend API for the IT Job Hub platform built with ElysiaJS, BunJS, Prisma, and 
    cp .env.example .env
    # Edit .env with your configuration
    ```
-5. Generate Prisma client:
-   ```bash
-   bun run prisma:generate
-   ```
-6. Run database migrations:
-   ```bash
-   bun run prisma:migrate
-   ```
 7. Start the development server:
    ```bash
    bun run dev
@@ -83,12 +75,3 @@ Once the server is running, visit `http://localhost:3001/swagger` for API docume
 2. Ensure all environment variables are set
 3. Run `bun run build` to build the project
 4. Run `bun run start` to start the server
-
-## Database
-
-This project uses MongoDB Atlas with Prisma ORM. The schema is defined in `prisma/schema.prisma`.
-
-To view and edit data directly, run:
-```bash
-bun run prisma:studio
-```

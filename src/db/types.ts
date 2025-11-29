@@ -1,7 +1,5 @@
-import { types } from 'cassandra-driver';
-
 export interface User {
-  id: types.Uuid;
+  id: string;
   email: string;
   password: string;
   first_name: string;
@@ -12,7 +10,7 @@ export interface User {
 }
 
 export interface Company {
-  id: types.Uuid;
+  id: string;
   name: string;
   description?: string;
   website?: string;
@@ -25,8 +23,8 @@ export interface Company {
 }
 
 export interface Job {
-  id: types.Uuid;
-  company_id: types.Uuid;
+  id: string;
+  company_id: string;
   title: string;
   description: string;
   requirements?: string[];
@@ -45,23 +43,23 @@ export interface Job {
 }
 
 export interface Comment {
-  id: types.Uuid;
-  job_id: types.Uuid;
-  user_id: types.Uuid;
+  id: string;
+  job_id: string;
+  user_id: string;
   content: string;
   created_at: Date;
   updated_at: Date;
 }
 
 export interface Like {
-  user_id: types.Uuid;
-  job_id: types.Uuid;
+  user_id: string;
+  job_id: string;
   created_at: Date;
 }
 
 export interface UserProfile {
-  id: types.Uuid;
-  user_id: types.Uuid;
+  id: string;
+  user_id: string;
   languages: string[];
   skills: string[];
   seniority?: string;
@@ -77,7 +75,7 @@ export interface UserProfile {
 
 export interface RefreshToken {
   refresh_token: string;
-  user_id: types.Uuid;
+  user_id: string;
   expires_at: Date;
   created_at: Date;
 }
@@ -93,25 +91,25 @@ export type DatabaseModels = {
 };
 
 export type CreateUser = Omit<User, 'id' | 'created_at' | 'updated_at'> & {
-  id?: types.Uuid;
+  id?: string;
   created_at?: Date;
   updated_at?: Date;
 };
 
 export type CreateCompany = Omit<Company, 'id' | 'created_at' | 'updated_at'> & {
-  id?: types.Uuid;
+  id?: string;
   created_at?: Date;
   updated_at?: Date;
 };
 
 export type CreateJob = Omit<Job, 'id' | 'created_at' | 'updated_at'> & {
-  id?: types.Uuid;
+  id?: string;
   created_at?: Date;
   updated_at?: Date;
 };
 
 export type CreateComment = Omit<Comment, 'id' | 'created_at' | 'updated_at'> & {
-  id?: types.Uuid;
+  id?: string;
   created_at?: Date;
   updated_at?: Date;
 };
@@ -137,7 +135,7 @@ export type UpdateComment = Partial<Omit<Comment, 'id' | 'job_id' | 'user_id' | 
 };
 
 export type CreateUserProfile = Omit<UserProfile, 'id' | 'created_at' | 'updated_at'> & {
-  id?: types.Uuid;
+  id?: string;
   created_at?: Date;
   updated_at?: Date;
 };

@@ -1,10 +1,10 @@
 import { dbClient } from "../../config/database";
-import { types } from "../../db";
 
 export interface UserUpdateInput {
   email?: string;
-  name?: string;
-  role?: 'admin' | 'user';
+  first_name?: string;
+  last_name?: string;
+  role?: string;
 }
 
 export interface UserProfileInput {
@@ -20,22 +20,30 @@ export interface UserProfileInput {
 }
 
 /**
- * Get user by ID
+ * Get user by ID with profile
  * @param userId - User ID
- * @returns User data
+ * @returns User data with profile
  */
 export const getUserById = async (userId: string) => {
-  const userUuid = types.Uuid.fromString(userId);
-
-  const user = await prismausers.findUnique({
-    id: userUuid
+  const user = await dbClient.user.findUnique({
+    where: { id: userId }
   });
 
   if (!user) {
     return null;
   }
 
-  return user;
+  // Get user profile
+  const profile = await dbClient.userProfile.findUnique({
+    where: { user_id: userId }
+  });
+
+  // const profile = profiles.length > 0 ? profiles[0] : null; // Removed
+
+  return {
+    ...user,
+    profile
+  };
 };
 
 /**
@@ -44,13 +52,9 @@ export const getUserById = async (userId: string) => {
  * @returns User data
  */
 export const getUserByEmail = async (email: string) => {
-  const users = await prismausers.findMany({
-    where: { email },
-    limit: 1,
-    allowFiltering: true
+  return await dbClient.user.findUnique({
+    where: { email }
   });
-
-  return users.length > 0 ? users[0] : null;
 };
 
 /**
@@ -61,14 +65,18 @@ export const getUserByEmail = async (email: string) => {
 export const createUser = async (data: {
   email: string;
   password: string;
-  name: string;
-  role?: 'admin' | 'user';
+  first_name: string;
+  last_name: string;
+  role: string;
 }) => {
-  return await prismausers.create({
-    email: data.email,
-    password: data.password,
-    name: data.name,
-    role: data.role || 'user'
+  return await dbClient.user.create({
+    data: {
+      email: data.email,
+      password: data.password,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      role: data.role || 'user'
+    }
   });
 };
 
@@ -79,10 +87,8 @@ export const createUser = async (data: {
  * @returns Updated user
  */
 export const updateUser = async (userId: string, data: UserUpdateInput) => {
-  const userUuid = types.Uuid.fromString(userId);
-
-  return await prismausers.update({
-    where: { id: userUuid },
+  return await dbClient.user.update({
+    where: { id: userId },
     data
   });
 };
@@ -92,10 +98,8 @@ export const updateUser = async (userId: string, data: UserUpdateInput) => {
  * @param userId - User ID
  */
 export const deleteUser = async (userId: string) => {
-  const userUuid = types.Uuid.fromString(userId);
-
-  await prismausers.delete({
-    where: { id: userUuid }
+  await dbClient.user.delete({
+    where: { id: userId }
   });
 };
 
@@ -105,8 +109,8 @@ export const deleteUser = async (userId: string) => {
  * @returns List of users
  */
 export const getUsers = async (limit = 50) => {
-  return await prismausers.findMany({
-    limit
+  return await dbClient.user.findMany({
+    take: limit
   });
 };
 
@@ -116,15 +120,10 @@ export const getUsers = async (limit = 50) => {
  * @returns User profile data
  */
 export const getUserProfile = async (userId: string) => {
-  const userUuid = types.Uuid.fromString(userId);
-
-  const profiles = await prismauser_profiles.findMany({
-    where: { user_id: userUuid },
-    limit: 1,
-    allowFiltering: true
+  const profile = await dbClient.userProfile.findUnique({
+    where: { user_id: userId }
   });
-
-  return profiles.length > 0 ? profiles[0] : null;
+  return profile;
 };
 
 /**
@@ -134,34 +133,34 @@ export const getUserProfile = async (userId: string) => {
  * @returns Created/updated profile
  */
 export const upsertUserProfile = async (userId: string, data: UserProfileInput) => {
-  const userUuid = types.Uuid.fromString(userId);
-
   // Check if profile exists
   const existingProfile = await getUserProfile(userId);
 
   if (existingProfile) {
     // Update existing profile
-    return await prismauser_profiles.update({
+    return await dbClient.userProfile.update({
       where: { id: existingProfile.id },
       data: {
         ...data,
         cv_url: data.cvUrl, // Map camelCase to snake_case
-        updated_at: new Date()
+        // updated_at: new Date() // Prisma handles this automatically
       }
     });
   } else {
     // Create new profile
-    return await prismauser_profiles.create({
-      user_id: userUuid,
-      languages: data.languages || [],
-      skills: data.skills || [],
-      seniority: data.seniority,
-      availability: data.availability,
-      bio: data.bio,
-      github: data.github,
-      linkedin: data.linkedin,
-      website: data.website,
-      cv_url: data.cvUrl
+    return await dbClient.userProfile.create({
+      data: {
+        user_id: userId,
+        languages: data.languages || [],
+        skills: data.skills || [],
+        seniority: data.seniority,
+        availability: data.availability,
+        bio: data.bio,
+        github: data.github,
+        linkedin: data.linkedin,
+        website: data.website,
+        cv_url: data.cvUrl
+      }
     });
   }
 };

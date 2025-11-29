@@ -7,18 +7,16 @@
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "build": "bun build src/index.ts --outdir dist",
-    "prisma:generate": "prisma generate",
-    "prisma:studio": "prisma studio",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:deploy": "prisma migrate deploy"
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.0.2",
     "@elysiajs/jwt": "^1.4.0",
     "@elysiajs/swagger": "^1.0.5",
-    "@prisma/client": "^6.16.1",
+    "@prisma/client": "5",
     "bcryptjs": "^2.4.3",
-    "cassandra-driver": "^4.8.0",
     "dotenv": "^16.4.5",
     "elysia": "^1.0.15",
     "elysia-helmet": "^1.0.1",
@@ -26,11 +24,12 @@
     "mongodb": "^6.19.0"
   },
   "devDependencies": {
+    "@elysiajs/eden": "^1.4.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/mongodb": "^4.0.7",
     "@types/node": "^20.14.2",
     "bun-types": "^1.2.21",
-    "prisma": "^6.16.1",
+    "prisma": "5",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },

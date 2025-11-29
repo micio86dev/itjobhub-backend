@@ -10,13 +10,12 @@ import { formatResponse, formatError } from "../utils/response";
 import { UserJwtPayload } from "../utils/jwt";
 import { config } from "../config";
 
-export const authRoutes = (app: Elysia) =>
+export const authRoutes = new Elysia({ prefix: "/auth" })
   /**
    * Register a new user
    * @method POST
    * @path /auth/register
    */
-  app
     .use(
       jwt({
         name: "jwt",
@@ -24,7 +23,6 @@ export const authRoutes = (app: Elysia) =>
         exp: config.jwt.expiresIn
       })
     )
-    .prefix("all", "/auth")
     .post(
       "/register",
       async (context) => {
