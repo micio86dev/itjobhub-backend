@@ -8,12 +8,12 @@ datasource db {
 }
 
 model User {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  email      String   @unique
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  email      String    @unique
   password   String
   first_name String
   last_name  String
-  role       String   @default("user")
+  role       String    @default("user")
   created_at DateTime? @default(now())
   updated_at DateTime? @updatedAt
 
@@ -46,8 +46,8 @@ model Company {
 }
 
 model Seniority {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  level      String   @unique
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  level      String    @unique
   created_at DateTime? @default(now())
 
   // Relations
@@ -111,9 +111,9 @@ model Job {
 }
 
 model Comment {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  job_id     String   @db.ObjectId
-  user_id    String   @db.ObjectId
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  job_id     String    @db.ObjectId
+  user_id    String    @db.ObjectId
   content    String
   created_at DateTime? @default(now())
   updated_at DateTime? @updatedAt
@@ -126,9 +126,9 @@ model Comment {
 }
 
 model Like {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  user_id    String   @db.ObjectId
-  job_id     String   @db.ObjectId
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  user_id    String    @db.ObjectId
+  job_id     String    @db.ObjectId
   created_at DateTime? @default(now())
 
   // Relations
@@ -140,19 +140,21 @@ model Like {
 }
 
 model UserProfile {
-  id           String    @id @default(auto()) @map("_id") @db.ObjectId
-  user_id      String    @unique @db.ObjectId
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  user_id      String       @unique @db.ObjectId
   languages    String[]
   skills       String[]
   seniority    String?
   availability String?
   cv_url       String?
   bio          String?
+  location     String?
+  location_geo LocationGeo?
   github       String?
   linkedin     String?
   website      String?
-  created_at   DateTime? @default(now())
-  updated_at   DateTime? @updatedAt
+  created_at   DateTime?    @default(now())
+  updated_at   DateTime?    @updatedAt
 
   // Relations
   user User @relation(fields: [user_id], references: [id])

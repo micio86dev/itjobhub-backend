@@ -17,7 +17,13 @@ export interface UserProfileInput {
   linkedin?: string;
   website?: string;
   cvUrl?: string;
+  location?: string;
+  locationGeo?: {
+    lat: number;
+    lng: number;
+  };
 }
+
 
 /**
  * Get user by ID with profile
@@ -37,8 +43,6 @@ export const getUserById = async (userId: string) => {
   const profile = await dbClient.userProfile.findUnique({
     where: { user_id: userId }
   });
-
-  // const profile = profiles.length > 0 ? profiles[0] : null; // Removed
 
   return {
     ...user,
@@ -126,25 +130,28 @@ export const getUserProfile = async (userId: string) => {
   return profile;
 };
 
-/**
- * Create or update user profile (upsert)
- * @param userId - User ID
- * @param data - Profile data
- * @returns Created/updated profile
- */
 export const upsertUserProfile = async (userId: string, data: UserProfileInput) => {
   // Check if profile exists
   const existingProfile = await getUserProfile(userId);
+
+  const updateData: any = {
+    ...data,
+    cv_url: data.cvUrl
+  };
+
+  if (data.locationGeo) {
+    updateData.location_geo = {
+      type: 'Point',
+      coordinates: [data.locationGeo.lng, data.locationGeo.lat]
+    };
+    delete updateData.locationGeo;
+  }
 
   if (existingProfile) {
     // Update existing profile
     return await dbClient.userProfile.update({
       where: { id: existingProfile.id },
-      data: {
-        ...data,
-        cv_url: data.cvUrl, // Map camelCase to snake_case
-        // updated_at: new Date() // Prisma handles this automatically
-      }
+      data: updateData
     });
   } else {
     // Create new profile
@@ -159,7 +166,12 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput) 
         github: data.github,
         linkedin: data.linkedin,
         website: data.website,
-        cv_url: data.cvUrl
+        cv_url: data.cvUrl,
+        location: data.location,
+        location_geo: data.locationGeo ? {
+          type: 'Point',
+          coordinates: [data.locationGeo.lng, data.locationGeo.lat]
+        } : undefined
       }
     });
   }
