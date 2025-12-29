@@ -8,115 +8,154 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(auto()) @map("_id") @db.ObjectId
-  email         String         @unique
-  password      String
-  first_name    String
-  last_name     String
-  role          String         @default("user")
-  created_at    DateTime       @default(now())
-  updated_at    DateTime       @updatedAt
-  
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  email      String   @unique
+  password   String
+  first_name String
+  last_name  String
+  role       String   @default("user")
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+
   // Relations
-  comments      Comment[]
-  likes         Like[]
-  profile       UserProfile?
+  comments       Comment[]
+  likes          Like[]
+  profile        UserProfile?
   refresh_tokens RefreshToken[]
 
   @@map("users")
 }
 
 model Company {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  name          String
-  description   String?
-  website       String?
-  industry      String?
-  size          String?
-  location      String?
-  logo_url      String?
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  website     String?
+  industry    String?
+  size        String?
+  location    String?
+  logo        String?
+  logo_url    String?
+  created_at  DateTime? @default(now())
+  updated_at  DateTime? @updatedAt
 
   // Relations
-  jobs          Job[]
+  jobs Job[]
 
   @@map("companies")
 }
 
-model Job {
-  id              String    @id @default(auto()) @map("_id") @db.ObjectId
-  company_id      String    @db.ObjectId
-  title           String
-  description     String
-  requirements    String[]
-  benefits        String[]
-  salary_min      Int?
-  salary_max      Int?
-  location        String?
-  remote          Boolean   @default(false)
-  employment_type String
-  experience_level String
-  skills          String[]
-  status          String    @default("active")
-  created_at      DateTime  @default(now())
-  updated_at      DateTime  @updatedAt
-  expires_at      DateTime?
+model Seniority {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  level      String   @unique
+  created_at DateTime? @default(now())
 
   // Relations
-  company         Company   @relation(fields: [company_id], references: [id])
-  comments        Comment[]
-  likes           Like[]
+  jobs Job[]
+
+  @@map("seniorities")
+}
+
+type LocationGeo {
+  type        String  @default("Point")
+  coordinates Float[]
+}
+
+model Job {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  company_id        String    @db.ObjectId
+  seniority_id      String?   @db.ObjectId
+  title             String
+  description       String
+  link              String?   @unique
+  source            String?
+  original_language String?
+  language          String?
+  published_at      DateTime?
+
+  requirements String[]
+  benefits     String[]
+  salary_min   Int?
+  salary_max   Int?
+
+  location  String?
+  remote    Boolean  @default(false)
+  is_remote Boolean?
+
+  formatted_address String?
+  city              String?
+  country           String?
+
+  location_geo               LocationGeo?
+  formatted_address_verified String?
+
+  employment_type  String?
+  experience_level String?
+  seniority        String?
+
+  skills           String[]
+  technical_skills String[]
+
+  status     String    @default("active")
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+  expires_at DateTime?
+
+  // Relations
+  company       Company    @relation(fields: [company_id], references: [id])
+  seniority_ref Seniority? @relation(fields: [seniority_id], references: [id])
+  comments      Comment[]
+  likes         Like[]
 
   @@map("jobs")
 }
 
 model Comment {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  job_id        String    @db.ObjectId
-  user_id       String    @db.ObjectId
-  content       String
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  job_id     String   @db.ObjectId
+  user_id    String   @db.ObjectId
+  content    String
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
 
   // Relations
-  job           Job       @relation(fields: [job_id], references: [id])
-  user          User      @relation(fields: [user_id], references: [id])
+  job  Job  @relation(fields: [job_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
 
   @@map("comments")
 }
 
 model Like {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  user_id       String    @db.ObjectId
-  job_id        String    @db.ObjectId
-  created_at    DateTime  @default(now())
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id    String   @db.ObjectId
+  job_id     String   @db.ObjectId
+  created_at DateTime? @default(now())
 
   // Relations
-  user          User      @relation(fields: [user_id], references: [id])
-  job           Job       @relation(fields: [job_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
+  job  Job  @relation(fields: [job_id], references: [id])
 
   @@unique([user_id, job_id])
   @@map("likes")
 }
 
 model UserProfile {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  user_id       String    @unique @db.ObjectId
-  languages     String[]
-  skills        String[]
-  seniority     String?
-  availability  String?
-  cv_url        String?
-  bio           String?
-  github        String?
-  linkedin      String?
-  website       String?
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  user_id      String    @unique @db.ObjectId
+  languages    String[]
+  skills       String[]
+  seniority    String?
+  availability String?
+  cv_url       String?
+  bio          String?
+  github       String?
+  linkedin     String?
+  website      String?
+  created_at   DateTime? @default(now())
+  updated_at   DateTime? @updatedAt
 
   // Relations
-  user          User      @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
 
   @@map("user_profiles")
 }
@@ -126,10 +165,10 @@ model RefreshToken {
   refresh_token String    @unique
   user_id       String    @db.ObjectId
   expires_at    DateTime
-  created_at    DateTime  @default(now())
+  created_at    DateTime? @default(now())
 
   // Relations
-  user          User      @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
 
   @@map("refresh_tokens")
 }

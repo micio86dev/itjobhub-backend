@@ -1,4 +1,4 @@
-import { dbClient } from "../../config/database";
+import { prisma as dbClient } from "../../config/database";
 // import { types } from "../../db"; // Removed
 
 export interface JobCreateInput {
@@ -11,9 +11,10 @@ export interface JobCreateInput {
   salary_min?: number;
   salary_max?: number;
   remote?: boolean;
-  employment_type: 'full-time' | 'part-time' | 'contract' | 'internship';
-  experience_level: 'junior' | 'mid' | 'senior' | 'lead';
+  employment_type?: 'full-time' | 'part-time' | 'contract' | 'internship' | string;
+  experience_level?: 'junior' | 'mid' | 'senior' | 'lead' | string;
   skills?: string[];
+  technical_skills?: string[];
 }
 
 export interface JobUpdateInput {
@@ -25,9 +26,10 @@ export interface JobUpdateInput {
   salary_min?: number;
   salary_max?: number;
   remote?: boolean;
-  employment_type?: 'full-time' | 'part-time' | 'contract' | 'internship';
-  experience_level?: 'junior' | 'mid' | 'senior' | 'lead';
-  skills?: Set<string>;
+  employment_type?: string;
+  experience_level?: string;
+  skills?: string[];
+  technical_skills?: string[];
   status?: 'active' | 'closed' | 'draft';
 }
 
@@ -43,10 +45,14 @@ export interface JobImportInput {
   location?: string;
   salary_min?: number;
   salary_max?: number;
-  employment_type: 'full-time' | 'part-time' | 'contract' | 'internship';
-  experience_level: 'junior' | 'mid' | 'senior' | 'lead';
+  employment_type?: string;
+  experience_level?: string;
   skills?: string[];
+  technical_skills?: string[];
   remote?: boolean;
+  link?: string;
+  source?: string;
+  language?: string;
 }
 
 /**
@@ -87,41 +93,78 @@ export const getJobs = async (limit: number = 50, filters?: {
   experience_level?: string;
   remote?: boolean;
   status?: string;
+  q?: string;
+  skills?: string[];
+  seniority?: string;
 }) => {
-  const where: any = {
-    status: 'active'
-  };
+  const where: any = {};
 
-  // Apply basic filters
   if (filters) {
-    if (filters.company_id) {
-      where.company_id = filters.company_id;
-    }
-    if (filters.location) {
-      where.location = filters.location;
-    }
-    if (filters.experience_level) {
-      where.experience_level = filters.experience_level;
-    }
-    if (filters.remote !== undefined) {
-      where.remote = filters.remote;
-    }
     if (filters.status) {
       where.status = filters.status;
     }
+
+    if (filters.company_id) {
+      where.company_id = filters.company_id;
+    }
+
+    if (filters.location) {
+      where.location = { contains: filters.location, mode: 'insensitive' };
+    }
+
+    if (filters.experience_level) {
+      where.experience_level = filters.experience_level;
+    }
+
+    if (filters.seniority) {
+      where.seniority = filters.seniority;
+    }
+
+    if (filters.remote !== undefined) {
+      where.remote = filters.remote;
+    }
+
+    if (filters.q) {
+      where.OR = [
+        { title: { contains: filters.q, mode: 'insensitive' } },
+        { description: { contains: filters.q, mode: 'insensitive' } },
+        { location: { contains: filters.q, mode: 'insensitive' } },
+        { skills: { has: filters.q } },
+        { technical_skills: { has: filters.q } }
+      ];
+    }
+
+    if (filters.skills && filters.skills.length > 0) {
+      where.OR = [
+        ...(where.OR || []),
+        { skills: { hasSome: filters.skills } },
+        { technical_skills: { hasSome: filters.skills } }
+      ];
+    }
   }
 
-  const jobs = await dbClient.job.findMany({
-    where,
-    take: limit
-  });
-
-  const total = jobs.length; // Since we don't have count method, use array length
+  const [jobs, total] = await Promise.all([
+    dbClient.job.findMany({
+      where,
+      take: limit,
+      include: {
+        company: true
+      },
+      orderBy: {
+        created_at: 'desc'
+      }
+    }),
+    dbClient.job.count({ where })
+  ]);
 
   return {
     jobs,
-    total,
-    limit
+    pagination: {
+      page: 1, // Simplified for now since routes don't pass page correctly here
+      limit,
+      total,
+      pages: Math.ceil(total / limit)
+    }
   };
 };
 
@@ -133,7 +176,10 @@ export const getJobs = async (limit: number = 50, filters?: {
 export const getJobById = async (id: string) => {
   const jobUuid = id;
   return await dbClient.job.findUnique({
-    where: { id: jobUuid }
+    where: { id: jobUuid },
+    include: {
+      company: true
+    }
   });
 };
 

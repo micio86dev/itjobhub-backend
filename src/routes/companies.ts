@@ -22,15 +22,15 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
           set.status = 401;
           return formatError("Unauthorized", 401);
         }
-        
+
         // Only admins can create companies
         if (user.role !== "ADMIN") {
           set.status = 403;
           return formatError("Forbidden: Only admins can create companies", 403);
         }
-        
+
         const company = await createCompany(body);
-        
+
         set.status = 201;
         return formatResponse(company, "Company created successfully", 201);
       } catch (error: any) {
@@ -41,7 +41,7 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
     {
       body: t.Object({
         name: t.String({ minLength: 1 }),
-        description: t.String({ minLength: 1 }),
+        description: t.Union([t.String(), t.Null(), t.Undefined()]),
         website: t.Optional(t.String({ format: "uri" })),
         logo: t.Optional(t.String({ format: "uri" }))
       }),
@@ -53,12 +53,11 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
           data: t.Object({
             id: t.String(),
             name: t.String(),
-            description: t.String(),
-            logo: t.Optional(t.String()),
-            website: t.Optional(t.String()),
-            trustScore: t.Number(),
-            createdAt: t.String(),
-            updatedAt: t.String()
+            description: t.Union([t.String(), t.Null(), t.Undefined()]),
+            logo: t.Union([t.String(), t.Null(), t.Undefined()]),
+            website: t.Union([t.String(), t.Null(), t.Undefined()]),
+            created_at: t.Union([t.Any(), t.Null(), t.Undefined()]),
+            updated_at: t.Union([t.Any(), t.Null(), t.Undefined()])
           })
         }),
         401: t.Object({
@@ -93,9 +92,9 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
       try {
         const page = parseInt(query.page || "1");
         const limit = parseInt(query.limit || "10");
-        
+
         const result = await getCompanies(page, limit);
-        
+
         return formatResponse(result, "Companies retrieved successfully");
       } catch (error: any) {
         set.status = 500;
@@ -116,12 +115,11 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
             companies: t.Array(t.Object({
               id: t.String(),
               name: t.String(),
-              description: t.String(),
-              logo: t.Optional(t.String()),
-              website: t.Optional(t.String()),
-              trustScore: t.Number(),
-              createdAt: t.String(),
-              updatedAt: t.String()
+              description: t.Union([t.String(), t.Null(), t.Undefined()]),
+              logo: t.Union([t.String(), t.Null(), t.Undefined()]),
+              website: t.Union([t.String(), t.Null(), t.Undefined()]),
+              created_at: t.Union([t.Any(), t.Null(), t.Undefined()]),
+              updated_at: t.Union([t.Any(), t.Null(), t.Undefined()])
             })),
             pagination: t.Object({
               page: t.Number(),
@@ -152,12 +150,12 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
     async ({ params, set }) => {
       try {
         const company = await getCompanyById(params.id);
-        
+
         if (!company) {
           set.status = 404;
           return formatError("Company not found", 404);
         }
-        
+
         return formatResponse(company, "Company retrieved successfully");
       } catch (error: any) {
         set.status = 500;
@@ -176,12 +174,11 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
           data: t.Object({
             id: t.String(),
             name: t.String(),
-            description: t.String(),
-            logo: t.Optional(t.String()),
-            website: t.Optional(t.String()),
-            trustScore: t.Number(),
-            createdAt: t.String(),
-            updatedAt: t.String()
+            description: t.Union([t.String(), t.Null(), t.Undefined()]),
+            logo: t.Union([t.String(), t.Null(), t.Undefined()]),
+            website: t.Union([t.String(), t.Null(), t.Undefined()]),
+            created_at: t.Union([t.Any(), t.Null(), t.Undefined()]),
+            updated_at: t.Union([t.Any(), t.Null(), t.Undefined()])
           })
         }),
         404: t.Object({
@@ -213,22 +210,22 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
           set.status = 401;
           return formatError("Unauthorized", 401);
         }
-        
+
         // Only admins can update companies
         if (user.role !== "ADMIN") {
           set.status = 403;
           return formatError("Forbidden: Only admins can update companies", 403);
         }
-        
+
         // Check if company exists
         const company = await getCompanyById(params.id);
         if (!company) {
           set.status = 404;
           return formatError("Company not found", 404);
         }
-        
+
         const updatedCompany = await updateCompany(params.id, body);
-        
+
         return formatResponse(updatedCompany, "Company updated successfully");
       } catch (error: any) {
         set.status = 500;
@@ -244,7 +241,7 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
         description: t.Optional(t.String({ minLength: 1 })),
         website: t.Optional(t.String({ format: "uri" })),
         logo: t.Optional(t.String({ format: "uri" })),
-        trustScore: t.Optional(t.Number())
+         
       }),
       response: {
         200: t.Object({
@@ -254,12 +251,11 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
           data: t.Object({
             id: t.String(),
             name: t.String(),
-            description: t.String(),
-            logo: t.Optional(t.String()),
-            website: t.Optional(t.String()),
-            trustScore: t.Number(),
-            createdAt: t.String(),
-            updatedAt: t.String()
+            description: t.Union([t.String(), t.Null(), t.Undefined()]),
+            logo: t.Union([t.String(), t.Null(), t.Undefined()]),
+            website: t.Union([t.String(), t.Null(), t.Undefined()]),
+            created_at: t.Union([t.Any(), t.Null(), t.Undefined()]),
+            updated_at: t.Union([t.Any(), t.Null(), t.Undefined()])
           })
         }),
         401: t.Object({
@@ -301,22 +297,22 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
           set.status = 401;
           return formatError("Unauthorized", 401);
         }
-        
+
         // Only admins can delete companies
         if (user.role !== "ADMIN") {
           set.status = 403;
           return formatError("Forbidden: Only admins can delete companies", 403);
         }
-        
+
         // Check if company exists
         const company = await getCompanyById(params.id);
         if (!company) {
           set.status = 404;
           return formatError("Company not found", 404);
         }
-        
+
         await deleteCompany(params.id);
-        
+
         return formatResponse(null, "Company deleted successfully");
       } catch (error: any) {
         set.status = 500;
