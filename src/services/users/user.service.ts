@@ -134,17 +134,26 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput) 
   // Check if profile exists
   const existingProfile = await getUserProfile(userId);
 
+  // Build update data with proper field mapping (camelCase to snake_case)
   const updateData: any = {
-    ...data,
+    languages: data.languages,
+    skills: data.skills,
+    seniority: data.seniority,
+    availability: data.availability,
+    bio: data.bio,
+    github: data.github,
+    linkedin: data.linkedin,
+    website: data.website,
+    location: data.location,
     cv_url: data.cvUrl
   };
 
+  // Map locationGeo to location_geo
   if (data.locationGeo) {
     updateData.location_geo = {
       type: 'Point',
       coordinates: [data.locationGeo.lng, data.locationGeo.lat]
     };
-    delete updateData.locationGeo;
   }
 
   if (existingProfile) {
