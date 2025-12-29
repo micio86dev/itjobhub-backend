@@ -25,7 +25,31 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           return formatError("User not found", 404);
         }
 
-        return formatResponse(userData, "User data retrieved successfully");
+        const formattedUser = {
+          id: userData.id,
+          email: userData.email,
+          firstName: userData.first_name,
+          lastName: userData.last_name,
+          role: userData.role,
+          createdAt: userData.created_at?.toISOString() || new Date().toISOString(),
+          profile: userData.profile ? {
+            id: userData.profile.id,
+            userId: userData.profile.user_id,
+            languages: userData.profile.languages,
+            skills: userData.profile.skills,
+            seniority: userData.profile.seniority || undefined,
+            availability: userData.profile.availability || undefined,
+            cvUrl: userData.profile.cv_url || undefined,
+            bio: userData.profile.bio || undefined,
+            github: userData.profile.github || undefined,
+            linkedin: userData.profile.linkedin || undefined,
+            website: userData.profile.website || undefined,
+            createdAt: userData.profile.created_at?.toISOString() || new Date().toISOString(),
+            updatedAt: userData.profile.updated_at?.toISOString() || new Date().toISOString()
+          } : undefined
+        };
+
+        return formatResponse(formattedUser, "User data retrieved successfully");
       } catch (error: any) {
         set.status = 500;
         return formatError("Failed to retrieve user data", 500);
@@ -98,7 +122,23 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           return formatError("Profile not found", 404);
         }
 
-        return formatResponse(profile, "Profile retrieved successfully");
+        const formattedProfile = {
+          id: profile.id,
+          userId: profile.user_id,
+          languages: profile.languages,
+          skills: profile.skills,
+          seniority: profile.seniority || undefined,
+          availability: profile.availability || undefined,
+          cvUrl: profile.cv_url || undefined,
+          bio: profile.bio || undefined,
+          github: profile.github || undefined,
+          linkedin: profile.linkedin || undefined,
+          website: profile.website || undefined,
+          createdAt: profile.created_at?.toISOString() || new Date().toISOString(),
+          updatedAt: profile.updated_at?.toISOString() || new Date().toISOString()
+        };
+
+        return formatResponse(formattedProfile, "Profile retrieved successfully");
       } catch (error: any) {
         set.status = 500;
         return formatError("Failed to retrieve profile", 500);
@@ -161,7 +201,23 @@ export const userRoutes = new Elysia({ prefix: "/users" })
 
         const profile = await upsertUserProfile(user.id, body);
 
-        return formatResponse(profile, "Profile updated successfully");
+        const formattedProfile = {
+          id: profile.id,
+          userId: profile.user_id,
+          languages: profile.languages,
+          skills: profile.skills,
+          seniority: profile.seniority || undefined,
+          availability: profile.availability || undefined,
+          cvUrl: profile.cv_url || undefined,
+          bio: profile.bio || undefined,
+          github: profile.github || undefined,
+          linkedin: profile.linkedin || undefined,
+          website: profile.website || undefined,
+          createdAt: profile.created_at?.toISOString() || new Date().toISOString(),
+          updatedAt: profile.updated_at?.toISOString() || new Date().toISOString()
+        };
+
+        return formatResponse(formattedProfile, "Profile updated successfully");
       } catch (error: any) {
         set.status = 500;
         return formatError("Failed to update profile", 500);
