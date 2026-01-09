@@ -121,29 +121,29 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
             comments: t.Array(t.Object({
               id: t.String(),
               content: t.String(),
-              userId: t.String(),
-              jobId: t.Optional(t.String()),
+              user_id: t.String(),
+              job_id: t.Optional(t.String()),
               parentId: t.Optional(t.String()),
-              createdAt: t.String(),
-              updatedAt: t.String(),
+              created_at: t.Any(),
+              updated_at: t.Any(),
               user: t.Object({
                 id: t.String(),
-                firstName: t.String(),
-                lastName: t.String()
+                first_name: t.String(),
+                last_name: t.String()
               }),
-              replies: t.Array(t.Object({
+              replies: t.Optional(t.Array(t.Object({
                 id: t.String(),
                 content: t.String(),
-                userId: t.String(),
+                user_id: t.String(),
                 parentId: t.String(),
-                createdAt: t.String(),
-                updatedAt: t.String(),
+                created_at: t.Any(),
+                updated_at: t.Any(),
                 user: t.Object({
                   id: t.String(),
-                  firstName: t.String(),
-                  lastName: t.String()
+                  first_name: t.String(),
+                  last_name: t.String()
                 })
-              }))
+              })))
             })),
             pagination: t.Object({
               page: t.Number(),
@@ -212,15 +212,15 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
           data: t.Object({
             id: t.String(),
             content: t.String(),
-            userId: t.String(),
-            jobId: t.Optional(t.String()),
+            user_id: t.String(),
+            job_id: t.Optional(t.String()),
             parentId: t.Optional(t.String()),
-            createdAt: t.String(),
-            updatedAt: t.String(),
+            created_at: t.Any(),
+            updated_at: t.Any(),
             user: t.Object({
               id: t.String(),
-              firstName: t.String(),
-              lastName: t.String()
+              first_name: t.String(),
+              last_name: t.String()
             })
           })
         }),

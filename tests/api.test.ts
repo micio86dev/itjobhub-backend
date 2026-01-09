@@ -298,9 +298,6 @@ describe('IT Job Hub API Tests', () => {
         .handle(new Request(`http://localhost/jobs/${testJobId}`));
 
       const data = await response.json();
-      if (response.status !== 200) {
-        console.log('Get Job failed:', JSON.stringify(data, null, 2));
-      }
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.data.id).toBe(testJobId);
@@ -318,9 +315,6 @@ describe('IT Job Hub API Tests', () => {
         );
 
       const data = await response.json();
-      if (response.status !== 200) {
-        console.log('Update Job failed:', JSON.stringify(data, null, 2));
-      }
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.data.title).toBe(updateData.title);
@@ -349,9 +343,6 @@ describe('IT Job Hub API Tests', () => {
         );
 
       const data = await response.json();
-      if (response.status !== 201) {
-        console.log('Import Job failed:', JSON.stringify(data, null, 2));
-      }
       expect(response.status).toBe(201);
       expect(data.success).toBe(true);
       expect(data.data.title).toBe(importData.title);
@@ -492,7 +483,7 @@ describe('IT Job Hub API Tests', () => {
       const data = await response.json();
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.data.jobId).toBe(testJobId);
+      expect(data.data.likeable_id).toBe(testJobId);
     });
 
     it('should fail to like same job twice', async () => {
@@ -563,7 +554,7 @@ describe('IT Job Hub API Tests', () => {
       const data = await response.json();
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.data.commentId).toBe(testCommentId);
+      expect(data.data.likeable_id).toBe(testCommentId);
     });
   });
 

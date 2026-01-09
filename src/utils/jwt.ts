@@ -13,7 +13,7 @@ export interface UserJwtPayload {
  * @param payload - User data to include in token
  * @returns The same payload (signing happens in Elysia's jwt plugin)
  */
-export const generateToken = async (payload: UserJwtPayload): Promise<any> => {
+export const generateToken = async (payload: UserJwtPayload): Promise<UserJwtPayload> => {
   // In Elysia, we don't manually sign tokens
   // The jwt plugin handles signing when we call jwt.sign()
   // This function is just a placeholder that returns the payload

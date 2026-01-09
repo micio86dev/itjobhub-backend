@@ -202,6 +202,9 @@ export const updateJob = async (id: string, data: JobUpdateInput) => {
     data: {
       ...data,
       skills: data.skills ? Array.from(data.skills) : undefined
+    },
+    include: {
+      company: true
     }
   });
 };

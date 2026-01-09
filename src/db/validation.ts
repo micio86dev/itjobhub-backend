@@ -63,8 +63,7 @@ export function validateData<T extends keyof DatabaseModels>(
 
   // Custom validation for specific cases
   if (tableName === 'jobs') {
-    // We know T is 'jobs' here effectively, but TS needs help
-    const jobData = data as unknown as { salary_min?: number; salary_max?: number };
+    const jobData = data as Partial<DatabaseModels['jobs']>;
     if (jobData.salary_min !== undefined && jobData.salary_max !== undefined && jobData.salary_min > jobData.salary_max) {
       throw new ValidationError('Minimum salary cannot be greater than maximum salary', 'salary_min');
     }

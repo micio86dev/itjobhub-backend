@@ -91,6 +91,17 @@ export const app = new Elysia()
     .use(companyRoutes)
     .use(commentRoutes)
     .use(likeRoutes)
+    .onError(({ code, error, set }) => {
+        if (code === 'VALIDATION') {
+            set.status = 422;
+            return {
+                success: false,
+                status: 422,
+                message: "Validation Error",
+                errors: error.all
+            };
+        }
+    })
     // Health check endpoint
     .get("/", () => ({
         message: "IT Job Hub API is running!",

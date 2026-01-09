@@ -1,5 +1,4 @@
 import { dbClient } from "../../config/database";
-import { Prisma } from "@prisma/client";
 
 export interface UserUpdateInput {
   email?: string;
@@ -136,8 +135,24 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput) 
   const existingProfile = await getUserProfile(userId);
 
   // Build update data with proper field mapping (camelCase to snake_case)
-  // Build update data with proper field mapping (camelCase to snake_case)
-  const updateData: Prisma.UserProfileUpdateInput = {
+  interface UserProfileUpdateData {
+    languages?: string[];
+    skills?: string[];
+    seniority?: string;
+    availability?: string;
+    bio?: string;
+    github?: string;
+    linkedin?: string;
+    website?: string;
+    location?: string;
+    cv_url?: string;
+    location_geo?: {
+      type: 'Point';
+      coordinates: [number, number];
+    };
+  }
+
+  const updateData: UserProfileUpdateData = {
     languages: data.languages,
     skills: data.skills,
     seniority: data.seniority,

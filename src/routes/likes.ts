@@ -70,7 +70,7 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
             user_id: t.String(),
             likeable_type: t.String(),
             likeable_id: t.String(),
-            created_at: t.Optional(t.String())
+            created_at: t.Any()
           })
         }),
         400: t.Object({
