@@ -6,9 +6,11 @@ import {
   updateCompany,
   deleteCompany
 } from "../services/companies/company.service";
-import { formatResponse, formatError } from "../utils/response";
+import { formatResponse, formatError, getErrorMessage } from "../utils/response";
+import { authMiddleware } from "../middleware/auth";
 
 export const companyRoutes = new Elysia({ prefix: "/companies" })
+  .use(authMiddleware)
   /**
    * Create a new company
    * @method POST
@@ -33,9 +35,9 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
 
         set.status = 201;
         return formatResponse(company, "Company created successfully", 201);
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to create company", 500);
+        return formatError(`Failed to create company: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -96,9 +98,9 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
         const result = await getCompanies(page, limit);
 
         return formatResponse(result, "Companies retrieved successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to retrieve companies", 500);
+        return formatError(`Failed to retrieve companies: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -157,9 +159,9 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
         }
 
         return formatResponse(company, "Company retrieved successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to retrieve company", 500);
+        return formatError(`Failed to retrieve company: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -227,9 +229,9 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
         const updatedCompany = await updateCompany(params.id, body);
 
         return formatResponse(updatedCompany, "Company updated successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to update company", 500);
+        return formatError(`Failed to update company: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -241,7 +243,7 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
         description: t.Optional(t.String({ minLength: 1 })),
         website: t.Optional(t.String({ format: "uri" })),
         logo: t.Optional(t.String({ format: "uri" })),
-         
+
       }),
       response: {
         200: t.Object({
@@ -314,9 +316,9 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
         await deleteCompany(params.id);
 
         return formatResponse(null, "Company deleted successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to delete company", 500);
+        return formatError(`Failed to delete company: ${getErrorMessage(error)}`, 500);
       }
     },
     {

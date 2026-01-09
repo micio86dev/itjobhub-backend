@@ -1,31 +1,38 @@
 import { prisma } from "../../config/database";
 
+// Supported likeable types
+export type LikeableType = "job" | "comment";
+
 /**
- * Create a like for a job or comment
+ * Create a like for any entity (job, comment, etc.)
  * @param userId - User ID
- * @param jobId - Job ID (optional)
- * @param commentId - Comment ID (optional)
+ * @param likeableType - Type of entity ("job" | "comment")
+ * @param likeableId - Entity ID
  * @returns Created like
  */
-export const createLike = async (userId: string, jobId?: string, commentId?: string) => {
+export const createLike = async (
+  userId: string,
+  likeableType: LikeableType,
+  likeableId: string
+) => {
   // Check if like already exists
   const existingLike = await prisma.like.findFirst({
     where: {
-      userId,
-      jobId: jobId || undefined,
-      commentId: commentId || undefined
+      user_id: userId,
+      likeable_type: likeableType,
+      likeable_id: likeableId
     }
   });
-  
+
   if (existingLike) {
     throw new Error("Like already exists");
   }
-  
+
   return await prisma.like.create({
     data: {
-      userId,
-      jobId: jobId || undefined,
-      commentId: commentId || undefined
+      user_id: userId,
+      likeable_type: likeableType,
+      likeable_id: likeableId
     }
   });
 };
@@ -33,50 +40,61 @@ export const createLike = async (userId: string, jobId?: string, commentId?: str
 /**
  * Remove a like
  * @param userId - User ID
- * @param jobId - Job ID (optional)
- * @param commentId - Comment ID (optional)
+ * @param likeableType - Type of entity ("job" | "comment")
+ * @param likeableId - Entity ID
  * @returns Deletion result
  */
-export const removeLike = async (userId: string, jobId?: string, commentId?: string) => {
+export const removeLike = async (
+  userId: string,
+  likeableType: LikeableType,
+  likeableId: string
+) => {
   return await prisma.like.deleteMany({
     where: {
-      userId,
-      jobId: jobId || undefined,
-      commentId: commentId || undefined
+      user_id: userId,
+      likeable_type: likeableType,
+      likeable_id: likeableId
     }
   });
 };
 
 /**
- * Get like count for a job or comment
- * @param jobId - Job ID (optional)
- * @param commentId - Comment ID (optional)
+ * Get like count for any entity
+ * @param likeableType - Type of entity ("job" | "comment")
+ * @param likeableId - Entity ID
  * @returns Like count
  */
-export const getLikeCount = async (jobId?: string, commentId?: string) => {
+export const getLikeCount = async (
+  likeableType: LikeableType,
+  likeableId: string
+) => {
   return await prisma.like.count({
     where: {
-      jobId: jobId || undefined,
-      commentId: commentId || undefined
+      likeable_type: likeableType,
+      likeable_id: likeableId
     }
   });
 };
 
 /**
- * Check if user has liked a job or comment
+ * Check if user has liked an entity
  * @param userId - User ID
- * @param jobId - Job ID (optional)
- * @param commentId - Comment ID (optional)
+ * @param likeableType - Type of entity ("job" | "comment")
+ * @param likeableId - Entity ID
  * @returns Boolean indicating if user has liked
  */
-export const hasUserLiked = async (userId: string, jobId?: string, commentId?: string) => {
+export const hasUserLiked = async (
+  userId: string,
+  likeableType: LikeableType,
+  likeableId: string
+) => {
   const like = await prisma.like.findFirst({
     where: {
-      userId,
-      jobId: jobId || undefined,
-      commentId: commentId || undefined
+      user_id: userId,
+      likeable_type: likeableType,
+      likeable_id: likeableId
     }
   });
-  
+
   return !!like;
 };

@@ -105,7 +105,6 @@ model Job {
   company       Company    @relation(fields: [company_id], references: [id])
   seniority_ref Seniority? @relation(fields: [seniority_id], references: [id])
   comments      Comment[]
-  likes         Like[]
 
   @@map("jobs")
 }
@@ -126,16 +125,16 @@ model Comment {
 }
 
 model Like {
-  id         String    @id @default(auto()) @map("_id") @db.ObjectId
-  user_id    String    @db.ObjectId
-  job_id     String    @db.ObjectId
-  created_at DateTime? @default(now())
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  user_id       String    @db.ObjectId
+  likeable_type String // "job" | "comment"
+  likeable_id   String    @db.ObjectId
+  created_at    DateTime? @default(now())
 
   // Relations
   user User @relation(fields: [user_id], references: [id])
-  job  Job  @relation(fields: [job_id], references: [id])
 
-  @@unique([user_id, job_id])
+  @@unique([user_id, likeable_type, likeable_id])
   @@map("likes")
 }
 

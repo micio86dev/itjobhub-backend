@@ -1,6 +1,7 @@
-import { treaty } from '@elysiajs/eden';
-import { Elysia } from 'elysia';
+import { treaty as edenTreaty } from '@elysiajs/eden';
 import { testUsers } from './test-data';
+import { prisma } from '../../src/config/database';
+import type { App } from '../../src/app';
 
 export interface AuthTokens {
   token: string;
@@ -8,8 +9,8 @@ export interface AuthTokens {
   refreshToken?: string;
 }
 
-export async function loginUser(app: Elysia, userType: keyof typeof testUsers): Promise<AuthTokens> {
-  const api = treaty(app);
+export async function loginUser(app: App, userType: keyof typeof testUsers): Promise<AuthTokens> {
+  const api = edenTreaty(app);
   const userData = testUsers[userType];
 
   try {
@@ -20,7 +21,23 @@ export async function loginUser(app: Elysia, userType: keyof typeof testUsers): 
     console.log('Register error (might be expected):', error);
   }
 
-  // Login to get tokens
+  // If this is the admin user, force update their role in DB before logging in
+  // checking if they exist via email is safer but updateMany handles non-existence gracefully-ish or we can rely on register checks
+  if (userType === 'admin') {
+    // We try to update. If user doesn't exist yet (registration failed?), this might throw or do nothing
+    // But since we just tried to register, they should exist
+    const updateResult = await prisma.user.updateMany({
+      where: { email: userData.email },
+      data: { role: 'ADMIN' }
+    });
+    console.log(`Admin update result for ${userData.email}:`, updateResult);
+
+    // Verify user
+    const updatedUser = await prisma.user.findFirst({ where: { email: userData.email } });
+    console.log(`Updated admin user debug:`, updatedUser);
+  }
+
+  // Login to get tokens (now with correct role)
   const response = await api.auth.login.post({
     email: userData.email,
     password: userData.password

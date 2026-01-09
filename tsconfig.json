@@ -12,6 +12,7 @@
   },
   "include": [
     "src/**/*",
+    "tests/**/*",
     "prisma.config.ts"
   ],
   "exclude": [

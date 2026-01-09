@@ -1,9 +1,9 @@
-import type { JWTPayloadSpec } from "@elysiajs/jwt";
-
-export interface UserJwtPayload extends Partial<JWTPayloadSpec> {
+// export interface UserJwtPayload extends Partial<JWTPayloadSpec> { // Removed extends to avoid conflict with iat/aud types
+export interface UserJwtPayload {
   id: string;
   email: string;
   role: string;
+  [key: string]: string | number | boolean | null | undefined | string[];
 }
 
 /**

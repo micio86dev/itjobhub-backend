@@ -14,24 +14,17 @@ export interface CommentCreateInput {
  */
 export const createComment = async (data: CommentCreateInput) => {
   return await prisma.comment.create({
-    data,
+    data: {
+      content: data.content,
+      user: { connect: { id: data.userId } },
+      job: { connect: { id: data.jobId } },
+    },
     include: {
       user: {
         select: {
           id: true,
-          firstName: true,
-          lastName: true
-        }
-      },
-      replies: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true
-            }
-          }
+          first_name: true,
+          last_name: true
         }
       }
     }
@@ -47,12 +40,11 @@ export const createComment = async (data: CommentCreateInput) => {
  */
 export const getCommentsByJob = async (jobId: string, page: number = 1, limit: number = 10) => {
   const skip = (page - 1) * limit;
-  
+
   const [comments, total] = await Promise.all([
     prisma.comment.findMany({
       where: {
-        jobId,
-        parentId: null // Only top-level comments
+        job_id: jobId
       },
       skip,
       take: limit,
@@ -60,37 +52,22 @@ export const getCommentsByJob = async (jobId: string, page: number = 1, limit: n
         user: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true
-          }
-        },
-        replies: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true
-              }
-            }
-          },
-          orderBy: {
-            createdAt: "asc"
+            first_name: true,
+            last_name: true
           }
         }
       },
       orderBy: {
-        createdAt: "desc"
+        created_at: "desc"
       }
     }),
     prisma.comment.count({
       where: {
-        jobId,
-        parentId: null
+        job_id: jobId
       }
     })
   ]);
-  
+
   return {
     comments,
     pagination: {
@@ -114,15 +91,15 @@ export const updateComment = async (id: string, content: string, userId: string)
   const comment = await prisma.comment.findUnique({
     where: { id }
   });
-  
+
   if (!comment) {
     throw new Error("Comment not found");
   }
-  
-  if (comment.userId !== userId) {
+
+  if (comment.user_id !== userId) {
     throw new Error("Not authorized to update this comment");
   }
-  
+
   return await prisma.comment.update({
     where: { id },
     data: { content },
@@ -130,8 +107,8 @@ export const updateComment = async (id: string, content: string, userId: string)
       user: {
         select: {
           id: true,
-          firstName: true,
-          lastName: true
+          first_name: true,
+          last_name: true
         }
       }
     }
@@ -149,15 +126,15 @@ export const deleteComment = async (id: string, userId: string) => {
   const comment = await prisma.comment.findUnique({
     where: { id }
   });
-  
+
   if (!comment) {
     throw new Error("Comment not found");
   }
-  
-  if (comment.userId !== userId) {
+
+  if (comment.user_id !== userId) {
     throw new Error("Not authorized to delete this comment");
   }
-  
+
   return await prisma.comment.delete({
     where: { id }
   });

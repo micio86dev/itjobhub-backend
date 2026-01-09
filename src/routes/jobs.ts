@@ -8,15 +8,19 @@ import {
   importJob,
   batchImportJobs
 } from "../services/jobs/job.service";
-import { formatResponse, formatError } from "../utils/response";
+import { formatResponse, formatError, getErrorMessage } from "../utils/response";
+import { authMiddleware } from "../middleware/auth";
 
 export const jobRoutes = new Elysia({ prefix: "/jobs" })
+  /**
+   * Use auth middleware to add user to context
+   */
+  .use(authMiddleware)
   /**
    * Create a new job
    * @method POST
    * @path /jobs
    */
-  .derive(async ({ user }) => ({ user }))
   .post(
     "/",
     async ({ user, body, set }) => {
@@ -32,31 +36,40 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           return formatError("Forbidden: Only companies can create jobs", 403);
         }
 
+        const companyId = user.role === "COMPANY" ? user.id : body.company_id;
+
+        if (!companyId) {
+          set.status = 400;
+          return formatError("company_id is required", 400);
+        }
+
         const job = await createJob({
           ...body,
-          company_id: body.company_id,
+          company_id: companyId,
           salary_min: body.salary_min,
-          salary_max: body.salary_max
-        } as any);
+          salary_max: body.salary_max,
+          skills: body.skills ? (Array.isArray(body.skills) ? body.skills : [body.skills]) : undefined
+        });
 
         set.status = 201;
         return formatResponse(job, "Job created successfully", 201);
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to create job", 500);
+        return formatError(`Failed to create job: ${getErrorMessage(error)}`, 500);
       }
     },
     {
       body: t.Object({
         title: t.String({ minLength: 1 }),
         description: t.String({ minLength: 1 }),
-        company_id: t.String(),
+        company_id: t.Optional(t.String()),
         location: t.Optional(t.String()),
         salary_min: t.Optional(t.Number()),
         salary_max: t.Optional(t.Number()),
         seniority: t.Optional(t.String()),
-        skills: t.Optional(t.Array(t.String())),
-        remote: t.Optional(t.Boolean())
+        skills: t.Optional(t.Union([t.Array(t.String()), t.String()])),
+        remote: t.Optional(t.Boolean()),
+        link: t.Optional(t.String())
       }),
       response: {
         201: t.Object({
@@ -71,20 +84,20 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             location: t.Optional(t.String()),
             salary_min: t.Optional(t.Number()),
             salary_max: t.Optional(t.Number()),
-            seniority: t.Optional(t.String()),
+            seniority: t.Optional(t.Union([t.String(), t.Null()])),
             skills: t.Array(t.String()),
             remote: t.Boolean(),
             status: t.Union([t.String(), t.Null(), t.Undefined()]),
-            created_at: t.String(),
-            updated_at: t.String(),
+            created_at: t.Any(),
+            updated_at: t.Any(),
             company: t.Object({
               id: t.String(),
               name: t.String(),
               description: t.Optional(t.String()),
               logo: t.Optional(t.String()),
               website: t.Optional(t.String()),
-              created_at: t.String(),
-              updated_at: t.String()
+              created_at: t.Any(),
+              updated_at: t.Any()
             })
           })
         }),
@@ -121,7 +134,15 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         const page = parseInt(query.page || "1");
         const limit = parseInt(query.limit || "10");
 
-        const filters: any = {};
+        const filters: {
+          q?: string;
+          company_id?: string;
+          location?: string;
+          seniority?: string;
+          remote?: boolean;
+          skills?: string[];
+        } = {};
+
         if (query.q) filters.q = query.q;
         if (query.company_id) filters.company_id = query.company_id;
         if (query.location) filters.location = query.location;
@@ -136,9 +157,10 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         const result = await getJobs(limit, filters);
 
         return formatResponse(result, "Jobs retrieved successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
+        console.error("Error retrieving jobs:", error);
         set.status = 500;
-        return formatError("Failed to retrieve jobs", 500);
+        return formatError(`Failed to retrieve jobs: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -218,9 +240,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         }
 
         return formatResponse(job, "Job retrieved successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to retrieve job", 500);
+        return formatError(`Failed to retrieve job: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -304,12 +326,12 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           ...body,
           salary_min: body.salary_min,
           salary_max: body.salary_max
-        } as any);
+        });
 
         return formatResponse(updatedJob, "Job updated successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to update job", 500);
+        return formatError(`Failed to update job: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -325,7 +347,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         seniority: t.Optional(t.String()),
         skills: t.Optional(t.Array(t.String())),
         remote: t.Optional(t.Boolean()),
-        status: t.Optional(t.String())
+        status: t.Optional(t.Union([t.Literal('active'), t.Literal('closed'), t.Literal('draft')]))
       }),
       response: {
         200: t.Object({
@@ -413,9 +435,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         await deleteJob(params.id);
 
         return formatResponse(null, "Job deleted successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to delete job", 500);
+        return formatError(`Failed to delete job: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -478,9 +500,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
 
         set.status = 201;
         return formatResponse(job, "Job imported successfully", 201);
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to import job", 500);
+        return formatError(`Failed to import job: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -579,9 +601,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
 
         set.status = 201;
         return formatResponse(results, "Batch import completed", 201);
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to import jobs", 500);
+        return formatError(`Failed to import jobs: ${getErrorMessage(error)}`, 500);
       }
     },
     {

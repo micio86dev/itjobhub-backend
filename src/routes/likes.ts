@@ -3,11 +3,24 @@ import {
   createLike,
   removeLike,
   getLikeCount,
-  hasUserLiked
+  hasUserLiked,
+  LikeableType
 } from "../services/likes/like.service";
-import { formatResponse, formatError } from "../utils/response";
+import { formatResponse, formatError, getErrorMessage } from "../utils/response";
+import { authMiddleware } from "../middleware/auth";
+
+// Helper to determine likeable type and id from request params
+const getLikeableParams = (
+  jobId?: string,
+  commentId?: string
+): { type: LikeableType; id: string } | null => {
+  if (jobId) return { type: "job", id: jobId };
+  if (commentId) return { type: "comment", id: commentId };
+  return null;
+};
 
 export const likeRoutes = new Elysia({ prefix: "/likes" })
+  .use(authMiddleware)
   /**
    * Like a job or comment
    * @method POST
@@ -21,24 +34,25 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
           set.status = 401;
           return formatError("Unauthorized", 401);
         }
-        
-        // Must provide either jobId or commentId
-        if (!body.jobId && !body.commentId) {
+
+        const likeable = getLikeableParams(body.jobId, body.commentId);
+        if (!likeable) {
           set.status = 400;
           return formatError("Either jobId or commentId must be provided", 400);
         }
-        
-        const like = await createLike(user.id, body.jobId, body.commentId);
-        
+
+        const like = await createLike(user.id, likeable.type, likeable.id);
+
         return formatResponse(like, "Liked successfully");
-      } catch (error: any) {
-        if (error.message === "Like already exists") {
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        if (message === "Like already exists") {
           set.status = 409;
           return formatError("Already liked", 409);
         }
-        
+
         set.status = 500;
-        return formatError("Failed to like", 500);
+        return formatError(`Failed to like: ${message}`, 500);
       }
     },
     {
@@ -53,10 +67,10 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
           message: t.String(),
           data: t.Object({
             id: t.String(),
-            userId: t.String(),
-            jobId: t.Optional(t.String()),
-            commentId: t.Optional(t.String()),
-            createdAt: t.String()
+            user_id: t.String(),
+            likeable_type: t.String(),
+            likeable_id: t.String(),
+            created_at: t.Optional(t.String())
           })
         }),
         400: t.Object({
@@ -98,19 +112,19 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
           set.status = 401;
           return formatError("Unauthorized", 401);
         }
-        
-        // Must provide either jobId or commentId
-        if (!query.jobId && !query.commentId) {
+
+        const likeable = getLikeableParams(query.jobId, query.commentId);
+        if (!likeable) {
           set.status = 400;
           return formatError("Either jobId or commentId must be provided", 400);
         }
-        
-        await removeLike(user.id, query.jobId, query.commentId);
-        
+
+        await removeLike(user.id, likeable.type, likeable.id);
+
         return formatResponse(null, "Unliked successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to unlike", 500);
+        return formatError(`Failed to unlike: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -154,18 +168,18 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
     "/count",
     async ({ query, set }) => {
       try {
-        // Must provide either jobId or commentId
-        if (!query.jobId && !query.commentId) {
+        const likeable = getLikeableParams(query.jobId, query.commentId);
+        if (!likeable) {
           set.status = 400;
           return formatError("Either jobId or commentId must be provided", 400);
         }
-        
-        const count = await getLikeCount(query.jobId, query.commentId);
-        
+
+        const count = await getLikeCount(likeable.type, likeable.id);
+
         return formatResponse({ count }, "Like count retrieved successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to retrieve like count", 500);
+        return formatError(`Failed to retrieve like count: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -211,19 +225,19 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
           set.status = 401;
           return formatError("Unauthorized", 401);
         }
-        
-        // Must provide either jobId or commentId
-        if (!query.jobId && !query.commentId) {
+
+        const likeable = getLikeableParams(query.jobId, query.commentId);
+        if (!likeable) {
           set.status = 400;
           return formatError("Either jobId or commentId must be provided", 400);
         }
-        
-        const liked = await hasUserLiked(user.id, query.jobId, query.commentId);
-        
+
+        const liked = await hasUserLiked(user.id, likeable.type, likeable.id);
+
         return formatResponse({ liked }, "Like status retrieved successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to retrieve like status", 500);
+        return formatError(`Failed to retrieve like status: ${getErrorMessage(error)}`, 500);
       }
     },
     {

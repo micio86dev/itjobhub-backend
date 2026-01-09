@@ -6,7 +6,7 @@ import {
   refreshAuthToken,
   logoutUser,
 } from "../services/auth/auth.service";
-import { formatResponse, formatError } from "../utils/response";
+import { formatResponse, formatError, getErrorMessage } from "../utils/response";
 import { UserJwtPayload } from "../utils/jwt";
 import { config } from "../config";
 
@@ -37,8 +37,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
   .post(
     "/register",
     async (context) => {
-      const { body, cookie: { refresh_token }, set } = context;
-      const jwt = (context as any).jwt;
+      const { body, cookie: { refresh_token }, set, jwt } = context;
       try {
         const result = await registerUser(body);
 
@@ -70,12 +69,12 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
           "User registered successfully",
           201
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 400;
         return {
           success: false,
           status: 400,
-          message: error.message || "Unknown registration error"
+          message: getErrorMessage(error) || "Unknown registration error"
         };
       }
     },
@@ -122,8 +121,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
   .post(
     "/login",
     async (context) => {
-      const { body, cookie: { refresh_token }, set } = context;
-      const jwt = (context as any).jwt;
+      const { body, cookie: { refresh_token }, set, jwt } = context;
       try {
         const result = await loginUser(body);
 
@@ -153,7 +151,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
           },
           "Login successful"
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 401;
         return {
           success: false,
@@ -203,11 +201,10 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
   .post(
     "/refresh",
     async (context) => {
-      const { cookie: { refresh_token }, set } = context;
-      const jwt = (context as any).jwt;
+      const { cookie: { refresh_token }, set, jwt } = context;
       try {
         const refreshToken = refresh_token.value;
-        if (!refreshToken) {
+        if (!refreshToken || typeof refreshToken !== 'string') {
           set.status = 401;
           return formatError("Refresh token required", 401);
         }
@@ -239,12 +236,12 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
           },
           "Token refreshed successfully"
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 401;
         return {
           success: false,
           status: 401,
-          message: error.message
+          message: getErrorMessage(error)
         };
       }
     },
@@ -287,7 +284,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     async ({ cookie: { refresh_token }, set }) => {
       try {
         const refreshToken = refresh_token.value;
-        if (refreshToken) {
+        if (refreshToken && typeof refreshToken === 'string') {
           await logoutUser(refreshToken);
         }
 
@@ -295,7 +292,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         refresh_token.remove();
 
         return formatResponse(null, "Logged out successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
         return {
           success: false,

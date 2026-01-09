@@ -28,7 +28,7 @@ export const formatResponse = <T>(
 export const formatError = (
   message: string,
   status: number = 500,
-  errors?: any
+  errors?: unknown
 ) => {
   return {
     success: false,
@@ -36,4 +36,13 @@ export const formatError = (
     message,
     errors
   };
+};
+
+export const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return String((error as any).message);
+  }
+  return 'Unknown error';
 };

@@ -2,7 +2,7 @@ import { prisma } from "../../config/database";
 
 export interface CompanyCreateInput {
   name: string;
-  description?: string;
+  description?: string | null;
   website?: string;
   logo?: string;
 }

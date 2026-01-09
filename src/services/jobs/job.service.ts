@@ -1,5 +1,4 @@
 import { prisma as dbClient } from "../../config/database";
-// import { types } from "../../db"; // Removed
 
 export interface JobCreateInput {
   title: string;
@@ -15,6 +14,7 @@ export interface JobCreateInput {
   experience_level?: 'junior' | 'mid' | 'senior' | 'lead' | string;
   skills?: string[];
   technical_skills?: string[];
+  link?: string;
 }
 
 export interface JobUpdateInput {
@@ -76,7 +76,11 @@ export const createJob = async (data: JobCreateInput) => {
       remote: data.remote || false,
       employment_type: data.employment_type,
       experience_level: data.experience_level,
-      skills: data.skills ? Array.from(data.skills) : []
+      skills: data.skills ? Array.from(data.skills) : [],
+      link: data.link
+    },
+    include: {
+      company: true
     }
   });
 };
@@ -87,6 +91,8 @@ export const createJob = async (data: JobCreateInput) => {
  * @param filters - Optional filters
  * @returns Jobs with count info
  */
+import { Prisma } from '@prisma/client';
+
 export const getJobs = async (limit: number = 50, filters?: {
   company_id?: string;
   location?: string;
@@ -97,7 +103,7 @@ export const getJobs = async (limit: number = 50, filters?: {
   skills?: string[];
   seniority?: string;
 }) => {
-  const where: any = {};
+  const where: Prisma.JobWhereInput = {};
 
   if (filters) {
     if (filters.status) {
@@ -267,6 +273,9 @@ export const importJob = async (data: JobImportInput) => {
       experience_level: data.experience_level,
       skills: data.skills ? data.skills : [],
       remote: data.remote || false
+    },
+    include: {
+      company: true
     }
   });
 };
@@ -279,7 +288,7 @@ export const importJob = async (data: JobImportInput) => {
 export const batchImportJobs = async (jobs: JobImportInput[]) => {
   const results: {
     successful: Array<{
-      job: any;
+      job: import('@prisma/client').Job;
       companyName: string;
     }>;
     failed: Array<{

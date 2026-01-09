@@ -5,9 +5,11 @@ import {
   updateComment,
   deleteComment
 } from "../services/comments/comment.service";
-import { formatResponse, formatError } from "../utils/response";
+import { formatResponse, formatError, getErrorMessage } from "../utils/response";
+import { authMiddleware } from "../middleware/auth";
 
 export const commentRoutes = new Elysia({ prefix: "/comments" })
+  .use(authMiddleware)
   /**
    * Create a new comment
    * @method POST
@@ -21,17 +23,24 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
           set.status = 401;
           return formatError("Unauthorized", 401);
         }
-        
+
+        if (!body.jobId) {
+          set.status = 400;
+          return formatError("jobId is required", 400);
+        }
+
         const comment = await createComment({
-          ...body,
-          userId: user.id
+          content: body.content,
+          userId: user.id,
+          jobId: body.jobId,
+          parentId: body.parentId
         });
-        
+
         set.status = 201;
         return formatResponse(comment, "Comment created successfully", 201);
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to create comment", 500);
+        return formatError(`Failed to create comment: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -48,29 +57,15 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
           data: t.Object({
             id: t.String(),
             content: t.String(),
-            userId: t.String(),
-            jobId: t.Optional(t.String()),
-            parentId: t.Optional(t.String()),
-            createdAt: t.String(),
-            updatedAt: t.String(),
+            user_id: t.String(),
+            job_id: t.Optional(t.String()),
+            created_at: t.Any(),
+            updated_at: t.Any(),
             user: t.Object({
               id: t.String(),
-              firstName: t.String(),
-              lastName: t.String()
-            }),
-            replies: t.Array(t.Object({
-              id: t.String(),
-              content: t.String(),
-              userId: t.String(),
-              parentId: t.String(),
-              createdAt: t.String(),
-              updatedAt: t.String(),
-              user: t.Object({
-                id: t.String(),
-                firstName: t.String(),
-                lastName: t.String()
-              })
-            }))
+              first_name: t.String(),
+              last_name: t.String()
+            })
           })
         }),
         401: t.Object({
@@ -100,13 +95,13 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
       try {
         const page = parseInt(query.page || "1");
         const limit = parseInt(query.limit || "10");
-        
+
         const result = await getCommentsByJob(params.jobId, page, limit);
-        
+
         return formatResponse(result, "Comments retrieved successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to retrieve comments", 500);
+        return formatError(`Failed to retrieve comments: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -182,23 +177,24 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
           set.status = 401;
           return formatError("Unauthorized", 401);
         }
-        
+
         const comment = await updateComment(params.id, body.content, user.id);
-        
+
         return formatResponse(comment, "Comment updated successfully");
-      } catch (error: any) {
-        if (error.message === "Comment not found") {
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        if (message === "Comment not found") {
           set.status = 404;
           return formatError("Comment not found", 404);
         }
-        
-        if (error.message === "Not authorized to update this comment") {
+
+        if (message === "Not authorized to update this comment") {
           set.status = 403;
           return formatError("Forbidden: Not authorized to update this comment", 403);
         }
-        
+
         set.status = 500;
-        return formatError("Failed to update comment", 500);
+        return formatError(`Failed to update comment: ${message}`, 500);
       }
     },
     {
@@ -267,23 +263,24 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
           set.status = 401;
           return formatError("Unauthorized", 401);
         }
-        
+
         await deleteComment(params.id, user.id);
-        
+
         return formatResponse(null, "Comment deleted successfully");
-      } catch (error: any) {
-        if (error.message === "Comment not found") {
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        if (message === "Comment not found") {
           set.status = 404;
           return formatError("Comment not found", 404);
         }
-        
-        if (error.message === "Not authorized to delete this comment") {
+
+        if (message === "Not authorized to delete this comment") {
           set.status = 403;
           return formatError("Forbidden: Not authorized to delete this comment", 403);
         }
-        
+
         set.status = 500;
-        return formatError("Failed to delete comment", 500);
+        return formatError(`Failed to delete comment: ${message}`, 500);
       }
     },
     {

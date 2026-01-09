@@ -68,7 +68,7 @@ export const registerUser = async (input: RegisterInput) => {
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
-      createdAt: user.created_at.toISOString(),
+      createdAt: user.created_at?.toISOString() ?? new Date().toISOString(),
     },
     refreshToken,
   };
@@ -138,7 +138,7 @@ export const loginUser = async (input: LoginInput) => {
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
-      createdAt: user.created_at.toISOString(),
+      createdAt: user.created_at?.toISOString() ?? new Date().toISOString(),
     },
   };
 };
@@ -201,7 +201,7 @@ export const refreshAuthToken = async (refreshToken: string) => {
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
-      createdAt: user.created_at.toISOString(),
+      createdAt: user.created_at?.toISOString() ?? new Date().toISOString(),
     },
     refreshToken: newRefreshToken,
   };

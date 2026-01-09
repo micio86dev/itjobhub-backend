@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import { getUserById, getUserProfile, upsertUserProfile } from "../services/users/user.service";
 import { authMiddleware } from "../middleware/auth";
-import { formatResponse, formatError } from "../utils/response";
+import { formatResponse, formatError, getErrorMessage } from "../utils/response";
 
 export const userRoutes = new Elysia({ prefix: "/users" })
   .use(authMiddleware)
@@ -50,9 +50,9 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         };
 
         return formatResponse(formattedUser, "User data retrieved successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to retrieve user data", 500);
+        return formatError(`Failed to retrieve user data: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -139,9 +139,9 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         };
 
         return formatResponse(formattedProfile, "Profile retrieved successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to retrieve profile", 500);
+        return formatError(`Failed to retrieve profile: ${getErrorMessage(error)}`, 500);
       }
     },
     {
@@ -218,9 +218,9 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         };
 
         return formatResponse(formattedProfile, "Profile updated successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         set.status = 500;
-        return formatError("Failed to update profile", 500);
+        return formatError(`Failed to update profile: ${getErrorMessage(error)}`, 500);
       }
     },
     {
