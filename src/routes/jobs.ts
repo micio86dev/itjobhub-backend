@@ -80,7 +80,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             id: t.String(),
             title: t.String(),
             description: t.Union([t.String(), t.Null(), t.Undefined()]),
-            company_id: t.String(),
+            company_id: t.Union([t.String(), t.Null()]),
             location: t.Optional(t.String()),
             salary_min: t.Optional(t.Number()),
             salary_max: t.Optional(t.Number()),
@@ -90,7 +90,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             status: t.Union([t.String(), t.Null(), t.Undefined()]),
             created_at: t.Any(),
             updated_at: t.Any(),
-            company: t.Object({
+            company: t.Union([t.Object({
               id: t.String(),
               name: t.String(),
               description: t.Optional(t.String()),
@@ -98,7 +98,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               website: t.Optional(t.String()),
               created_at: t.Any(),
               updated_at: t.Any()
-            })
+            }), t.Null()])
           })
         }),
         401: t.Object({
@@ -184,7 +184,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               id: t.String(),
               title: t.String(),
               description: t.Union([t.String(), t.Null()]),
-              company_id: t.String(),
+              company_id: t.Union([t.String(), t.Null()]),
               location: t.Optional(t.Union([t.String(), t.Null()])),
               salary_min: t.Optional(t.Union([t.Number(), t.Null()])),
               salary_max: t.Optional(t.Union([t.Number(), t.Null()])),
@@ -198,11 +198,11 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               link: t.Optional(t.Union([t.String(), t.Null()])),
               source: t.Optional(t.Union([t.String(), t.Null()])),
               language: t.Optional(t.Union([t.String(), t.Null()])),
-              company: t.Object({
+              company: t.Union([t.Object({
                 id: t.String(),
                 name: t.String(),
                 logo: t.Optional(t.Union([t.String(), t.Null()]))
-              })
+              }), t.Null()])
             })),
             pagination: t.Object({
               page: t.Number(),
@@ -258,7 +258,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             id: t.String(),
             title: t.String(),
             description: t.Union([t.String(), t.Null(), t.Undefined()]),
-            company_id: t.String(),
+            company_id: t.Union([t.String(), t.Null()]),
             location: t.Optional(t.String()),
             salary_min: t.Optional(t.Union([t.Number(), t.Null()])),
             salary_max: t.Optional(t.Union([t.Number(), t.Null()])),
@@ -268,7 +268,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             status: t.Union([t.String(), t.Null(), t.Undefined()]),
             created_at: t.Any(),
             updated_at: t.Any(),
-            company: t.Object({
+            company: t.Union([t.Object({
               id: t.String(),
               name: t.String(),
               description: t.Optional(t.Union([t.String(), t.Null()])),
@@ -276,7 +276,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               website: t.Optional(t.Union([t.String(), t.Null()])),
               created_at: t.Any(),
               updated_at: t.Any()
-            })
+            }), t.Null()])
           })
         }),
         404: t.Object({
@@ -358,7 +358,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             id: t.String(),
             title: t.String(),
             description: t.Union([t.String(), t.Null(), t.Undefined()]),
-            company_id: t.String(),
+            company_id: t.Union([t.String(), t.Null()]),
             location: t.Optional(t.String()),
             salary_min: t.Optional(t.Union([t.Number(), t.Null()])),
             salary_max: t.Optional(t.Union([t.Number(), t.Null()])),
@@ -368,7 +368,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             status: t.Union([t.String(), t.Null(), t.Undefined()]),
             created_at: t.Any(),
             updated_at: t.Any(),
-            company: t.Object({
+            company: t.Union([t.Object({
               id: t.String(),
               name: t.String(),
               description: t.Optional(t.Union([t.String(), t.Null()])),
@@ -376,7 +376,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               website: t.Optional(t.Union([t.String(), t.Null()])),
               created_at: t.Any(),
               updated_at: t.Any()
-            })
+            }), t.Null()])
           })
         }),
         401: t.Object({
@@ -535,7 +535,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             id: t.String(),
             title: t.String(),
             description: t.Union([t.String(), t.Null(), t.Undefined()]),
-            company_id: t.String(),
+            company_id: t.Union([t.String(), t.Null()]),
             location: t.Optional(t.String()),
             salary_min: t.Optional(t.Union([t.Number(), t.Null()])),
             salary_max: t.Optional(t.Union([t.Number(), t.Null()])),
@@ -545,7 +545,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             status: t.Union([t.String(), t.Null(), t.Undefined()]),
             created_at: t.Any(),
             updated_at: t.Any(),
-            company: t.Object({
+            company: t.Union([t.Object({
               id: t.String(),
               name: t.String(),
               description: t.Optional(t.Union([t.String(), t.Null()])),
@@ -553,7 +553,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               website: t.Optional(t.Union([t.String(), t.Null()])),
               created_at: t.Any(),
               updated_at: t.Any()
-            })
+            }), t.Null()])
           })
         }),
         401: t.Object({

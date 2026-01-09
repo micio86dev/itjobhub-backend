@@ -17,6 +17,12 @@ model User {
   created_at DateTime? @default(now())
   updated_at DateTime? @updatedAt
 
+  phone     String?
+  location  String?
+  bio       String?
+  birthDate String?
+  avatar    String?
+
   // Relations
   comments       Comment[]
   likes          Like[]
@@ -63,11 +69,11 @@ type LocationGeo {
 
 model Job {
   id                String    @id @default(auto()) @map("_id") @db.ObjectId
-  company_id        String    @db.ObjectId
+  company_id        String?   @db.ObjectId
   seniority_id      String?   @db.ObjectId
   title             String
   description       String
-  link              String?   @unique
+  link              String?
   source            String?
   original_language String?
   language          String?
@@ -102,7 +108,7 @@ model Job {
   expires_at DateTime?
 
   // Relations
-  company       Company    @relation(fields: [company_id], references: [id])
+  company       Company?   @relation(fields: [company_id], references: [id])
   seniority_ref Seniority? @relation(fields: [seniority_id], references: [id])
   comments      Comment[]
 

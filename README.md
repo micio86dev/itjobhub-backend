@@ -69,6 +69,23 @@ src/
 
 Once the server is running, visit `http://localhost:3001/swagger` for API documentation.
 
+## Quality Assurance
+
+### Linting & Type Checking
+We use TypeScript for strict type checking. To verify the codebase:
+```bash
+bun x tsc --noEmit
+```
+
+### Testing
+We use the native Bun test runner.
+- **Run all tests**: `bun test`
+- **Watch mode**: `bun test --watch`
+- **Coverage**: `bun test --coverage`
+
+> [!NOTE]
+> Integration tests (located in `tests/api.test.ts`) require a running MongoDB instance or a valid `MONGODB_URI` in your `.env`.
+
 ## Deployment
 
 1. Set `NODE_ENV=production` in your environment

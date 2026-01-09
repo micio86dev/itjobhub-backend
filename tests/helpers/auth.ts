@@ -43,8 +43,6 @@ export async function loginUser(app: App, userType: keyof typeof testUsers): Pro
     password: userData.password
   });
 
-  console.log('Login response:', JSON.stringify(response, null, 2));
-
   if (response.error) {
     console.error('Login response error:', JSON.stringify(response.error, null, 2));
     throw new Error(`Failed to login: ${JSON.stringify(response.error)}`);

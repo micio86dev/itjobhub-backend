@@ -130,9 +130,29 @@ export const getUserProfile = async (userId: string) => {
   return profile;
 };
 
-export const upsertUserProfile = async (userId: string, data: UserProfileInput) => {
+export const upsertUserProfile = async (userId: string, data: UserProfileInput & { name?: string; phone?: string; birthDate?: string; avatar?: string }) => {
   // Check if profile exists
   const existingProfile = await getUserProfile(userId);
+
+  // Update User model fields if provided
+  if (data.name || data.phone || data.birthDate || data.avatar) {
+    const nameParts = data.name ? data.name.split(' ') : [];
+    const firstName = nameParts.length > 0 ? nameParts[0] : undefined;
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined;
+
+    await dbClient.user.update({
+      where: { id: userId },
+      data: {
+        ...(firstName && { first_name: firstName }),
+        ...(lastName && { last_name: lastName }),
+        ...(data.phone && { phone: data.phone }),
+        ...(data.birthDate && { birthDate: data.birthDate }),
+        ...(data.avatar && { avatar: data.avatar }),
+        ...(data.location && { location: data.location }),
+        ...(data.bio && { bio: data.bio })
+      }
+    });
+  }
 
   // Build update data with proper field mapping (camelCase to snake_case)
   interface UserProfileUpdateData {

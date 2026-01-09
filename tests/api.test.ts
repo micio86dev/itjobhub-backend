@@ -23,15 +23,25 @@ describe('IT Job Hub API Tests', () => {
     // Setup database
     await setupDatabase();
 
-    // Clean database
+    // Clean database (only test data)
     try {
-      await prisma.refreshToken.deleteMany({});
-      await prisma.userProfile.deleteMany({});
-      await prisma.like.deleteMany({});
-      await prisma.comment.deleteMany({});
-      await prisma.job.deleteMany({});
-      await prisma.company.deleteMany({});
-      await prisma.user.deleteMany({});
+      const testEmails = [
+        testUsers.admin.email,
+        testUsers.company.email,
+        testUsers.jobSeeker.email
+      ];
+
+      // Delete specific test data to avoid wiping the entire database
+      await prisma.refreshToken.deleteMany({ where: { user: { email: { in: testEmails } } } });
+      await prisma.userProfile.deleteMany({ where: { user: { email: { in: testEmails } } } });
+      await prisma.like.deleteMany({ where: { user: { email: { in: testEmails } } } });
+      await prisma.comment.deleteMany({ where: { user: { email: { in: testEmails } } } });
+
+      // We keep jobs and companies unless they specifically match test data
+      await prisma.job.deleteMany({ where: { title: { in: [testJob.title, "Imported Job"] } } });
+      await prisma.company.deleteMany({ where: { name: { in: [testCompany.name, "Imported Company"] } } });
+
+      await prisma.user.deleteMany({ where: { email: { in: testEmails } } });
     } catch (error) {
       console.warn("Failed to clean database:", error);
     }

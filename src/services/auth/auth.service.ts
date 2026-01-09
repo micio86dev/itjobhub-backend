@@ -19,6 +19,19 @@ export interface LoginInput {
  * @param input - Registration data
  * @returns User data and refresh token
  */
+/**
+ * Helper to check if profile is complete
+ */
+const isProfileComplete = (profile: any): boolean => {
+  if (!profile) return false;
+  return (
+    Array.isArray(profile.languages) && profile.languages.length > 0 &&
+    Array.isArray(profile.skills) && profile.skills.length > 0 &&
+    !!profile.seniority &&
+    !!profile.availability
+  );
+};
+
 export const registerUser = async (input: RegisterInput) => {
   // Check if user already exists
   const existingUser = await dbClient.user.findUnique({
@@ -69,6 +82,17 @@ export const registerUser = async (input: RegisterInput) => {
       lastName: user.last_name,
       role: user.role,
       createdAt: user.created_at?.toISOString() ?? new Date().toISOString(),
+      profileCompleted: false,
+      // Default empty values for new user
+      phone: undefined,
+      location: undefined,
+      bio: undefined,
+      birthDate: undefined,
+      avatar: undefined,
+      languages: [],
+      skills: [],
+      seniority: undefined,
+      availability: undefined,
     },
     refreshToken,
   };
@@ -83,6 +107,7 @@ export const loginUser = async (input: LoginInput) => {
   // Find user by email
   const user = await dbClient.user.findUnique({
     where: { email: input.email },
+    include: { profile: true },
   });
 
   if (!user) {
@@ -92,7 +117,6 @@ export const loginUser = async (input: LoginInput) => {
 
   // Verify password
   const isPasswordValid = await comparePasswords(input.password, user.password);
-  console.log(`Password valid: ${isPasswordValid} for email ${input.email}`);
   if (!isPasswordValid) {
     throw new Error("Invalid credentials");
   }
@@ -139,6 +163,18 @@ export const loginUser = async (input: LoginInput) => {
       lastName: user.last_name,
       role: user.role,
       createdAt: user.created_at?.toISOString() ?? new Date().toISOString(),
+      profileCompleted: isProfileComplete(user.profile),
+      // User fields
+      phone: user.phone || undefined,
+      location: user.location || undefined,
+      bio: user.bio || undefined,
+      birthDate: user.birthDate || undefined,
+      avatar: user.avatar || undefined,
+      // Profile fields
+      languages: user.profile?.languages || [],
+      skills: user.profile?.skills || [],
+      seniority: user.profile?.seniority || undefined,
+      availability: user.profile?.availability || undefined,
     },
   };
 };
@@ -161,6 +197,7 @@ export const refreshAuthToken = async (refreshToken: string) => {
   // Get the user data
   const user = await dbClient.user.findUnique({
     where: { id: tokenRecord.user_id },
+    include: { profile: true },
   });
 
   if (!user) {
@@ -202,6 +239,18 @@ export const refreshAuthToken = async (refreshToken: string) => {
       lastName: user.last_name,
       role: user.role,
       createdAt: user.created_at?.toISOString() ?? new Date().toISOString(),
+      profileCompleted: isProfileComplete(user.profile),
+      // User fields
+      phone: user.phone || undefined,
+      location: user.location || undefined,
+      bio: user.bio || undefined,
+      birthDate: user.birthDate || undefined,
+      avatar: user.avatar || undefined,
+      // Profile fields
+      languages: user.profile?.languages || [],
+      skills: user.profile?.skills || [],
+      seniority: user.profile?.seniority || undefined,
+      availability: user.profile?.availability || undefined,
     },
     refreshToken: newRefreshToken,
   };

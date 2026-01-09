@@ -10,6 +10,7 @@ import { companyRoutes } from "./routes/companies";
 import { commentRoutes } from "./routes/comments";
 import { likeRoutes } from "./routes/likes";
 import { authMiddleware } from "./middleware/auth";
+import { deriveLang, translate } from "./i18n";
 
 // Custom key generator to extract IP from request
 const ipKeyGenerator = (req: Request): string => {
@@ -63,6 +64,7 @@ export const app = new Elysia()
             generator: ipKeyGenerator,
         })
     )
+    .derive(deriveLang)
     .use(
         swagger({
             documentation: {
@@ -91,13 +93,14 @@ export const app = new Elysia()
     .use(companyRoutes)
     .use(commentRoutes)
     .use(likeRoutes)
-    .onError(({ code, error, set }) => {
+    .onError(({ code, error, set, request }) => {
         if (code === 'VALIDATION') {
+            const { lang } = deriveLang({ request });
             set.status = 422;
             return {
                 success: false,
                 status: 422,
-                message: "Validation Error",
+                message: translate('validation.error', lang),
                 errors: error.all
             };
         }

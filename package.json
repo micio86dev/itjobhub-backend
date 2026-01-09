@@ -1,6 +1,6 @@
 {
   "name": "it-job-hub-backend",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Backend API for IT Job Hub platform",
   "main": "src/index.ts",
   "scripts": {

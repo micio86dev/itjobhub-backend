@@ -7,10 +7,12 @@ import {
   logoutUser,
 } from "../services/auth/auth.service";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
+import { translate, deriveLang } from "../i18n";
 import { UserJwtPayload } from "../utils/jwt";
 import { config } from "../config";
 
 export const authRoutes = new Elysia({ prefix: "/auth" })
+  .derive(deriveLang)
   /**
    * Register a new user
    * @method POST
@@ -23,13 +25,14 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
       exp: config.jwt.expiresIn
     })
   )
-  .onError(({ code, error, set }) => {
+  .onError(({ code, error, set, request }) => {
     if (code === 'VALIDATION') {
+      const { lang } = deriveLang({ request });
       set.status = 400;
       return {
         success: false,
         status: 400,
-        message: "Validation Error",
+        message: translate('validation.error', lang),
         errors: error.all
       };
     }
@@ -98,6 +101,16 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
               lastName: t.String(),
               role: t.String(),
               createdAt: t.String(),
+              profileCompleted: t.Boolean(),
+              phone: t.Optional(t.String()),
+              location: t.Optional(t.String()),
+              bio: t.Optional(t.String()),
+              birthDate: t.Optional(t.String()),
+              avatar: t.Optional(t.String()),
+              languages: t.Optional(t.Array(t.String())),
+              skills: t.Optional(t.Array(t.String())),
+              seniority: t.Optional(t.String()),
+              availability: t.Optional(t.String()),
             }),
             token: t.String(),
           }),
@@ -156,7 +169,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         return {
           success: false,
           status: 401,
-          message: "Invalid credentials"
+          message: translate('auth.invalid_credentials', context.lang)
         };
       }
     },
@@ -178,6 +191,16 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
               lastName: t.String(),
               role: t.String(),
               createdAt: t.String(),
+              profileCompleted: t.Boolean(),
+              phone: t.Optional(t.String()),
+              location: t.Optional(t.String()),
+              bio: t.Optional(t.String()),
+              birthDate: t.Optional(t.String()),
+              avatar: t.Optional(t.String()),
+              languages: t.Optional(t.Array(t.String())),
+              skills: t.Optional(t.Array(t.String())),
+              seniority: t.Optional(t.String()),
+              availability: t.Optional(t.String()),
             }),
             token: t.String(),
           }),
@@ -259,6 +282,16 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
               lastName: t.String(),
               role: t.String(),
               createdAt: t.String(),
+              profileCompleted: t.Boolean(),
+              phone: t.Optional(t.String()),
+              location: t.Optional(t.String()),
+              bio: t.Optional(t.String()),
+              birthDate: t.Optional(t.String()),
+              avatar: t.Optional(t.String()),
+              languages: t.Optional(t.Array(t.String())),
+              skills: t.Optional(t.Array(t.String())),
+              seniority: t.Optional(t.String()),
+              availability: t.Optional(t.String()),
             }),
             token: t.String(),
           }),
