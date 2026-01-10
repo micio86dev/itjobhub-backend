@@ -46,9 +46,9 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
         return formatResponse(like, "Liked successfully");
       } catch (error: unknown) {
         const message = getErrorMessage(error);
-        if (message === "Like already exists") {
+        if (message === "Reaction already exists") {
           set.status = 409;
-          return formatError("Already liked", 409);
+          return formatError("Already reacted", 409);
         }
 
         set.status = 500;
@@ -71,6 +71,7 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
             user_id: t.String(),
             likeable_type: t.String(),
             likeable_id: t.String(),
+            type: t.String(),
             created_at: t.Any()
           })
         }),

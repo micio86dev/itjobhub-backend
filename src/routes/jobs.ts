@@ -176,7 +176,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         if (query.lng) filters.lng = parseFloat(query.lng);
         if (query.radius_km) filters.radius_km = parseFloat(query.radius_km);
 
-        const result = await getJobs(limit, filters, (user as any)?.id);
+        const result = await getJobs(page, limit, filters, (user as any)?.id);
 
         return formatResponse(result, "Jobs retrieved successfully");
       } catch (error: unknown) {

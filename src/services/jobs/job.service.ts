@@ -94,7 +94,7 @@ export const createJob = async (data: JobCreateInput) => {
  */
 import { Prisma } from '@prisma/client';
 
-export const getJobs = async (limit: number = 50, filters?: {
+export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   company_id?: string;
   location?: string;
   experience_level?: string;
@@ -108,6 +108,7 @@ export const getJobs = async (limit: number = 50, filters?: {
   lng?: number;
   radius_km?: number;
 }, userId?: string) => {
+  const skip = (page - 1) * limit;
   const where: Prisma.JobWhereInput = {};
 
   if (filters) {
@@ -222,6 +223,7 @@ export const getJobs = async (limit: number = 50, filters?: {
   let [jobsRaw, total] = await Promise.all([
     dbClient.job.findMany({
       where,
+      skip: filters?.lat && filters?.lng ? undefined : skip,
       take: filters?.lat && filters?.lng ? undefined : limit,
       include: {
         company: true,
@@ -310,7 +312,7 @@ export const getJobs = async (limit: number = 50, filters?: {
   return {
     jobs,
     pagination: {
-      page: 1,
+      page,
       limit,
       total,
       pages: Math.ceil(total / limit)

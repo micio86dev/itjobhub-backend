@@ -10,6 +10,7 @@ import { companyRoutes } from "./routes/companies";
 import { commentRoutes } from "./routes/comments";
 import { likeRoutes } from "./routes/likes";
 import { adminRoutes } from "./routes/admin";
+import { favoritesRoutes } from "./routes/favorites";
 import { authMiddleware } from "./middleware/auth";
 import { deriveLang, translate } from "./i18n";
 
@@ -46,6 +47,7 @@ export const app = new Elysia()
         cors({
             origin: ["http://localhost:5173", "http://localhost:3000"],
             credentials: true,
+            allowedHeaders: ["Content-Type", "Authorization", "Accept-Language"]
         })
     )
     .use(
@@ -81,6 +83,7 @@ export const app = new Elysia()
                     { name: "companies", description: "Company management endpoints" },
                     { name: "comments", description: "Comment endpoints" },
                     { name: "likes", description: "Like endpoints" },
+                    { name: "favorites", description: "Favorites endpoints" },
                 ],
             },
             path: "/docs",
@@ -95,6 +98,7 @@ export const app = new Elysia()
     .use(commentRoutes)
     .use(likeRoutes)
     .use(adminRoutes)
+    .use(favoritesRoutes)
     .onError(({ code, error, set, request }) => {
         if (code === 'VALIDATION') {
             const { lang } = deriveLang({ request });

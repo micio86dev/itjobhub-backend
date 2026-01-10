@@ -74,6 +74,11 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
             })
           })
         }),
+        400: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
+        }),
         401: t.Object({
           success: t.Boolean(),
           status: t.Number(),
