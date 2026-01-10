@@ -9,6 +9,7 @@ import { jobRoutes } from "./routes/jobs";
 import { companyRoutes } from "./routes/companies";
 import { commentRoutes } from "./routes/comments";
 import { likeRoutes } from "./routes/likes";
+import { adminRoutes } from "./routes/admin";
 import { authMiddleware } from "./middleware/auth";
 import { deriveLang, translate } from "./i18n";
 
@@ -93,6 +94,7 @@ export const app = new Elysia()
     .use(companyRoutes)
     .use(commentRoutes)
     .use(likeRoutes)
+    .use(adminRoutes)
     .onError(({ code, error, set, request }) => {
         if (code === 'VALIDATION') {
             const { lang } = deriveLang({ request });

@@ -1,6 +1,9 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import requests
 
-BASE_URL = "http://localhost:3001"
+BASE_URL = os.getenv("BASE_URL", "http://localhost:3001")
 TIMEOUT = 30
 
 def test_user_login_endpoint():

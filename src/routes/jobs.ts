@@ -81,21 +81,31 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             title: t.String(),
             description: t.Union([t.String(), t.Null(), t.Undefined()]),
             company_id: t.Union([t.String(), t.Null()]),
-            location: t.Optional(t.String()),
-            salary_min: t.Optional(t.Number()),
-            salary_max: t.Optional(t.Number()),
+            location: t.Optional(t.Union([t.String(), t.Null()])),
+            salary_min: t.Optional(t.Union([t.Number(), t.Null()])),
+            salary_max: t.Optional(t.Union([t.Number(), t.Null()])),
             seniority: t.Optional(t.Union([t.String(), t.Null()])),
             skills: t.Array(t.String()),
+            technical_skills: t.Optional(t.Array(t.String())),
+            employment_type: t.Optional(t.Union([t.String(), t.Null()])),
+            experience_level: t.Optional(t.Union([t.String(), t.Null()])),
             remote: t.Boolean(),
-            status: t.Union([t.String(), t.Null(), t.Undefined()]),
+            is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])),
+            published_at: t.Any(),
+            expires_at: t.Any(),
             created_at: t.Any(),
             updated_at: t.Any(),
+            link: t.Optional(t.Union([t.String(), t.Null()])),
+            source: t.Optional(t.Union([t.String(), t.Null()])),
+            language: t.Optional(t.Union([t.String(), t.Null()])),
             company: t.Union([t.Object({
               id: t.String(),
               name: t.String(),
-              description: t.Optional(t.String()),
-              logo: t.Optional(t.String()),
-              website: t.Optional(t.String()),
+              description: t.Optional(t.Union([t.String(), t.Null()])),
+              logo: t.Optional(t.Union([t.String(), t.Null()])),
+              website: t.Optional(t.Union([t.String(), t.Null()])),
+              trustScore: t.Optional(t.Number()),
+              totalRatings: t.Optional(t.Number()),
               created_at: t.Any(),
               updated_at: t.Any()
             }), t.Null()])
@@ -129,10 +139,10 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
    */
   .get(
     "/",
-    async ({ query, set }) => {
+    async ({ query, set, user }) => {
       try {
         const page = parseInt(query.page || "1");
-        const limit = parseInt(query.limit || "10");
+        const limit = parseInt(query.limit || "50");
 
         const filters: {
           q?: string;
@@ -141,6 +151,10 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           seniority?: string;
           remote?: boolean;
           skills?: string[];
+          languages?: string[];
+          lat?: number;
+          lng?: number;
+          radius_km?: number;
         } = {};
 
         if (query.q) filters.q = query.q;
@@ -153,8 +167,16 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             ? query.skills
             : query.skills.split(",");
         }
+        if (query.languages) {
+          filters.languages = Array.isArray(query.languages)
+            ? query.languages
+            : query.languages.split(",");
+        }
+        if (query.lat) filters.lat = parseFloat(query.lat);
+        if (query.lng) filters.lng = parseFloat(query.lng);
+        if (query.radius_km) filters.radius_km = parseFloat(query.radius_km);
 
-        const result = await getJobs(limit, filters);
+        const result = await getJobs(limit, filters, (user as any)?.id);
 
         return formatResponse(result, "Jobs retrieved successfully");
       } catch (error: unknown) {
@@ -172,7 +194,11 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         location: t.Optional(t.String()),
         seniority: t.Optional(t.String()),
         remote: t.Optional(t.String()),
-        skills: t.Optional(t.Union([t.String(), t.Array(t.String())]))
+        skills: t.Optional(t.Union([t.String(), t.Array(t.String())])),
+        languages: t.Optional(t.Union([t.String(), t.Array(t.String())])),
+        lat: t.Optional(t.String()),
+        lng: t.Optional(t.String()),
+        radius_km: t.Optional(t.String())
       }),
       response: {
         200: t.Object({
@@ -191,13 +217,22 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               seniority: t.Optional(t.Union([t.String(), t.Null()])),
               skills: t.Optional(t.Array(t.String())),
               technical_skills: t.Optional(t.Array(t.String())),
+              employment_type: t.Optional(t.Union([t.String(), t.Null()])),
+              experience_level: t.Optional(t.Union([t.String(), t.Null()])),
               remote: t.Optional(t.Union([t.Boolean(), t.Null()])),
+              is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])),
               status: t.Optional(t.Union([t.String(), t.Null()])),
-              created_at: t.Any(), // Keeping Any for Date objects as t.Date is not available in Elysia's t
+              published_at: t.Any(),
+              expires_at: t.Any(),
+              created_at: t.Any(),
               updated_at: t.Any(),
               link: t.Optional(t.Union([t.String(), t.Null()])),
               source: t.Optional(t.Union([t.String(), t.Null()])),
               language: t.Optional(t.Union([t.String(), t.Null()])),
+              likes: t.Number(),
+              dislikes: t.Number(),
+              user_reaction: t.Union([t.String(), t.Null()]),
+              comments_count: t.Number(),
               company: t.Union([t.Object({
                 id: t.String(),
                 name: t.String(),
@@ -264,7 +299,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             salary_max: t.Optional(t.Union([t.Number(), t.Null()])),
             seniority: t.Optional(t.Union([t.String(), t.Null()])),
             skills: t.Array(t.String()),
-            remote: t.Boolean(),
+            technical_skills: t.Optional(t.Array(t.String())), employment_type: t.Optional(t.Union([t.String(), t.Null()])), experience_level: t.Optional(t.Union([t.String(), t.Null()])), remote: t.Boolean(), is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])), published_at: t.Any(), expires_at: t.Any(), link: t.Optional(t.Union([t.String(), t.Null()])), source: t.Optional(t.Union([t.String(), t.Null()])), language: t.Optional(t.Union([t.String(), t.Null()])),
             status: t.Union([t.String(), t.Null(), t.Undefined()]),
             created_at: t.Any(),
             updated_at: t.Any(),
@@ -274,6 +309,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               description: t.Optional(t.Union([t.String(), t.Null()])),
               logo: t.Optional(t.Union([t.String(), t.Null()])),
               website: t.Optional(t.Union([t.String(), t.Null()])),
+              trustScore: t.Optional(t.Number()),
+              totalRatings: t.Optional(t.Number()),
               created_at: t.Any(),
               updated_at: t.Any()
             }), t.Null()])
@@ -364,7 +401,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             salary_max: t.Optional(t.Union([t.Number(), t.Null()])),
             seniority: t.Optional(t.Union([t.String(), t.Null()])),
             skills: t.Array(t.String()),
-            remote: t.Boolean(),
+            technical_skills: t.Optional(t.Array(t.String())), employment_type: t.Optional(t.Union([t.String(), t.Null()])), experience_level: t.Optional(t.Union([t.String(), t.Null()])), remote: t.Boolean(), is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])), published_at: t.Any(), expires_at: t.Any(), link: t.Optional(t.Union([t.String(), t.Null()])), source: t.Optional(t.Union([t.String(), t.Null()])), language: t.Optional(t.Union([t.String(), t.Null()])),
             status: t.Union([t.String(), t.Null(), t.Undefined()]),
             created_at: t.Any(),
             updated_at: t.Any(),
@@ -374,6 +411,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               description: t.Optional(t.Union([t.String(), t.Null()])),
               logo: t.Optional(t.Union([t.String(), t.Null()])),
               website: t.Optional(t.Union([t.String(), t.Null()])),
+              trustScore: t.Optional(t.Number()),
+              totalRatings: t.Optional(t.Number()),
               created_at: t.Any(),
               updated_at: t.Any()
             }), t.Null()])
@@ -541,7 +580,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             salary_max: t.Optional(t.Union([t.Number(), t.Null()])),
             seniority: t.Optional(t.Union([t.String(), t.Null()])),
             skills: t.Array(t.String()),
-            remote: t.Boolean(),
+            technical_skills: t.Optional(t.Array(t.String())), employment_type: t.Optional(t.Union([t.String(), t.Null()])), experience_level: t.Optional(t.Union([t.String(), t.Null()])), remote: t.Boolean(), is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])), published_at: t.Any(), expires_at: t.Any(), link: t.Optional(t.Union([t.String(), t.Null()])), source: t.Optional(t.Union([t.String(), t.Null()])), language: t.Optional(t.Union([t.String(), t.Null()])),
             status: t.Union([t.String(), t.Null(), t.Undefined()]),
             created_at: t.Any(),
             updated_at: t.Any(),

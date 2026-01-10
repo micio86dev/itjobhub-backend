@@ -29,6 +29,12 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
           return formatError("jobId is required", 400);
         }
 
+        const isValidObjectId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
+        if (!isValidObjectId(body.jobId)) {
+          set.status = 400;
+          return formatError("Invalid jobId format", 400);
+        }
+
         const comment = await createComment({
           content: body.content,
           userId: user.id,

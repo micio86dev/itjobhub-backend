@@ -1,6 +1,9 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import requests
 
-BASE_URL = "http://localhost:3001"
+BASE_URL = os.getenv("BASE_URL", "http://localhost:3001")
 TIMEOUT = 30
 
 def test_get_current_user_profile_endpoint():

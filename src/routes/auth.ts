@@ -111,6 +111,10 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
               skills: t.Optional(t.Array(t.String())),
               seniority: t.Optional(t.String()),
               availability: t.Optional(t.String()),
+              location_geo: t.Optional(t.Object({
+                type: t.String(),
+                coordinates: t.Array(t.Number())
+              })),
             }),
             token: t.String(),
           }),
@@ -201,6 +205,10 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
               skills: t.Optional(t.Array(t.String())),
               seniority: t.Optional(t.String()),
               availability: t.Optional(t.String()),
+              location_geo: t.Optional(t.Object({
+                type: t.String(),
+                coordinates: t.Array(t.Number())
+              })),
             }),
             token: t.String(),
           }),
@@ -292,6 +300,10 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
               skills: t.Optional(t.Array(t.String())),
               seniority: t.Optional(t.String()),
               availability: t.Optional(t.String()),
+              location_geo: t.Optional(t.Object({
+                type: t.String(),
+                coordinates: t.Array(t.Number())
+              })),
             }),
             token: t.String(),
           }),

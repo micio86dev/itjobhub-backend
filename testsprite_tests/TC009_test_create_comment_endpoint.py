@@ -1,7 +1,10 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import requests
 import uuid
 
-BASE_URL = "http://localhost:3001"
+BASE_URL = os.getenv("BASE_URL", "http://localhost:3001")
 TIMEOUT = 30
 
 def test_create_comment_endpoint():

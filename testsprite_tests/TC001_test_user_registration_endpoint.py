@@ -1,7 +1,10 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import requests
 import uuid
 
-BASE_URL = "http://localhost:3001"
+BASE_URL = os.getenv("BASE_URL", "http://localhost:3001")
 REGISTER_ENDPOINT = f"{BASE_URL}/auth/register"
 TIMEOUT = 30
 HEADERS = {"Content-Type": "application/json"}

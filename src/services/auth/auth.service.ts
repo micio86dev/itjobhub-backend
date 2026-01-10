@@ -93,6 +93,7 @@ export const registerUser = async (input: RegisterInput) => {
       skills: [],
       seniority: undefined,
       availability: undefined,
+      location_geo: undefined,
     },
     refreshToken,
   };
@@ -175,6 +176,7 @@ export const loginUser = async (input: LoginInput) => {
       skills: user.profile?.skills || [],
       seniority: user.profile?.seniority || undefined,
       availability: user.profile?.availability || undefined,
+      location_geo: user.profile?.location_geo || undefined,
     },
   };
 };
@@ -251,6 +253,7 @@ export const refreshAuthToken = async (refreshToken: string) => {
       skills: user.profile?.skills || [],
       seniority: user.profile?.seniority || undefined,
       availability: user.profile?.availability || undefined,
+      location_geo: user.profile?.location_geo || undefined,
     },
     refreshToken: newRefreshToken,
   };

@@ -33,17 +33,19 @@ model User {
 }
 
 model Company {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  description String?
-  website     String?
-  industry    String?
-  size        String?
-  location    String?
-  logo        String?
-  logo_url    String?
-  created_at  DateTime? @default(now())
-  updated_at  DateTime? @updatedAt
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  description  String?
+  website      String?
+  industry     String?
+  size         String?
+  location     String?
+  logo         String?
+  logo_url     String?
+  trustScore   Float     @default(80.0)
+  totalRatings Int       @default(0)
+  created_at   DateTime? @default(now())
+  updated_at   DateTime? @updatedAt
 
   // Relations
   jobs Job[]
@@ -94,6 +96,7 @@ model Job {
 
   location_geo               LocationGeo?
   formatted_address_verified String?
+  location_raw               String?
 
   employment_type  String?
   experience_level String?
@@ -135,6 +138,7 @@ model Like {
   user_id       String    @db.ObjectId
   likeable_type String // "job" | "comment"
   likeable_id   String    @db.ObjectId
+  type          String    @default("LIKE") // "LIKE" | "DISLIKE"
   created_at    DateTime? @default(now())
 
   // Relations

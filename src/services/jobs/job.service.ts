@@ -53,6 +53,7 @@ export interface JobImportInput {
   link?: string;
   source?: string;
   language?: string;
+  location_raw?: string;
 }
 
 /**
@@ -102,7 +103,11 @@ export const getJobs = async (limit: number = 50, filters?: {
   q?: string;
   skills?: string[];
   seniority?: string;
-}) => {
+  languages?: string[];
+  lat?: number;
+  lng?: number;
+  radius_km?: number;
+}, userId?: string) => {
   const where: Prisma.JobWhereInput = {};
 
   if (filters) {
@@ -127,7 +132,58 @@ export const getJobs = async (limit: number = 50, filters?: {
     }
 
     if (filters.remote !== undefined) {
-      where.remote = filters.remote;
+      where.OR = [
+        ...(where.OR || []),
+        { remote: filters.remote },
+        { is_remote: filters.remote }
+      ];
+    }
+
+    if (filters.languages && filters.languages.length > 0) {
+      // Normalize languages (e.g., "Italian" -> "it", "English" -> "en")
+      const langMapping: { [key: string]: string } = {
+        'italian': 'it',
+        'italiano': 'it',
+        'english': 'en',
+        'inglese': 'en',
+        'spanish': 'es',
+        'spagnolo': 'es',
+        'french': 'fr',
+        'francese': 'fr',
+        'german': 'de',
+        'tedesco': 'de',
+        'portuguese': 'pt',
+        'portoghese': 'pt',
+        'russian': 'ru',
+        'russo': 'ru',
+        'chinese': 'zh',
+        'cinese': 'zh',
+        'japanese': 'ja',
+        'giapponese': 'ja',
+        'arabic': 'ar',
+        'arabo': 'ar',
+        'dutch': 'nl',
+        'olandese': 'nl',
+        'swedish': 'sv',
+        'svedese': 'sv'
+      };
+
+      const normalizedLangs = new Set<string>();
+      filters.languages.forEach(l => {
+        const lower = l.toLowerCase();
+        normalizedLangs.add(lower);
+        if (langMapping[lower]) {
+          normalizedLangs.add(langMapping[lower]);
+        }
+        // Also add the reverse mapping if possible (e.g., if user provides "it", add "italian")
+        Object.entries(langMapping).forEach(([full, code]) => {
+          if (code === lower) {
+            normalizedLangs.add(full);
+          }
+        });
+      });
+
+      where.language = { in: Array.from(normalizedLangs) };
     }
 
     if (filters.q) {
@@ -140,7 +196,7 @@ export const getJobs = async (limit: number = 50, filters?: {
       ];
     }
 
-    if (filters.skills && filters.skills.length > 0) {
+    if (filters.skills) {
       where.OR = [
         ...(where.OR || []),
         { skills: { hasSome: filters.skills } },
@@ -149,12 +205,31 @@ export const getJobs = async (limit: number = 50, filters?: {
     }
   }
 
-  const [jobs, total] = await Promise.all([
+  // Haversine formula to calculate distance between two points in km
+  const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  // Get jobs with comment counts
+  let [jobsRaw, total] = await Promise.all([
     dbClient.job.findMany({
       where,
-      take: limit,
+      take: filters?.lat && filters?.lng ? undefined : limit,
       include: {
-        company: true
+        company: true,
+        _count: {
+          select: {
+            comments: true
+          }
+        }
       },
       orderBy: {
         created_at: 'desc'
@@ -163,10 +238,79 @@ export const getJobs = async (limit: number = 50, filters?: {
     dbClient.job.count({ where })
   ]);
 
+  // Aggregate likes and dislikes for these jobs
+  const jobIds = jobsRaw.map(j => j.id);
+  const [reactionCounts, userReactions] = await Promise.all([
+    dbClient.like.groupBy({
+      by: ['likeable_id', 'type'],
+      where: {
+        likeable_type: 'job',
+        likeable_id: { in: jobIds }
+      },
+      _count: {
+        _all: true
+      }
+    }),
+    // Fetch user specific reactions if userId is provided
+    userId ? dbClient.like.findMany({
+      where: {
+        user_id: userId,
+        likeable_type: 'job',
+        likeable_id: { in: jobIds }
+      }
+    }) : Promise.resolve([])
+  ]);
+
+  // Map counts to jobs
+  const likeCountMap = new Map<string, number>();
+  const dislikeCountMap = new Map<string, number>();
+
+  reactionCounts.forEach(r => {
+    if (r.type === 'LIKE' || !r.type) { // Handle old records without type as LIKE if default applied, but prisma default handles it
+      likeCountMap.set(r.likeable_id, r._count._all);
+    } else if (r.type === 'DISLIKE') {
+      dislikeCountMap.set(r.likeable_id, r._count._all);
+    }
+  });
+
+  // Map user reactions
+  const userReactionMap = new Map<string, string>();
+  if (userReactions) {
+    userReactions.forEach(r => {
+      userReactionMap.set(r.likeable_id, r.type);
+    });
+  }
+
+  let jobs = jobsRaw.map(job => ({
+    ...job,
+    location: job.location || job.location_raw || job.formatted_address_verified || job.city,
+    likes: likeCountMap.get(job.id) || 0,
+    dislikes: dislikeCountMap.get(job.id) || 0,
+    user_reaction: userReactionMap.get(job.id) || null,
+    comments_count: job._count.comments,
+    // Remove Prisma's _count object from response if desired, or keep it.
+    // We'll keep it for now but the mapped properties are easier to consume.
+  }));
+
+  // Apply radius filtering if coordinates provided
+  if (filters?.lat !== undefined && filters?.lng !== undefined && filters?.radius_km) {
+    jobs = jobs.filter(job => {
+      if (!job.location_geo || !job.location_geo.coordinates || job.location_geo.coordinates.length < 2) {
+        return false;
+      }
+      const [jobLng, jobLat] = job.location_geo.coordinates;
+      const distance = getDistance(filters.lat!, filters.lng!, jobLat, jobLng);
+      return distance <= filters.radius_km!;
+    });
+    total = jobs.length;
+    // Apply limit after distance filtering
+    jobs = jobs.slice(0, limit);
+  }
+
   return {
     jobs,
     pagination: {
-      page: 1, // Simplified for now since routes don't pass page correctly here
+      page: 1,
       limit,
       total,
       pages: Math.ceil(total / limit)
@@ -270,6 +414,7 @@ export const importJob = async (data: JobImportInput) => {
       description: data.description,
       company_id: company.id,
       location: data.location,
+      location_raw: data.location_raw,
       salary_min: data.salary_min,
       salary_max: data.salary_max,
       employment_type: data.employment_type,
