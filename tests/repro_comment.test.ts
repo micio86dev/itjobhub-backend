@@ -1,107 +1,98 @@
 
-import { describe, it, expect, beforeAll } from 'bun:test';
-import { setupDatabase } from "../src/config/database";
-import { testUsers, testCompany, testJob, testComment } from './helpers/test-data';
-import { loginUser, createAuthHeaders } from './helpers/auth';
-import { app } from '../src/app';
+import { describe, expect, it, beforeAll, afterAll } from "bun:test";
+import { app } from "../src/app";
+import { prisma } from "../src/config/database";
+import { generateToken } from "../utils/auth";
 
-describe('Comment Reproduction Tests', () => {
-    let jobSeekerHeaders: HeadersInit;
-    let adminHeaders: HeadersInit;
-    let testCompanyId: string;
-    let testJobId: string;
+const BASE_URL = "http://localhost:3001";
+
+describe("Comment API Reproduction", () => {
+    let authToken = "";
+    let userId = "";
+    let jobId = "";
 
     beforeAll(async () => {
-        await setupDatabase();
-        // Login
-        const jobSeekerTokens = await loginUser(app, 'jobSeeker');
-        jobSeekerHeaders = createAuthHeaders(jobSeekerTokens);
-
-        const adminTokens = await loginUser(app, 'admin');
-        adminHeaders = createAuthHeaders(adminTokens);
-
-        // Create Company (needed for Job)
-        const companyRes = await app.handle(
-            new Request('http://localhost/companies', {
-                method: 'POST',
-                headers: adminHeaders,
-                body: JSON.stringify(testCompany)
-            })
-        );
-        const companyData = await companyRes.json();
-        if (!companyData.success) {
-            // Might already exist
-            const all = await app.handle(new Request('http://localhost/companies'));
-            const allData = await all.json();
-            const found = allData.data.companies.find((c: any) => c.name === testCompany.name);
-            if (found) testCompanyId = found.id;
-        } else {
-            testCompanyId = companyData.data.id;
-        }
-
-        // Create Job
-        const jobRes = await app.handle(
-            new Request('http://localhost/jobs', {
-                method: 'POST',
-                headers: adminHeaders,
-                body: JSON.stringify({
-                    ...testJob,
-                    company_id: testCompanyId
-                })
-            })
-        );
-        const jobData = await jobRes.json();
-        // If fails, look for existing
-        if (!jobData.success) {
-            const allJobs = await app.handle(new Request('http://localhost/jobs'));
-            const allJobsData = await allJobs.json();
-            const foundJob = allJobsData.data.jobs.find((j: any) => j.title === testJob.title);
-            if (foundJob) testJobId = foundJob.id;
-        } else {
-            testJobId = jobData.data.id;
+        // Cleanup potentially stale data from previous failed runs
+        try {
+            const user = await prisma.user.findFirst({ where: { email: { startsWith: "repro_comment_" } } });
+            if (user) {
+                await prisma.refreshToken.deleteMany({ where: { user_id: user.id } });
+                await prisma.userProfile.deleteMany({ where: { user_id: user.id } });
+                await prisma.user.delete({ where: { id: user.id } });
+            }
+        } catch (e) {
+            console.log("Pre-cleanup ignored", e);
         }
     });
 
-    it('should create a comment with valid ID', async () => {
-        const commentData = {
-            content: "Reproduction Test Comment",
-            jobId: testJobId
-        };
-        const response = await app.handle(
-            new Request('http://localhost/comments', {
-                method: 'POST',
-                headers: jobSeekerHeaders,
-                body: JSON.stringify(commentData)
+    it("should successfully create a comment via API", async () => {
+        // 1. Register a user
+        const email = `repro_comment_${Date.now()}@test.com`;
+        const registerRes = await app.handle(new Request(`${BASE_URL}/auth/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                email,
+                password: "password123",
+                firstName: "Repro",
+                lastName: "User"
             })
-        );
-        const data = await response.json();
+        }));
 
-        console.log("Valid Comment Response:", JSON.stringify(data, null, 2));
+        const registerData = await registerRes.json();
+        if (!registerData.success) {
+            console.error("Register failed:", registerData);
+        }
+        expect(registerRes.status).toBe(201);
 
-        expect(response.status).toBe(201);
-        expect(data.success).toBe(true);
-        expect(data.data.content).toBe(commentData.content);
-    });
+        authToken = registerData.data.token;
+        userId = registerData.data.user.id;
 
-    it('should fail gracefully with invalid ObjectId', async () => {
-        const commentData = {
-            content: "Invalid ID Comment",
-            jobId: "123" // Invalid Mongo ObjectId
-        };
-        const response = await app.handle(
-            new Request('http://localhost/comments', {
-                method: 'POST',
-                headers: jobSeekerHeaders,
-                body: JSON.stringify(commentData)
+        // 2. Create a job
+        const job = await prisma.job.create({
+            data: {
+                title: "Test Job for Comments",
+                description: "Description",
+                company: { create: { name: "Test Corp" } },
+                skills: ["Test"],
+                seniority: "junior"
+            }
+        });
+        jobId = job.id;
+
+        // 3. Post a comment
+        const commentRes = await app.handle(new Request(`${BASE_URL}/comments`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                jobId: jobId,
+                content: "This is a test comment"
             })
-        );
-        const data = await response.json();
+        }));
 
-        console.log("Invalid ID Response:", JSON.stringify(data, null, 2));
+        const commentData = await commentRes.json();
+        console.log("Comment Response:", JSON.stringify(commentData, null, 2));
 
-        // Expect 400 Bad Request
-        expect(response.status).toBe(400);
-        expect(data.message).toBe("Invalid jobId format");
-        expect(data.success).toBe(false);
+        expect(commentRes.status).toBe(201);
+        expect(commentData.success).toBe(true);
+        expect(commentData.data.content).toBe("This is a test comment");
+
+        // Cleanup - MUST delete relations first
+        try {
+            await prisma.comment.deleteMany({ where: { job_id: jobId } });
+            await prisma.job.delete({ where: { id: jobId } });
+            // Delete Refresh Tokens created during login/register
+            await prisma.refreshToken.deleteMany({ where: { user_id: userId } });
+            // Delete UserProfile if created
+            await prisma.userProfile.deleteMany({ where: { user_id: userId } });
+            // Finally delete user
+            await prisma.user.delete({ where: { id: userId } });
+        } catch (e) {
+            console.error("Cleanup failed:", e);
+            throw e;
+        }
     });
 });

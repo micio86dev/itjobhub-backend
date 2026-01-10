@@ -167,7 +167,18 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                     }
                 });
 
-                return formatResponse(favorites, "Favorites retrieved successfully");
+                const formattedFavorites = favorites.map(fav => ({
+                    ...fav,
+                    job: {
+                        ...fav.job,
+                        likes: 0,
+                        dislikes: 0,
+                        user_reaction: null as string | null,
+                        comments_count: 0
+                    }
+                }));
+
+                return formatResponse(formattedFavorites, "Favorites retrieved successfully");
             } catch (error: unknown) {
                 set.status = 500;
                 return formatError(`Failed to get favorites: ${getErrorMessage(error)}`, 500);
@@ -188,6 +199,28 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                             id: t.String(),
                             title: t.String(),
                             description: t.Union([t.String(), t.Null()]),
+                            company_id: t.Union([t.String(), t.Null()]),
+                            location: t.Optional(t.Union([t.String(), t.Null()])),
+                            salary_min: t.Optional(t.Union([t.Number(), t.Null()])),
+                            salary_max: t.Optional(t.Union([t.Number(), t.Null()])),
+                            seniority: t.Optional(t.Union([t.String(), t.Null()])),
+                            skills: t.Array(t.String()),
+                            technical_skills: t.Optional(t.Array(t.String())),
+                            employment_type: t.Optional(t.Union([t.String(), t.Null()])),
+                            experience_level: t.Optional(t.Union([t.String(), t.Null()])),
+                            remote: t.Boolean(),
+                            is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])),
+                            published_at: t.Any(),
+                            expires_at: t.Any(),
+                            created_at: t.Any(),
+                            updated_at: t.Any(),
+                            link: t.Optional(t.Union([t.String(), t.Null()])),
+                            source: t.Optional(t.Union([t.String(), t.Null()])),
+                            language: t.Optional(t.Union([t.String(), t.Null()])),
+                            likes: t.Number(),
+                            dislikes: t.Number(),
+                            user_reaction: t.Union([t.String(), t.Null()]),
+                            comments_count: t.Number(),
                             company: t.Union([t.Object({
                                 id: t.String(),
                                 name: t.String(),
