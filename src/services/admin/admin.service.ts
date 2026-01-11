@@ -118,6 +118,56 @@ export const getStatistics = async (month?: number, year?: number) => {
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
 
+    // Fetch jobs with geolocation for map
+    const mapJobs = await dbClient.job.findMany({
+        where: {
+            ...((isFiltered ? { created_at: { gte: startDate, lt: endDate } } : {})),
+            location_geo: { isSet: true },
+            // status: 'active' // Only show active jobs
+        },
+        select: {
+            id: true,
+            title: true,
+            salary_min: true,
+            salary_max: true,
+            employment_type: true,
+            location_geo: true,
+            company: {
+                select: {
+                    name: true,
+                    logo: true,
+                    logo_url: true
+                }
+            }
+        },
+        take: 500 // Limit points on map for performance
+    });
+
+    const locations = mapJobs.map(job => {
+        if (!job.location_geo || !job.location_geo.coordinates || job.location_geo.coordinates.length < 2) return null;
+        return {
+            id: job.id,
+            title: job.title,
+            companyName: job.company?.name || 'Unknown',
+            companyLogo: job.company?.logo_url || job.company?.logo || null,
+            salary: job.salary_min && job.salary_max ? `€${job.salary_min} - €${job.salary_max}` :
+                job.salary_min ? `€${job.salary_min}+` : null,
+            type: job.employment_type || null,
+            // GeoJSON is [lng, lat], Google Maps is { lat, lng }
+            lat: job.location_geo.coordinates[1],
+            lng: job.location_geo.coordinates[0]
+        };
+    }).filter(l => l !== null) as {
+        id: string;
+        title: string;
+        companyName: string;
+        companyLogo: string | null;
+        salary: string | null;
+        type: string | null;
+        lat: number;
+        lng: number
+    }[];
+
     return {
         overview: {
             users: { total: totalUsers, new: newUsers },
@@ -135,7 +185,8 @@ export const getStatistics = async (month?: number, year?: number) => {
                 value: item._count._all,
             })).sort((a, b) => b.value - a.value),
             trends: trendData,
-            topSkills
+            topSkills,
+            locations
         },
     };
 };

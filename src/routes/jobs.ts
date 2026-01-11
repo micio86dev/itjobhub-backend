@@ -6,7 +6,6 @@ import {
   updateJob,
   deleteJob,
   importJob,
-  importJob,
   batchImportJobs,
   getTopSkills
 } from "../services/jobs/job.service";
@@ -144,7 +143,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
     async ({ query, set }) => {
       try {
         const limit = query.limit || 10;
-        const skills = await getTopSkills(limit);
+        const year = query.year;
+        const skills = await getTopSkills(limit, year);
         return formatResponse(skills, "Top skills retrieved successfully");
       } catch (error: unknown) {
         set.status = 500;
@@ -153,7 +153,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
     },
     {
       query: t.Object({
-        limit: t.Optional(t.Numeric())
+        limit: t.Optional(t.Numeric()),
+        year: t.Optional(t.Numeric())
       }),
       response: {
         200: t.Object({
@@ -199,6 +200,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           lat?: number;
           lng?: number;
           radius_km?: number;
+          dateRange?: string;
         } = {};
 
         if (query.q) filters.q = query.q;
@@ -219,6 +221,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         if (query.lat) filters.lat = query.lat;
         if (query.lng) filters.lng = query.lng;
         if (query.radius_km) filters.radius_km = query.radius_km;
+        if (query.dateRange) filters.dateRange = query.dateRange;
 
         const result = await getJobs(page, limit, filters, (user as any)?.id);
 
@@ -242,7 +245,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         languages: t.Optional(t.Union([t.String(), t.Array(t.String())])),
         lat: t.Optional(t.Numeric()),
         lng: t.Optional(t.Numeric()),
-        radius_km: t.Optional(t.Numeric())
+        radius_km: t.Optional(t.Numeric()),
+        dateRange: t.Optional(t.String())
       }),
       response: {
         200: t.Object({
@@ -343,12 +347,21 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             title: t.String(),
             description: t.Union([t.String(), t.Null(), t.Undefined()]),
             company_id: t.Union([t.String(), t.Null()]),
-            location: t.Optional(t.String()),
+            location: t.Optional(t.Union([t.String(), t.Null()])),
             salary_min: t.Optional(t.Union([t.Number(), t.Null()])),
             salary_max: t.Optional(t.Union([t.Number(), t.Null()])),
             seniority: t.Optional(t.Union([t.String(), t.Null()])),
             skills: t.Array(t.String()),
-            technical_skills: t.Optional(t.Array(t.String())), employment_type: t.Optional(t.Union([t.String(), t.Null()])), experience_level: t.Optional(t.Union([t.String(), t.Null()])), remote: t.Boolean(), is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])), published_at: t.Any(), expires_at: t.Any(), link: t.Optional(t.Union([t.String(), t.Null()])), source: t.Optional(t.Union([t.String(), t.Null()])), language: t.Optional(t.Union([t.String(), t.Null()])),
+            technical_skills: t.Optional(t.Array(t.String())),
+            employment_type: t.Optional(t.Union([t.String(), t.Null()])),
+            experience_level: t.Optional(t.Union([t.String(), t.Null()])),
+            remote: t.Boolean(),
+            is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])),
+            published_at: t.Any(),
+            expires_at: t.Any(),
+            link: t.Optional(t.Union([t.String(), t.Null()])),
+            source: t.Optional(t.Union([t.String(), t.Null()])),
+            language: t.Optional(t.Union([t.String(), t.Null()])),
             status: t.Union([t.String(), t.Null(), t.Undefined()]),
             created_at: t.Any(),
             updated_at: t.Any(),

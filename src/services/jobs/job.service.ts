@@ -54,6 +54,11 @@ export interface JobImportInput {
   source?: string;
   language?: string;
   location_raw?: string;
+  location_geo?: {
+    type: string;
+    coordinates: number[];
+  };
+  published_at?: Date | string;
 }
 
 /**
@@ -107,66 +112,87 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   lat?: number;
   lng?: number;
   radius_km?: number;
+  dateRange?: string; // Add this
 }, userId?: string) => {
   const skip = (page - 1) * limit;
   const where: Prisma.JobWhereInput = {};
+  const andConditions: Prisma.JobWhereInput[] = [];
 
   if (filters) {
     if (filters.status) {
-      where.status = filters.status;
+      andConditions.push({ status: filters.status });
     }
 
     if (filters.company_id) {
-      where.company_id = filters.company_id;
+      andConditions.push({ company_id: filters.company_id });
     }
 
     if (filters.location) {
-      where.location = { contains: filters.location, mode: 'insensitive' };
+      andConditions.push({ location: { contains: filters.location, mode: 'insensitive' } });
     }
 
     if (filters.experience_level) {
-      where.experience_level = filters.experience_level;
+      andConditions.push({ experience_level: filters.experience_level });
     }
 
     if (filters.seniority) {
-      where.seniority = { equals: filters.seniority, mode: "insensitive" };
+      andConditions.push({ seniority: { equals: filters.seniority, mode: "insensitive" } });
     }
 
     if (filters.remote !== undefined) {
-      where.OR = [
-        ...(where.OR || []),
-        { remote: filters.remote },
-        { is_remote: filters.remote }
-      ];
+      andConditions.push({
+        OR: [
+          { remote: filters.remote },
+          { is_remote: filters.remote }
+        ]
+      });
+    }
+
+    if (filters.dateRange) {
+      const now = new Date();
+      const fromDate = new Date(now.getTime());
+
+      switch (filters.dateRange) {
+        case 'today':
+          // Start of today in local server time - better to use UTC if DB is UTC
+          fromDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          fromDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          fromDate.setMonth(now.getMonth() - 1);
+          break;
+        case '3months':
+          fromDate.setMonth(now.getMonth() - 3);
+          break;
+      }
+
+      if (fromDate) {
+        andConditions.push({
+          OR: [
+            { published_at: { gte: fromDate } },
+            { created_at: { gte: fromDate } }
+          ]
+        });
+      }
     }
 
     if (filters.languages && filters.languages.length > 0) {
-      // Normalize languages (e.g., "Italian" -> "it", "English" -> "en")
+      // Normalize languages
       const langMapping: { [key: string]: string } = {
-        'italian': 'it',
-        'italiano': 'it',
-        'english': 'en',
-        'inglese': 'en',
-        'spanish': 'es',
-        'spagnolo': 'es',
-        'french': 'fr',
-        'francese': 'fr',
-        'german': 'de',
-        'tedesco': 'de',
-        'portuguese': 'pt',
-        'portoghese': 'pt',
-        'russian': 'ru',
-        'russo': 'ru',
-        'chinese': 'zh',
-        'cinese': 'zh',
-        'japanese': 'ja',
-        'giapponese': 'ja',
-        'arabic': 'ar',
-        'arabo': 'ar',
-        'dutch': 'nl',
-        'olandese': 'nl',
-        'swedish': 'sv',
-        'svedese': 'sv'
+        'italian': 'it', 'italiano': 'it',
+        'english': 'en', 'inglese': 'en',
+        'spanish': 'es', 'spagnolo': 'es',
+        'french': 'fr', 'francese': 'fr',
+        'german': 'de', 'tedesco': 'de',
+        'portuguese': 'pt', 'portoghese': 'pt',
+        'russian': 'ru', 'russo': 'ru',
+        'chinese': 'zh', 'cinese': 'zh',
+        'japanese': 'ja', 'giapponese': 'ja',
+        'arabic': 'ar', 'arabo': 'ar',
+        'dutch': 'nl', 'olandese': 'nl',
+        'swedish': 'sv', 'svedese': 'sv'
       };
 
       const normalizedLangs = new Set<string>();
@@ -176,19 +202,15 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
         if (langMapping[lower]) {
           normalizedLangs.add(langMapping[lower]);
         }
-        // Also add the reverse mapping if possible (e.g., if user provides "it", add "italian")
         Object.entries(langMapping).forEach(([full, code]) => {
-          if (code === lower) {
-            normalizedLangs.add(full);
-          }
+          if (code === lower) normalizedLangs.add(full);
         });
       });
 
-      where.language = { in: Array.from(normalizedLangs) };
+      andConditions.push({ language: { in: Array.from(normalizedLangs) } });
     }
 
     if (filters.q) {
-      // Generate variations for case-insensitive skill matching
       const qVariations = [
         filters.q,
         filters.q.toLowerCase(),
@@ -196,17 +218,18 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
         filters.q.charAt(0).toUpperCase() + filters.q.slice(1).toLowerCase()
       ];
 
-      where.OR = [
-        { title: { contains: filters.q, mode: 'insensitive' } },
-        { description: { contains: filters.q, mode: 'insensitive' } },
-        { location: { contains: filters.q, mode: 'insensitive' } },
-        { skills: { hasSome: qVariations } },
-        { technical_skills: { hasSome: qVariations } }
-      ];
+      andConditions.push({
+        OR: [
+          { title: { contains: filters.q, mode: 'insensitive' } },
+          { description: { contains: filters.q, mode: 'insensitive' } },
+          { location: { contains: filters.q, mode: 'insensitive' } },
+          { skills: { hasSome: qVariations } },
+          { technical_skills: { hasSome: qVariations } }
+        ]
+      });
     }
 
     if (filters.skills) {
-      // Expand skills to handle potential casing differences since Prisma doesn't support case-insensitive array matching easily
       const expandedSkills = new Set<string>();
       filters.skills.forEach(skill => {
         expandedSkills.add(skill);
@@ -216,14 +239,19 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
       });
 
       const skillsList = Array.from(expandedSkills);
+      andConditions.push({
+        OR: [
+          { skills: { hasSome: skillsList } },
+          { technical_skills: { hasSome: skillsList } }
+        ]
+      });
+    }
 
-      where.OR = [
-        ...(where.OR || []),
-        { skills: { hasSome: skillsList } },
-        { technical_skills: { hasSome: skillsList } }
-      ];
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
   }
+
 
   // Haversine formula to calculate distance between two points in km
   const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -483,7 +511,9 @@ export const importJob = async (data: JobImportInput) => {
       employment_type: data.employment_type,
       experience_level: data.experience_level,
       skills: data.skills ? data.skills : [],
-      remote: data.remote || false
+      remote: data.remote || false,
+      location_geo: data.location_geo,
+      published_at: data.published_at ? new Date(data.published_at) : undefined
     },
     include: {
       company: true
@@ -556,8 +586,21 @@ export const batchImportJobs = async (jobs: JobImportInput[]) => {
   return results;
 };
 
-export const getTopSkills = async (limit: number = 10) => {
+export const getTopSkills = async (limit: number = 10, year?: number) => {
+  const where: any = {};
+
+  if (year) {
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year + 1, 0, 1);
+
+    where.OR = [
+      { published_at: { gte: startDate, lt: endDate } },
+      { created_at: { gte: startDate, lt: endDate } }
+    ];
+  }
+
   const jobs = await dbClient.job.findMany({
+    where,
     select: {
       skills: true,
       technical_skills: true
@@ -571,8 +614,10 @@ export const getTopSkills = async (limit: number = 10) => {
       skillsArray.forEach((skill: any) => {
         if (typeof skill === 'string') {
           const normalizedSkill = skill.trim();
-          if (normalizedSkill) {
-            skillCounts[normalizedSkill] = (skillCounts[normalizedSkill] || 0) + 1;
+          // Capitalize first letter for consistency
+          const formattedSkill = normalizedSkill.charAt(0).toUpperCase() + normalizedSkill.slice(1);
+          if (formattedSkill) {
+            skillCounts[formattedSkill] = (skillCounts[formattedSkill] || 0) + 1;
           }
         }
       });
