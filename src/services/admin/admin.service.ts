@@ -49,6 +49,36 @@ export const getStatistics = async (month?: number, year?: number) => {
         }),
     ]);
 
+    // Calculate Trend Data (always for the full year of the context)
+    const trendYear = year || new Date().getFullYear();
+    const trendStart = new Date(trendYear, 0, 1);
+    const trendEnd = new Date(trendYear + 1, 0, 1);
+
+    const trendJobs = await dbClient.job.findMany({
+        where: {
+            created_at: {
+                gte: trendStart,
+                lt: trendEnd
+            }
+        },
+        select: {
+            created_at: true
+        }
+    });
+
+    // Bucket into 12 months
+    const monthlyCounts = new Array(12).fill(0);
+    trendJobs.forEach(job => {
+        if (job.created_at) {
+            monthlyCounts[job.created_at.getMonth()]++;
+        }
+    });
+
+    const trendData = monthlyCounts.map((count, index) => ({
+        label: index.toString(),
+        value: count
+    }));
+
     return {
         overview: {
             users: { total: totalUsers, new: newUsers },
@@ -65,6 +95,7 @@ export const getStatistics = async (month?: number, year?: number) => {
                 label: item.employment_type || 'Non Specificato',
                 value: item._count._all,
             })),
+            trends: trendData
         },
     };
 };

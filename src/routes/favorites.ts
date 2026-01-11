@@ -158,7 +158,10 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                     include: {
                         job: {
                             include: {
-                                company: true
+                                company: true,
+                                comments: {
+                                    select: { id: true }
+                                }
                             }
                         }
                     },
@@ -167,16 +170,42 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                     }
                 });
 
-                const formattedFavorites = favorites.map(fav => ({
-                    ...fav,
-                    job: {
-                        ...fav.job,
-                        likes: 0,
-                        dislikes: 0,
-                        user_reaction: null as string | null,
-                        comments_count: 0
+                // Extract job IDs to fetch likes efficiently
+                const jobIds = favorites.map(f => f.job_id);
+
+                // Fetch all likes for these jobs
+                const allLikes = await prisma.like.findMany({
+                    where: {
+                        likeable_type: 'job', // Assuming 'job' is the correct string
+                        likeable_id: { in: jobIds }
                     }
-                }));
+                });
+
+                const formattedFavorites = favorites.map(fav => {
+                    const job = fav.job;
+
+                    // Filter likes for this specific job
+                    const jobLikes = allLikes.filter(l => l.likeable_id === job.id);
+
+                    const likesCount = jobLikes.filter(l => l.type === 'LIKE').length;
+                    const dislikesCount = jobLikes.filter(l => l.type === 'DISLIKE').length;
+                    const userReaction = jobLikes.find(l => l.user_id === user.id)?.type || null;
+                    const commentsCount = job.comments.length;
+
+                    // Remove heavy arrays before sending
+                    const { comments, ...jobData } = job;
+
+                    return {
+                        ...fav,
+                        job: {
+                            ...jobData,
+                            likes: likesCount,
+                            dislikes: dislikesCount,
+                            user_reaction: userReaction,
+                            comments_count: commentsCount
+                        }
+                    };
+                });
 
                 return formatResponse(formattedFavorites, "Favorites retrieved successfully");
             } catch (error: unknown) {
