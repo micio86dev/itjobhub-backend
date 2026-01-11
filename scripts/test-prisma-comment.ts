@@ -1,5 +1,5 @@
 
-import { prisma } from "../backend/src/config/database";
+import { prisma } from "../src/config/database";
 
 async function test() {
     try {

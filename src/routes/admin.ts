@@ -4,7 +4,7 @@ import { formatResponse, formatError } from "../utils/response";
 
 export const adminRoutes = new Elysia({ prefix: "/admin" })
     .guard({
-        beforeHandle: ({ user, set }) => {
+        beforeHandle: ({ user, set }: any) => {
             if (!user) {
                 set.status = 401;
                 return formatError("Unauthorized", 401);

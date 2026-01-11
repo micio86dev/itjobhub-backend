@@ -129,7 +129,7 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
     }
 
     if (filters.seniority) {
-      where.seniority = filters.seniority;
+      where.seniority = { equals: filters.seniority, mode: "insensitive" };
     }
 
     if (filters.remote !== undefined) {
@@ -188,20 +188,39 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
     }
 
     if (filters.q) {
+      // Generate variations for case-insensitive skill matching
+      const qVariations = [
+        filters.q,
+        filters.q.toLowerCase(),
+        filters.q.toUpperCase(),
+        filters.q.charAt(0).toUpperCase() + filters.q.slice(1).toLowerCase()
+      ];
+
       where.OR = [
         { title: { contains: filters.q, mode: 'insensitive' } },
         { description: { contains: filters.q, mode: 'insensitive' } },
         { location: { contains: filters.q, mode: 'insensitive' } },
-        { skills: { has: filters.q } },
-        { technical_skills: { has: filters.q } }
+        { skills: { hasSome: qVariations } },
+        { technical_skills: { hasSome: qVariations } }
       ];
     }
 
     if (filters.skills) {
+      // Expand skills to handle potential casing differences since Prisma doesn't support case-insensitive array matching easily
+      const expandedSkills = new Set<string>();
+      filters.skills.forEach(skill => {
+        expandedSkills.add(skill);
+        expandedSkills.add(skill.toLowerCase());
+        expandedSkills.add(skill.toUpperCase());
+        expandedSkills.add(skill.charAt(0).toUpperCase() + skill.slice(1).toLowerCase());
+      });
+
+      const skillsList = Array.from(expandedSkills);
+
       where.OR = [
         ...(where.OR || []),
-        { skills: { hasSome: filters.skills } },
-        { technical_skills: { hasSome: filters.skills } }
+        { skills: { hasSome: skillsList } },
+        { technical_skills: { hasSome: skillsList } }
       ];
     }
   }
@@ -298,17 +317,43 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
     });
   }
 
-  let jobs = jobsRaw.map(job => ({
-    ...job,
-    location: job.location || job.location_raw || job.formatted_address_verified || job.city,
-    likes: likeCountMap.get(job.id) || 0,
-    dislikes: dislikeCountMap.get(job.id) || 0,
-    user_reaction: userReactionMap.get(job.id) || null,
-    is_favorite: userFavoriteSet.has(job.id),
-    comments_count: job._count.comments,
-    // Remove Prisma's _count object from response if desired, or keep it.
-    // We'll keep it for now but the mapped properties are easier to consume.
-  }));
+  let jobs = jobsRaw.map(job => {
+    // Normalize employment_type to availability
+    let availability = 'not_specified';
+    if (job.employment_type) {
+      const et = job.employment_type.toLowerCase();
+      if (et.includes('full') || et.includes('tempo pieno')) availability = 'full_time';
+      else if (et.includes('part') || et.includes('part-time')) availability = 'part_time';
+      else if (et.includes('contract') || et.includes('contratto')) availability = 'contract';
+      else if (et.includes('freelance') || et.includes('partita iva')) availability = 'contract';
+      else if (et.includes('intern') || et.includes('tirocinio') || et.includes('stage')) availability = 'part_time'; // Map internships to part-time or create new category if needed
+      else availability = et.replace(/-/g, '_'); // Fallback
+    }
+
+    return {
+      ...job,
+      location: job.location || job.location_raw || job.formatted_address_verified || job.city,
+      likes: likeCountMap.get(job.id) || 0,
+      dislikes: dislikeCountMap.get(job.id) || 0,
+      user_reaction: userReactionMap.get(job.id) || null,
+      is_favorite: userFavoriteSet.has(job.id),
+      comments_count: job._count.comments,
+      availability: availability, // Explicitly map availability
+      company: job.company ? {
+        id: job.company.id,
+        name: job.company.name,
+        logo: job.company.logo_url || job.company.logo,
+        description: job.company.description,
+        website: job.company.website,
+        trustScore: job.company.trustScore,
+        totalRatings: job.company.totalRatings,
+        totalLikes: job.company.totalLikes,
+        totalDislikes: job.company.totalDislikes,
+        created_at: job.company.created_at,
+        updated_at: job.company.updated_at
+      } : null
+    };
+  });
 
   // Apply radius filtering if coordinates provided
   if (filters?.lat !== undefined && filters?.lng !== undefined && filters?.radius_km) {
@@ -509,4 +554,38 @@ export const batchImportJobs = async (jobs: JobImportInput[]) => {
   results.summary.companiesCreated = results.companiesCreated.size;
 
   return results;
+};
+
+export const getTopSkills = async (limit: number = 10) => {
+  const jobs = await dbClient.job.findMany({
+    select: {
+      skills: true,
+      technical_skills: true
+    }
+  });
+
+  const skillCounts: Record<string, number> = {};
+
+  const processSkills = (skillsArray: string[] | undefined | null) => {
+    if (Array.isArray(skillsArray)) {
+      skillsArray.forEach((skill: any) => {
+        if (typeof skill === 'string') {
+          const normalizedSkill = skill.trim();
+          if (normalizedSkill) {
+            skillCounts[normalizedSkill] = (skillCounts[normalizedSkill] || 0) + 1;
+          }
+        }
+      });
+    }
+  };
+
+  jobs.forEach(job => {
+    processSkills(job.skills);
+    processSkills(job.technical_skills);
+  });
+
+  return Object.entries(skillCounts)
+    .map(([skill, count]) => ({ skill, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
 };

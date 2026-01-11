@@ -6,7 +6,9 @@ import {
   updateJob,
   deleteJob,
   importJob,
-  batchImportJobs
+  importJob,
+  batchImportJobs,
+  getTopSkills
 } from "../services/jobs/job.service";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
 import { authMiddleware } from "../middleware/auth";
@@ -133,6 +135,48 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
     }
   )
   /**
+   * Get top skills
+   * @method GET
+   * @path /jobs/stats/skills
+   */
+  .get(
+    "/stats/skills",
+    async ({ query, set }) => {
+      try {
+        const limit = query.limit || 10;
+        const skills = await getTopSkills(limit);
+        return formatResponse(skills, "Top skills retrieved successfully");
+      } catch (error: unknown) {
+        set.status = 500;
+        return formatError(`Failed to retrieve top skills: ${getErrorMessage(error)}`, 500);
+      }
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.Numeric())
+      }),
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String(),
+          data: t.Array(t.Object({
+            skill: t.String(),
+            count: t.Number()
+          }))
+        }),
+        500: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
+        })
+      },
+      detail: {
+        tags: ["jobs"]
+      }
+    }
+  )
+  /**
    * Get all jobs with pagination and filters
    * @method GET
    * @path /jobs
@@ -141,8 +185,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
     "/",
     async ({ query, set, user }) => {
       try {
-        const page = parseInt(query.page || "1");
-        const limit = parseInt(query.limit || "50");
+        const page = query.page || 1;
+        const limit = query.limit || 50;
 
         const filters: {
           q?: string;
@@ -172,9 +216,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             ? query.languages
             : query.languages.split(",");
         }
-        if (query.lat) filters.lat = parseFloat(query.lat);
-        if (query.lng) filters.lng = parseFloat(query.lng);
-        if (query.radius_km) filters.radius_km = parseFloat(query.radius_km);
+        if (query.lat) filters.lat = query.lat;
+        if (query.lng) filters.lng = query.lng;
+        if (query.radius_km) filters.radius_km = query.radius_km;
 
         const result = await getJobs(page, limit, filters, (user as any)?.id);
 
@@ -188,17 +232,17 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
     {
       query: t.Object({
         q: t.Optional(t.String()),
-        page: t.Optional(t.String()),
-        limit: t.Optional(t.String()),
+        page: t.Optional(t.Numeric()),
+        limit: t.Optional(t.Numeric()),
         company_id: t.Optional(t.String()),
         location: t.Optional(t.String()),
         seniority: t.Optional(t.String()),
         remote: t.Optional(t.String()),
         skills: t.Optional(t.Union([t.String(), t.Array(t.String())])),
         languages: t.Optional(t.Union([t.String(), t.Array(t.String())])),
-        lat: t.Optional(t.String()),
-        lng: t.Optional(t.String()),
-        radius_km: t.Optional(t.String())
+        lat: t.Optional(t.Numeric()),
+        lng: t.Optional(t.Numeric()),
+        radius_km: t.Optional(t.Numeric())
       }),
       response: {
         200: t.Object({

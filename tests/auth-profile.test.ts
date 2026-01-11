@@ -31,13 +31,14 @@ describe('Auth Profile Completion Tests', () => {
 
         const response = await api.auth.register.post(newUser);
 
-        expect(response.data?.status).toBe(201);
-        expect(response.data?.success).toBe(true);
+        const responseData = response.data as any;
+        expect(responseData?.status).toBe(201);
+        expect(responseData?.success).toBe(true);
         // Use type assertion or check unsafe property if treaty types are not updated yet
-        const userData = response.data?.data.user as any;
+        const userData = responseData?.data.user;
         expect(userData.profileCompleted).toBe(false);
 
-        authToken = response.data?.data.token!;
+        authToken = responseData?.data.token!;
     });
 
     it('should login and return profileCompleted: false when no profile exists', async () => {
