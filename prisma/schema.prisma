@@ -34,19 +34,21 @@ model User {
 }
 
 model Company {
-  id           String    @id @default(auto()) @map("_id") @db.ObjectId
-  name         String
-  description  String?
-  website      String?
-  industry     String?
-  size         String?
-  location     String?
-  logo         String?
-  logo_url     String?
-  trustScore   Float     @default(80.0)
-  totalRatings Int       @default(0)
-  created_at   DateTime? @default(now())
-  updated_at   DateTime? @updatedAt
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  description   String?
+  website       String?
+  industry      String?
+  size          String?
+  location      String?
+  logo          String?
+  logo_url      String?
+  trustScore    Float     @default(80.0)
+  totalRatings  Int       @default(0)
+  totalLikes    Int       @default(0)
+  totalDislikes Int       @default(0)
+  created_at    DateTime? @default(now())
+  updated_at    DateTime? @updatedAt
 
   // Relations
   jobs Job[]

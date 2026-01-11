@@ -242,7 +242,7 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
 
   // Aggregate likes and dislikes for these jobs
   const jobIds = jobsRaw.map(j => j.id);
-  const [reactionCounts, userReactions] = await Promise.all([
+  const [reactionCounts, userReactions, userFavorites] = await Promise.all([
     dbClient.like.groupBy({
       by: ['likeable_id', 'type'],
       where: {
@@ -259,6 +259,13 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
         user_id: userId,
         likeable_type: 'job',
         likeable_id: { in: jobIds }
+      }
+    }) : Promise.resolve([]),
+    // Fetch user favorites if userId is provided
+    userId ? dbClient.favorite.findMany({
+      where: {
+        user_id: userId,
+        job_id: { in: jobIds }
       }
     }) : Promise.resolve([])
   ]);
@@ -283,12 +290,21 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
     });
   }
 
+  // Map user favorites
+  const userFavoriteSet = new Set<string>();
+  if (userFavorites) {
+    userFavorites.forEach(f => {
+      userFavoriteSet.add(f.job_id);
+    });
+  }
+
   let jobs = jobsRaw.map(job => ({
     ...job,
     location: job.location || job.location_raw || job.formatted_address_verified || job.city,
     likes: likeCountMap.get(job.id) || 0,
     dislikes: dislikeCountMap.get(job.id) || 0,
     user_reaction: userReactionMap.get(job.id) || null,
+    is_favorite: userFavoriteSet.has(job.id),
     comments_count: job._count.comments,
     // Remove Prisma's _count object from response if desired, or keep it.
     // We'll keep it for now but the mapped properties are easier to consume.

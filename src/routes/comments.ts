@@ -70,7 +70,8 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
             user: t.Object({
               id: t.String(),
               first_name: t.String(),
-              last_name: t.String()
+              last_name: t.String(),
+              avatar: t.Union([t.String(), t.Null()])
             })
           })
         }),
@@ -140,7 +141,8 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
               user: t.Object({
                 id: t.String(),
                 first_name: t.String(),
-                last_name: t.String()
+                last_name: t.String(),
+                avatar: t.Union([t.String(), t.Null()])
               }),
               replies: t.Optional(t.Array(t.Object({
                 id: t.String(),
@@ -152,7 +154,8 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
                 user: t.Object({
                   id: t.String(),
                   first_name: t.String(),
-                  last_name: t.String()
+                  last_name: t.String(),
+                  avatar: t.Union([t.String(), t.Null()])
                 })
               })))
             })),
@@ -231,7 +234,8 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
             user: t.Object({
               id: t.String(),
               first_name: t.String(),
-              last_name: t.String()
+              last_name: t.String(),
+              avatar: t.Union([t.String(), t.Null()])
             })
           })
         }),
@@ -275,7 +279,7 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
           return formatError("Unauthorized", 401);
         }
 
-        await deleteComment(params.id, user.id);
+        await deleteComment(params.id, user.id, user.role);
 
         return formatResponse(null, "Comment deleted successfully");
       } catch (error: unknown) {

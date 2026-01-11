@@ -24,7 +24,8 @@ export const createComment = async (data: CommentCreateInput) => {
         select: {
           id: true,
           first_name: true,
-          last_name: true
+          last_name: true,
+          avatar: true
         }
       }
     }
@@ -53,7 +54,8 @@ export const getCommentsByJob = async (jobId: string, page: number = 1, limit: n
           select: {
             id: true,
             first_name: true,
-            last_name: true
+            last_name: true,
+            avatar: true
           }
         }
       },
@@ -108,7 +110,8 @@ export const updateComment = async (id: string, content: string, userId: string)
         select: {
           id: true,
           first_name: true,
-          last_name: true
+          last_name: true,
+          avatar: true
         }
       }
     }
@@ -119,9 +122,10 @@ export const updateComment = async (id: string, content: string, userId: string)
  * Delete comment
  * @param id - Comment ID
  * @param userId - User ID for authorization
+ * @param userRole - User Role for admin override
  * @returns Deletion result
  */
-export const deleteComment = async (id: string, userId: string) => {
+export const deleteComment = async (id: string, userId: string, userRole: string = 'user') => {
   // Check if user is the author
   const comment = await prisma.comment.findUnique({
     where: { id }
@@ -131,7 +135,7 @@ export const deleteComment = async (id: string, userId: string) => {
     throw new Error("Comment not found");
   }
 
-  if (comment.user_id !== userId) {
+  if (comment.user_id !== userId && userRole !== 'admin') {
     throw new Error("Not authorized to delete this comment");
   }
 

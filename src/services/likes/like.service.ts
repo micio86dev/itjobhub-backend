@@ -5,6 +5,15 @@ export type LikeableType = "job" | "comment";
 export type LikeType = "LIKE" | "DISLIKE";
 
 /**
+ * Calculate Trust Score based on likes and dislikes
+ * Formula: ((likes + 8) / (likes + dislikes + 10)) * 100
+ * This gives an initial 80% score (8/10) and adjusts as real data comes in.
+ */
+const calculateTrustScore = (likes: number, dislikes: number): number => {
+  return ((likes + 8) / (likes + dislikes + 10)) * 100;
+};
+
+/**
  * Create a like for any entity (job, comment, etc.)
  * @param userId - User ID
  * @param likeableType - Type of entity ("job" | "comment")
@@ -49,7 +58,7 @@ export const createLike = async (
         }
       });
 
-      // Update Trust Score
+      // Update Company Trust Score
       if (likeableType === 'job') {
         const job = await tx.job.findUnique({
           where: { id: likeableId },
@@ -57,17 +66,37 @@ export const createLike = async (
         });
 
         if (job && job.company_id) {
-          // Calculate score change:
-          // Like -> Dislike : -0.1 (remove like) - 0.1 (add dislike) = -0.2
-          // Dislike -> Like : +0.1 (remove dislike) + 0.1 (add like) = +0.2
-          const scoreChange = type === 'LIKE' ? 0.2 : -0.2;
-
-          await tx.company.update({
+          const company = await tx.company.findUnique({
             where: { id: job.company_id },
-            data: {
-              trustScore: { increment: scoreChange }
-            }
+            select: { totalLikes: true, totalDislikes: true }
           });
+
+          if (company) {
+            let newLikes = company.totalLikes;
+            let newDislikes = company.totalDislikes;
+
+            if (type === 'LIKE') {
+              newLikes++;
+              newDislikes--;
+            } else {
+              newLikes--;
+              newDislikes++;
+            }
+
+            newLikes = Math.max(0, newLikes);
+            newDislikes = Math.max(0, newDislikes);
+
+            const newScore = calculateTrustScore(newLikes, newDislikes);
+
+            await tx.company.update({
+              where: { id: job.company_id },
+              data: {
+                totalLikes: newLikes,
+                totalDislikes: newDislikes,
+                trustScore: newScore
+              }
+            });
+          }
         }
       }
       return like;
@@ -93,14 +122,26 @@ export const createLike = async (
       });
 
       if (job && job.company_id) {
-        const scoreChange = type === 'LIKE' ? 0.1 : -0.1;
-        await tx.company.update({
+        const company = await tx.company.findUnique({
           where: { id: job.company_id },
-          data: {
-            trustScore: { increment: scoreChange },
-            totalRatings: { increment: 1 }
-          }
+          select: { totalLikes: true, totalDislikes: true, totalRatings: true }
         });
+
+        if (company) {
+          const newLikes = company.totalLikes + (type === 'LIKE' ? 1 : 0);
+          const newDislikes = company.totalDislikes + (type === 'DISLIKE' ? 1 : 0);
+          const newScore = calculateTrustScore(newLikes, newDislikes);
+
+          await tx.company.update({
+            where: { id: job.company_id },
+            data: {
+              totalLikes: newLikes,
+              totalDislikes: newDislikes,
+              trustScore: newScore,
+              totalRatings: company.totalRatings + 1
+            }
+          });
+        }
       }
     }
 
@@ -134,7 +175,7 @@ export const removeLike = async (
       return { count: 0 };
     }
 
-    const result = await tx.like.delete({
+    await tx.like.delete({
       where: { id: existingLike.id }
     });
 
@@ -145,18 +186,26 @@ export const removeLike = async (
       });
 
       if (job && job.company_id) {
-        // Revert score:
-        // Removing LIKE -> -0.1
-        // Removing DISLIKE -> +0.1
-        const scoreChange = existingLike.type === 'LIKE' ? -0.1 : 0.1;
-
-        await tx.company.update({
+        const company = await tx.company.findUnique({
           where: { id: job.company_id },
-          data: {
-            trustScore: { increment: scoreChange },
-            totalRatings: { decrement: 1 }
-          }
+          select: { totalLikes: true, totalDislikes: true, totalRatings: true }
         });
+
+        if (company) {
+          const newLikes = Math.max(0, company.totalLikes - (existingLike.type === 'LIKE' ? 1 : 0));
+          const newDislikes = Math.max(0, company.totalDislikes - (existingLike.type === 'DISLIKE' ? 1 : 0));
+          const newScore = calculateTrustScore(newLikes, newDislikes);
+
+          await tx.company.update({
+            where: { id: job.company_id },
+            data: {
+              totalLikes: newLikes,
+              totalDislikes: newDislikes,
+              trustScore: newScore,
+              totalRatings: Math.max(0, company.totalRatings - 1)
+            }
+          });
+        }
       }
     }
 

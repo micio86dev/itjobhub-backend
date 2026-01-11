@@ -45,9 +45,11 @@ const ipKeyGenerator = (req: Request): string => {
 export const app = new Elysia()
     .use(
         cors({
-            origin: ["http://localhost:5173", "http://localhost:3000"],
+            origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+            allowedHeaders: ["Content-Type", "Authorization", "Accept-Language"],
+            methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
             credentials: true,
-            allowedHeaders: ["Content-Type", "Authorization", "Accept-Language"]
+            preflight: true
         })
     )
     .use(

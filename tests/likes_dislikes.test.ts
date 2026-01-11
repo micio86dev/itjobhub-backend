@@ -57,26 +57,32 @@ describe("Like/Dislike System", () => {
     });
 
     it("should default to LIKE when creating a reaction without type", async () => {
+        // Reset Company for this test
+        await prisma.company.update({
+            where: { id: companyId },
+            data: { trustScore: 80, totalRatings: 10, totalLikes: 0, totalDislikes: 0 }
+        });
+        // Ensure no likes exist for this job/user
+        await prisma.like.deleteMany({ where: { user_id: userId, likeable_id: jobId } });
+
         const { data, status } = await api.likes.post({ jobId }, { headers: authToken });
         expect(status).toBe(200);
         expect(data?.success).toBe(true);
-        // expect(data?.data.type).toBe("LIKE");
 
         // Verify Trust Score increased
         const company = await prisma.company.findUnique({ where: { id: companyId } });
-        expect(company?.trustScore).toBe(80.1);
+        // (1 + 8) / (1 + 0 + 10) * 100 = 9/11 * 100 = 81.8181...
+        expect(company?.trustScore).toBeCloseTo(81.8181, 2);
         expect(company?.totalRatings).toBe(11);
-
-        // Cleanup
-        await api.likes.delete(undefined, {
-            query: { jobId },
-            headers: authToken
-        });
     });
 
     it("should create a DISLIKE reaction", async () => {
-        // Reset Company Score
-        await prisma.company.update({ where: { id: companyId }, data: { trustScore: 80, totalRatings: 10 } });
+        // Reset Company
+        await prisma.company.update({
+            where: { id: companyId },
+            data: { trustScore: 80, totalRatings: 10, totalLikes: 0, totalDislikes: 0 }
+        });
+        await prisma.like.deleteMany({ where: { user_id: userId, likeable_id: jobId } });
 
         const { data, status } = await api.likes.post({
             jobId,
@@ -85,17 +91,29 @@ describe("Like/Dislike System", () => {
 
         expect(status).toBe(200);
         expect(data?.success).toBe(true);
-        // expect(data?.data.type).toBe("DISLIKE");
 
         // Verify Trust Score decreased
         const company = await prisma.company.findUnique({ where: { id: companyId } });
-        // 80 - 0.1 = 79.9
-        expect(company?.trustScore).toBeCloseTo(79.9);
+        // (0 + 8) / (0 + 1 + 10) * 100 = 8/11 * 100 = 72.7272...
+        expect(company?.trustScore).toBeCloseTo(72.7272, 2);
         expect(company?.totalRatings).toBe(11);
     });
 
     it("should swap DISLIKE to LIKE", async () => {
-        // Existing state: DISLIKE, Score 79.9, Ratings 11
+        // Prepare state: DISLIKE
+        await prisma.company.update({
+            where: { id: companyId },
+            data: { trustScore: 72.7272, totalRatings: 11, totalLikes: 0, totalDislikes: 1 }
+        });
+        await prisma.like.deleteMany({ where: { user_id: userId, likeable_id: jobId } });
+        await prisma.like.create({
+            data: {
+                user_id: userId,
+                likeable_type: "job",
+                likeable_id: jobId,
+                type: "DISLIKE"
+            }
+        });
 
         const { data, status } = await api.likes.post({
             jobId,
@@ -104,16 +122,28 @@ describe("Like/Dislike System", () => {
 
         expect(status).toBe(200);
         expect(data?.success).toBe(true);
-        // expect(data?.data.type).toBe("LIKE");
 
-        // Verify Trust Score: 79.9 + 0.2 = 80.1
+        // Verify Trust Score: (1 + 8) / (1 + 0 + 10) * 100 = 81.8181
         const company = await prisma.company.findUnique({ where: { id: companyId } });
-        expect(company?.trustScore).toBeCloseTo(80.1);
-        expect(company?.totalRatings).toBe(11); // Ratings count shouldn't change on swap
+        expect(company?.trustScore).toBeCloseTo(81.8181, 2);
+        expect(company?.totalRatings).toBe(11);
     });
 
     it("should swap LIKE to DISLIKE", async () => {
-        // Existing state: LIKE, Score 80.1, Ratings 11
+        // Prepare state: LIKE
+        await prisma.company.update({
+            where: { id: companyId },
+            data: { trustScore: 81.8181, totalRatings: 11, totalLikes: 1, totalDislikes: 0 }
+        });
+        await prisma.like.deleteMany({ where: { user_id: userId, likeable_id: jobId } });
+        await prisma.like.create({
+            data: {
+                user_id: userId,
+                likeable_type: "job",
+                likeable_id: jobId,
+                type: "LIKE"
+            }
+        });
 
         const { data, status } = await api.likes.post({
             jobId,
@@ -122,16 +152,28 @@ describe("Like/Dislike System", () => {
 
         expect(status).toBe(200);
         expect(data?.success).toBe(true);
-        // expect(data?.data.type).toBe("DISLIKE");
 
-        // Verify Trust Score: 80.1 - 0.2 = 79.9
+        // Verify Trust Score: (0 + 8) / (0 + 1 + 10) * 100 = 72.7272
         const company = await prisma.company.findUnique({ where: { id: companyId } });
-        expect(company?.trustScore).toBeCloseTo(79.9);
+        expect(company?.trustScore).toBeCloseTo(72.7272, 2);
         expect(company?.totalRatings).toBe(11);
     });
 
     it("should remove DISLIKE", async () => {
-        // Existing state: DISLIKE, Score 79.9, Ratings 11
+        // Prepare state: DISLIKE
+        await prisma.company.update({
+            where: { id: companyId },
+            data: { trustScore: 72.7272, totalRatings: 11, totalLikes: 0, totalDislikes: 1 }
+        });
+        await prisma.like.deleteMany({ where: { user_id: userId, likeable_id: jobId } });
+        await prisma.like.create({
+            data: {
+                user_id: userId,
+                likeable_type: "job",
+                likeable_id: jobId,
+                type: "DISLIKE"
+            }
+        });
 
         const { data, status } = await api.likes.delete(undefined, {
             query: { jobId },
@@ -139,11 +181,10 @@ describe("Like/Dislike System", () => {
         });
 
         expect(status).toBe(200);
-        expect(data?.message).toBe("Unliked successfully"); // Message might say "Like" generic
 
-        // Verify Trust Score: 79.9 + 0.1 = 80.0
+        // Verify Trust Score: (0 + 8) / (0 + 0 + 10) * 100 = 80.0
         const company = await prisma.company.findUnique({ where: { id: companyId } });
-        expect(company?.trustScore).toBeCloseTo(80);
+        expect(company?.trustScore).toBe(80.0);
         expect(company?.totalRatings).toBe(10);
     });
 });

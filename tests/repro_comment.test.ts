@@ -2,9 +2,8 @@
 import { describe, expect, it, beforeAll, afterAll } from "bun:test";
 import { app } from "../src/app";
 import { prisma } from "../src/config/database";
-import { generateToken } from "../utils/auth";
 
-const BASE_URL = "http://localhost:3001";
+const BASE_URL = process.env.BASE_URL;
 
 describe("Comment API Reproduction", () => {
     let authToken = "";

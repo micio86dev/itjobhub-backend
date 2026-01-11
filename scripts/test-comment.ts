@@ -1,6 +1,6 @@
 
 const testComment = async () => {
-    const API_URL = 'http://localhost:3001';
+    const API_URL = process.env.BASE_URL;
 
     // 1. Login to get token
     const loginRes = await fetch(`${API_URL}/auth/login`, {
@@ -47,6 +47,21 @@ const testComment = async () => {
 
     const commentData = await commentRes.json();
     console.log('Post comment response:', JSON.stringify(commentData, null, 2));
+
+    // 4. Test CORS OPTIONS
+    console.log('Testing OPTIONS /comments with Origin...');
+    const optionsRes = await fetch(`${API_URL}/comments`, {
+        method: 'OPTIONS',
+        headers: {
+            'Origin': 'http://localhost:5173',
+            'Access-Control-Request-Method': 'POST',
+            'Access-Control-Request-Headers': 'content-type,authorization'
+        }
+    });
+    console.log('OPTIONS status:', optionsRes.status);
+    console.log('Access-Control-Allow-Origin:', optionsRes.headers.get('access-control-allow-origin'));
+    console.log('Access-Control-Allow-Methods:', optionsRes.headers.get('access-control-allow-methods'));
+    console.log('Access-Control-Allow-Credentials:', optionsRes.headers.get('access-control-allow-credentials'));
 };
 
 testComment();

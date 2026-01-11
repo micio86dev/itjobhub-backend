@@ -58,6 +58,10 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
             description: t.Union([t.String(), t.Null(), t.Undefined()]),
             logo: t.Union([t.String(), t.Null(), t.Undefined()]),
             website: t.Union([t.String(), t.Null(), t.Undefined()]),
+            trustScore: t.Optional(t.Number()),
+            totalRatings: t.Optional(t.Number()),
+            totalLikes: t.Optional(t.Number()),
+            totalDislikes: t.Optional(t.Number()),
             created_at: t.Union([t.Any(), t.Null(), t.Undefined()]),
             updated_at: t.Union([t.Any(), t.Null(), t.Undefined()])
           })
@@ -120,6 +124,10 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
               description: t.Union([t.String(), t.Null(), t.Undefined()]),
               logo: t.Union([t.String(), t.Null(), t.Undefined()]),
               website: t.Union([t.String(), t.Null(), t.Undefined()]),
+              trustScore: t.Optional(t.Number()),
+              totalRatings: t.Optional(t.Number()),
+              totalLikes: t.Optional(t.Number()),
+              totalDislikes: t.Optional(t.Number()),
               created_at: t.Union([t.Any(), t.Null(), t.Undefined()]),
               updated_at: t.Union([t.Any(), t.Null(), t.Undefined()])
             })),
@@ -179,6 +187,10 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
             description: t.Union([t.String(), t.Null(), t.Undefined()]),
             logo: t.Union([t.String(), t.Null(), t.Undefined()]),
             website: t.Union([t.String(), t.Null(), t.Undefined()]),
+            trustScore: t.Optional(t.Number()),
+            totalRatings: t.Optional(t.Number()),
+            totalLikes: t.Optional(t.Number()),
+            totalDislikes: t.Optional(t.Number()),
             created_at: t.Union([t.Any(), t.Null(), t.Undefined()]),
             updated_at: t.Union([t.Any(), t.Null(), t.Undefined()])
           })
@@ -256,6 +268,10 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
             description: t.Union([t.String(), t.Null(), t.Undefined()]),
             logo: t.Union([t.String(), t.Null(), t.Undefined()]),
             website: t.Union([t.String(), t.Null(), t.Undefined()]),
+            trustScore: t.Optional(t.Number()),
+            totalRatings: t.Optional(t.Number()),
+            totalLikes: t.Optional(t.Number()),
+            totalDislikes: t.Optional(t.Number()),
             created_at: t.Union([t.Any(), t.Null(), t.Undefined()]),
             updated_at: t.Union([t.Any(), t.Null(), t.Undefined()])
           })

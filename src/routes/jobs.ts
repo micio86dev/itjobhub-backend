@@ -232,11 +232,16 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               likes: t.Number(),
               dislikes: t.Number(),
               user_reaction: t.Union([t.String(), t.Null()]),
+              is_favorite: t.Optional(t.Boolean()),
               comments_count: t.Number(),
               company: t.Union([t.Object({
                 id: t.String(),
                 name: t.String(),
-                logo: t.Optional(t.Union([t.String(), t.Null()]))
+                logo: t.Optional(t.Union([t.String(), t.Null()])),
+                trustScore: t.Optional(t.Number()),
+                totalRatings: t.Optional(t.Number()),
+                totalLikes: t.Optional(t.Number()),
+                totalDislikes: t.Optional(t.Number())
               }), t.Null()])
             })),
             pagination: t.Object({
@@ -311,6 +316,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               website: t.Optional(t.Union([t.String(), t.Null()])),
               trustScore: t.Optional(t.Number()),
               totalRatings: t.Optional(t.Number()),
+              totalLikes: t.Optional(t.Number()),
+              totalDislikes: t.Optional(t.Number()),
               created_at: t.Any(),
               updated_at: t.Any()
             }), t.Null()])
@@ -413,6 +420,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               website: t.Optional(t.Union([t.String(), t.Null()])),
               trustScore: t.Optional(t.Number()),
               totalRatings: t.Optional(t.Number()),
+              totalLikes: t.Optional(t.Number()),
+              totalDislikes: t.Optional(t.Number()),
               created_at: t.Any(),
               updated_at: t.Any()
             }), t.Null()])
@@ -590,6 +599,10 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               description: t.Optional(t.Union([t.String(), t.Null()])),
               logo: t.Optional(t.Union([t.String(), t.Null()])),
               website: t.Optional(t.Union([t.String(), t.Null()])),
+              trustScore: t.Optional(t.Number()),
+              totalRatings: t.Optional(t.Number()),
+              totalLikes: t.Optional(t.Number()),
+              totalDislikes: t.Optional(t.Number()),
               created_at: t.Any(),
               updated_at: t.Any()
             }), t.Null()])
