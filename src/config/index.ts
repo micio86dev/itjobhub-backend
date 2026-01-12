@@ -12,9 +12,9 @@ export const config = {
     url: process.env.DATABASE_URL || ""
   },
   jwt: {
-    secret: process.env.JWT_SECRET || "your-super-secret-jwt-key-here",
+    secret: process.env.JWT_SECRET || "",
     expiresIn: process.env.JWT_EXPIRES_IN || "24h",
-    refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || "your-super-secret-refresh-token-key-here",
+    refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || "",
     refreshTokenExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || "7d"
   },
   mailgun: {

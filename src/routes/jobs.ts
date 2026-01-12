@@ -201,6 +201,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           lng?: number;
           radius_km?: number;
           dateRange?: string;
+          looseSeniority?: boolean;
         } = {};
 
         if (query.q) filters.q = query.q;
@@ -222,6 +223,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         if (query.lng) filters.lng = query.lng;
         if (query.radius_km) filters.radius_km = query.radius_km;
         if (query.dateRange) filters.dateRange = query.dateRange;
+        if (query.looseSeniority) filters.looseSeniority = query.looseSeniority === "true";
 
         const result = await getJobs(page, limit, filters, (user as any)?.id);
 
@@ -246,7 +248,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         lat: t.Optional(t.Numeric()),
         lng: t.Optional(t.Numeric()),
         radius_km: t.Optional(t.Numeric()),
-        dateRange: t.Optional(t.String())
+        dateRange: t.Optional(t.String()),
+        looseSeniority: t.Optional(t.String())
       }),
       response: {
         200: t.Object({
@@ -265,6 +268,13 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               seniority: t.Optional(t.Union([t.String(), t.Null()])),
               skills: t.Optional(t.Array(t.String())),
               technical_skills: t.Optional(t.Array(t.String())),
+              location_geo: t.Optional(t.Union([
+                t.Object({
+                  type: t.String(),
+                  coordinates: t.Array(t.Number())
+                }),
+                t.Null()
+              ])),
               employment_type: t.Optional(t.Union([t.String(), t.Null()])),
               experience_level: t.Optional(t.Union([t.String(), t.Null()])),
               remote: t.Optional(t.Union([t.Boolean(), t.Null()])),
@@ -353,6 +363,13 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             seniority: t.Optional(t.Union([t.String(), t.Null()])),
             skills: t.Array(t.String()),
             technical_skills: t.Optional(t.Array(t.String())),
+            location_geo: t.Optional(t.Union([
+              t.Object({
+                type: t.String(),
+                coordinates: t.Array(t.Number())
+              }),
+              t.Null()
+            ])),
             employment_type: t.Optional(t.Union([t.String(), t.Null()])),
             experience_level: t.Optional(t.Union([t.String(), t.Null()])),
             remote: t.Boolean(),

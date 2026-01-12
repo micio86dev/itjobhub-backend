@@ -113,6 +113,7 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   lng?: number;
   radius_km?: number;
   dateRange?: string; // Add this
+  looseSeniority?: boolean;
 }, userId?: string) => {
   const skip = (page - 1) * limit;
   const where: Prisma.JobWhereInput = {};
@@ -136,7 +137,18 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
     }
 
     if (filters.seniority) {
-      andConditions.push({ seniority: { equals: filters.seniority, mode: "insensitive" } });
+      if (filters.looseSeniority) {
+        andConditions.push({
+          OR: [
+            { seniority: { equals: filters.seniority, mode: "insensitive" } },
+            { seniority: null },
+            { seniority: { equals: "Unknown", mode: "insensitive" } },
+            { seniority: { equals: "", mode: "insensitive" } }
+          ]
+        });
+      } else {
+        andConditions.push({ seniority: { equals: filters.seniority, mode: "insensitive" } });
+      }
     }
 
     if (filters.remote !== undefined) {

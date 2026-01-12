@@ -2,8 +2,8 @@ import { dbClient } from "../src/config/database";
 import { hashPassword } from "../src/utils/password";
 
 async function createAdmin() {
-    const email = "admin@itjobhub.com";
-    const password = "AdminPassword123!"; // You should change this on first login
+    const email = process.env.ADMIN_EMAIL || "admin@itjobhub.com";
+    const password = process.env.ADMIN_PASSWORD || "AdminPassword123!"; // You should change this on first login
     const firstName = "Admin";
     const lastName = "User";
 
