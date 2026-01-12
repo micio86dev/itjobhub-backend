@@ -328,9 +328,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
    */
   .get(
     "/:id",
-    async ({ params, set }) => {
+    async ({ params, set, user }) => {
       try {
-        const job = await getJobById(params.id);
+        const job = await getJobById(params.id, user?.id);
 
         if (!job) {
           set.status = 404;
@@ -380,6 +380,12 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             source: t.Optional(t.Union([t.String(), t.Null()])),
             language: t.Optional(t.Union([t.String(), t.Null()])),
             status: t.Union([t.String(), t.Null(), t.Undefined()]),
+            likes: t.Number(),
+            dislikes: t.Number(),
+            user_reaction: t.Union([t.String(), t.Null()]),
+            comments_count: t.Number(),
+            availability: t.String(),
+            is_favorite: t.Boolean(),
             created_at: t.Any(),
             updated_at: t.Any(),
             company: t.Union([t.Object({
@@ -387,6 +393,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               name: t.String(),
               description: t.Optional(t.Union([t.String(), t.Null()])),
               logo: t.Optional(t.Union([t.String(), t.Null()])),
+              logo_url: t.Optional(t.Union([t.String(), t.Null()])),
               website: t.Optional(t.Union([t.String(), t.Null()])),
               trustScore: t.Optional(t.Number()),
               totalRatings: t.Optional(t.Number()),

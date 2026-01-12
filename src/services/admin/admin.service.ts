@@ -37,6 +37,8 @@ export const getStatistics = async (month?: number, year?: number) => {
         jobsBySeniority,
         jobsByEmploymentType,
         jobsBySource,
+        jobsByCity,
+        jobsByLanguage,
     ] = await Promise.all([
         dbClient.user.count(isFiltered ? { where: { created_at: { lt: endDate } } } : undefined),
         dbClient.user.count({ where: { created_at: { gte: startDate, lt: endDate } } }),
@@ -58,6 +60,16 @@ export const getStatistics = async (month?: number, year?: number) => {
         }),
         dbClient.job.groupBy({
             by: ['source'],
+            where: isFiltered ? { created_at: { lt: endDate } } : undefined,
+            _count: { _all: true },
+        }),
+        dbClient.job.groupBy({
+            by: ['city'],
+            where: isFiltered ? { created_at: { lt: endDate } } : undefined,
+            _count: { _all: true },
+        }),
+        dbClient.job.groupBy({
+            by: ['language'],
             where: isFiltered ? { created_at: { lt: endDate } } : undefined,
             _count: { _all: true },
         }),
@@ -192,6 +204,14 @@ export const getStatistics = async (month?: number, year?: number) => {
             })).sort((a, b) => b.value - a.value),
             jobsBySource: jobsBySource.map(item => ({
                 label: item.source || 'Sconosciuta',
+                value: item._count._all,
+            })).sort((a, b) => b.value - a.value),
+            jobsByCity: jobsByCity.map(item => ({
+                label: item.city || 'Non Specificata',
+                value: item._count._all,
+            })).sort((a, b) => b.value - a.value),
+            jobsByLanguage: jobsByLanguage.map(item => ({
+                label: (item.language || 'Non Specificata').toUpperCase(),
                 value: item._count._all,
             })).sort((a, b) => b.value - a.value),
             trends: trendData,

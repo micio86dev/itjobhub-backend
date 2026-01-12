@@ -382,7 +382,7 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
       company: job.company ? {
         id: job.company.id,
         name: job.company.name,
-        logo: job.company.logo_url || job.company.logo,
+        logo: job.company.logo_url || job.company.logo || null,
         description: job.company.description,
         website: job.company.website,
         trustScore: job.company.trustScore,
@@ -426,14 +426,66 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
  * @param id - Job ID
  * @returns Job details
  */
-export const getJobById = async (id: string) => {
-  const jobUuid = id;
-  return await dbClient.job.findUnique({
-    where: { id: jobUuid },
+export const getJobById = async (id: string, userId?: string) => {
+  const job = await dbClient.job.findUnique({
+    where: { id },
     include: {
-      company: true
+      company: true,
+      _count: {
+        select: {
+          comments: true
+        }
+      }
     }
   });
+
+  if (!job) return null;
+
+  // Get like/dislike counts for the job
+  const [likes, dislikes] = await Promise.all([
+    dbClient.like.count({ where: { likeable_id: id, likeable_type: 'job', type: 'LIKE' } }),
+    dbClient.like.count({ where: { likeable_id: id, likeable_type: 'job', type: 'DISLIKE' } })
+  ]);
+
+  // Get user reaction if userId provided
+  let user_reaction = null;
+  let is_favorite = false;
+  if (userId) {
+    const [reaction, favorite] = await Promise.all([
+      dbClient.like.findFirst({ where: { likeable_id: id, likeable_type: 'job', user_id: userId } }),
+      dbClient.favorite.findUnique({ where: { user_id_job_id: { user_id: userId, job_id: id } } })
+    ]);
+    user_reaction = reaction?.type || null;
+    is_favorite = !!favorite;
+  }
+
+  // Normalize employment_type to availability
+  let availability = 'not_specified';
+  if (job.employment_type) {
+    const et = job.employment_type.toLowerCase();
+    if (et.includes('full') || et.includes('tempo pieno')) availability = 'full_time';
+    else if (et.includes('part') || et.includes('part-time')) availability = 'part_time';
+    else if (et.includes('contract') || et.includes('contratto')) availability = 'contract';
+    else if (et.includes('freelance') || et.includes('partita iva')) availability = 'contract';
+    else if (et.includes('intern') || et.includes('tirocinio') || et.includes('stage')) availability = 'part_time';
+    else availability = et.replace(/-/g, '_');
+  }
+
+  return {
+    ...job,
+    location: job.location || job.location_raw || job.formatted_address_verified || job.city,
+    likes,
+    dislikes,
+    user_reaction,
+    is_favorite,
+    comments_count: job._count.comments,
+    availability,
+    company: job.company ? {
+      ...job.company,
+      logo: job.company.logo_url || job.company.logo || null,
+      trustScore: job.company.trustScore || 80,
+    } : null
+  };
 };
 
 /**
