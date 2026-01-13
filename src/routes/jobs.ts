@@ -6,9 +6,10 @@ import {
   updateJob,
   deleteJob,
   importJob,
-  batchImportJobs,
-  getTopSkills
+  getTopSkills,
+  trackJobInteraction
 } from "../services/jobs/job.service";
+import { calculateMatchScore } from "../services/jobs/match.service";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
 import { authMiddleware } from "../middleware/auth";
 
@@ -68,6 +69,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         salary_min: t.Optional(t.Number()),
         salary_max: t.Optional(t.Number()),
         seniority: t.Optional(t.String()),
+        experience_level: t.Optional(t.String()),
         skills: t.Optional(t.Union([t.Array(t.String()), t.String()])),
         remote: t.Optional(t.Boolean()),
         link: t.Optional(t.String())
@@ -109,7 +111,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               totalRatings: t.Optional(t.Number()),
               created_at: t.Any(),
               updated_at: t.Any()
-            }), t.Null()])
+            }), t.Null()]),
+            views_count: t.Number(),
+            clicks_count: t.Number()
           })
         }),
         401: t.Object({
@@ -300,7 +304,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
                 totalRatings: t.Optional(t.Number()),
                 totalLikes: t.Optional(t.Number()),
                 totalDislikes: t.Optional(t.Number())
-              }), t.Null()])
+              }), t.Null()]),
+              views_count: t.Number(),
+              clicks_count: t.Number()
             })),
             pagination: t.Object({
               page: t.Number(),
@@ -401,7 +407,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               totalDislikes: t.Optional(t.Number()),
               created_at: t.Any(),
               updated_at: t.Any()
-            }), t.Null()])
+            }), t.Null()]),
+            views_count: t.Number(),
+            clicks_count: t.Number()
           })
         }),
         404: t.Object({
@@ -505,7 +513,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               totalDislikes: t.Optional(t.Number()),
               created_at: t.Any(),
               updated_at: t.Any()
-            }), t.Null()])
+            }), t.Null()]),
+            views_count: t.Number(),
+            clicks_count: t.Number()
           })
         }),
         401: t.Object({
@@ -686,7 +696,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               totalDislikes: t.Optional(t.Number()),
               created_at: t.Any(),
               updated_at: t.Any()
-            }), t.Null()])
+            }), t.Null()]),
+            views_count: t.Number(),
+            clicks_count: t.Number()
           })
         }),
         401: t.Object({
@@ -711,81 +723,104 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
     }
   )
   /**
-   * Batch import jobs with company relations
+   * Track job interaction (view or apply)
    * @method POST
-   * @path /jobs/import/batch
+   * @path /jobs/:id/track
    */
   .post(
-    "/import/batch",
-    async ({ user, body, set }) => {
+    "/:id/track",
+    async ({ params, body, user, set }) => {
+      try {
+        const { type, fingerprint } = body;
+        const result = await trackJobInteraction(
+          params.id,
+          type as 'VIEW' | 'APPLY',
+          user?.id,
+          fingerprint
+        );
+
+        return formatResponse(result, "Interaction tracked");
+      } catch (error: unknown) {
+        set.status = 500;
+        return formatError(`Failed to track interaction: ${getErrorMessage(error)}`, 500);
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String()
+      }),
+      body: t.Object({
+        type: t.Union([t.Literal('VIEW'), t.Literal('APPLY')]),
+        fingerprint: t.Optional(t.String())
+      }),
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String(),
+          data: t.Any()
+        }),
+        500: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
+        })
+      },
+      detail: {
+        tags: ["jobs"]
+      }
+    }
+  )
+  /**
+   * Get job match score for user
+   * @method GET
+   * @path /jobs/:id/match
+   */
+  .get(
+    "/:id/match",
+    async ({ params, user, set }) => {
       try {
         if (!user) {
           set.status = 401;
           return formatError("Unauthorized", 401);
         }
 
-        // Only admins can import jobs
-        if (user.role !== "ADMIN") {
-          set.status = 403;
-          return formatError("Forbidden: Only admins can import jobs", 403);
-        }
-
-        const results = await batchImportJobs(body.jobs);
-
-        set.status = 201;
-        return formatResponse(results, "Batch import completed", 201);
+        const score = await calculateMatchScore(user.id, params.id);
+        return formatResponse(score, "Match score calculated");
       } catch (error: unknown) {
         set.status = 500;
-        return formatError(`Failed to import jobs: ${getErrorMessage(error)}`, 500);
+        return formatError(`Failed to calculate match: ${getErrorMessage(error)}`, 500);
       }
     },
     {
-      body: t.Object({
-        jobs: t.Array(t.Object({
-          title: t.String({ minLength: 1 }),
-          description: t.String({ minLength: 1 }),
-          company: t.Object({
-            name: t.String({ minLength: 1 }),
-            description: t.Optional(t.String()),
-            website: t.Optional(t.String()),
-            logo: t.Optional(t.String())
-          }),
-          location: t.Optional(t.String()),
-          salaryMin: t.Optional(t.Number()),
-          salaryMax: t.Optional(t.Number()),
-          seniority: t.Optional(t.String()),
-          skills: t.Optional(t.Array(t.String())),
-          remote: t.Optional(t.Boolean())
-        }))
+      params: t.Object({
+        id: t.String()
       }),
       response: {
-        201: t.Object({
+        200: t.Object({
           success: t.Boolean(),
           status: t.Number(),
           message: t.String(),
           data: t.Object({
-            successful: t.Array(t.Object({
-              job: t.Any(),
-              companyName: t.String()
-            })),
-            failed: t.Array(t.Object({
-              jobData: t.Any(),
-              error: t.String()
-            })),
-            summary: t.Object({
-              totalJobs: t.Number(),
-              successfulJobs: t.Number(),
-              failedJobs: t.Number(),
-              companiesCreated: t.Number()
+            score: t.Number(),
+            factors: t.Object({
+              skillsMatch: t.Number(),
+              seniorityMatch: t.Number(),
+              locationMatch: t.Number(),
+              trustScore: t.Number(),
+              timeliness: t.Number(),
+              competition: t.Number(),
+              applicationRate: t.Number()
+            }),
+            details: t.Object({
+              matchedSkills: t.Array(t.String()),
+              missingSkills: t.Array(t.String()),
+              seniorityGap: t.String(),
+              locationStatus: t.String()
             })
           })
         }),
         401: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String()
-        }),
-        403: t.Object({
           success: t.Boolean(),
           status: t.Number(),
           message: t.String()

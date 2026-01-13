@@ -29,6 +29,7 @@ model User {
   profile        UserProfile?
   refresh_tokens RefreshToken[]
   favorites      Favorite[]
+  jobViews       JobView[]
 
   @@map("users")
 }
@@ -108,16 +109,19 @@ model Job {
   skills           String[]
   technical_skills String[]
 
-  status     String    @default("active")
-  created_at DateTime? @default(now())
-  updated_at DateTime? @updatedAt
-  expires_at DateTime?
+  views_count  Int       @default(0)
+  clicks_count Int       @default(0)
+  status       String    @default("active")
+  created_at   DateTime? @default(now())
+  updated_at   DateTime? @updatedAt
+  expires_at   DateTime?
 
   // Relations
   company       Company?   @relation(fields: [company_id], references: [id])
   seniority_ref Seniority? @relation(fields: [seniority_id], references: [id])
   comments      Comment[]
   favorites     Favorite[]
+  jobViews      JobView[]
 
   @@map("jobs")
 }
@@ -200,4 +204,20 @@ model Favorite {
 
   @@unique([user_id, job_id])
   @@map("favorites")
+}
+
+model JobView {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  job_id      String    @db.ObjectId
+  user_id     String?   @db.ObjectId
+  fingerprint String?
+  type        String // "VIEW" | "APPLY"
+  created_at  DateTime? @default(now())
+
+  // Relations
+  job  Job   @relation(fields: [job_id], references: [id])
+  user User? @relation(fields: [user_id], references: [id])
+
+  @@unique([job_id, user_id, fingerprint, type])
+  @@map("jobs_views")
 }

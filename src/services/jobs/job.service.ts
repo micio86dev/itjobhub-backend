@@ -1,4 +1,5 @@
 import { prisma as dbClient } from "../../config/database";
+import { Prisma } from '@prisma/client';
 
 export interface JobCreateInput {
   title: string;
@@ -97,7 +98,7 @@ export const createJob = async (data: JobCreateInput) => {
  * @param filters - Optional filters
  * @returns Jobs with count info
  */
-import { Prisma } from '@prisma/client';
+
 
 export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   company_id?: string;
@@ -378,6 +379,8 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
       user_reaction: userReactionMap.get(job.id) || null,
       is_favorite: userFavoriteSet.has(job.id),
       comments_count: job._count.comments,
+      views_count: job.views_count || 0,
+      clicks_count: job.clicks_count || 0,
       availability: availability, // Explicitly map availability
       company: job.company ? {
         id: job.company.id,
@@ -479,6 +482,8 @@ export const getJobById = async (id: string, userId?: string) => {
     user_reaction,
     is_favorite,
     comments_count: job._count.comments,
+    views_count: job.views_count || 0,
+    clicks_count: job.clicks_count || 0,
     availability,
     company: job.company ? {
       ...job.company,
@@ -697,4 +702,46 @@ export const getTopSkills = async (limit: number = 10, year?: number) => {
     .map(([skill, count]) => ({ skill, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, limit);
+};
+
+export const trackJobInteraction = async (
+  jobId: string,
+  type: 'VIEW' | 'APPLY',
+  userId?: string,
+  fingerprint?: string
+) => {
+  if (!userId && !fingerprint) return;
+
+  try {
+    await dbClient.$transaction(async (tx) => {
+      // 1. Create the view record. This will throw P2002 if it already exists.
+      await tx.jobView.create({
+        data: {
+          job_id: jobId,
+          type,
+          user_id: userId,
+          fingerprint: (!userId && fingerprint) ? fingerprint : undefined
+        }
+      });
+
+      // 2. If step 1 succeeded (didn't throw), increment the counter.
+      const updateData = type === 'VIEW'
+        ? { views_count: { increment: 1 } }
+        : { clicks_count: { increment: 1 } };
+
+      await tx.job.update({
+        where: { id: jobId },
+        data: updateData
+      });
+    });
+
+    return { success: true };
+  } catch (error) {
+    // If error is unique constraint violation (P2002), it means already tracked
+    if ((error as any).code === 'P2002') {
+      return { success: false, reason: 'already_tracked' };
+    }
+    console.error('Error tracking job interaction:', error);
+    return { success: false, error };
+  }
 };
