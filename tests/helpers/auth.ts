@@ -15,10 +15,9 @@ export async function loginUser(app: App, userType: keyof typeof testUsers): Pro
 
   try {
     // First try to register the user (in case they don't exist)
-    const registerResponse = await api.auth.register.post(userData);
-    console.log('Register response:', JSON.stringify(registerResponse, null, 2));
+    await api.auth.register.post(userData);
   } catch (error) {
-    console.log('Register error (might be expected):', error);
+    console.error('Register error (might be expected):', error);
   }
 
   // Always update the user's password and role to match test data

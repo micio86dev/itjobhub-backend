@@ -485,17 +485,17 @@ export const getJobById = async (id: string, userId?: string) => {
     dislikes,
     user_reaction,
     is_favorite,
+    availability,
     comments_count: job._count.comments,
     views_count: job.views_count || 0,
     clicks_count: job.clicks_count || 0,
-    availability,
     company: job.company ? {
       ...job.company,
-      logo: job.company.logo_url || job.company.logo || null,
-      trustScore: job.company.trustScore || 80,
+      logo: job.company.logo_url || job.company.logo || null
     } : null
   };
 };
+
 
 /**
  * Update job
