@@ -66,6 +66,18 @@ async function seedE2E() {
                     }
                 });
                 console.log("Created Admin Profile");
+            } else {
+                await dbClient.userProfile.update({
+                    where: { id: existingProfile.id },
+                    data: {
+                        languages: ["it", "en"],
+                        skills: ["Leadership"],
+                        seniority: "Senior",
+                        availability: "Immediate",
+                        bio: "Admin Bio"
+                    }
+                });
+                console.log("Updated Admin Profile");
             }
         }
 
@@ -84,9 +96,77 @@ async function seedE2E() {
                     }
                 });
                 console.log("Created Seeker Profile");
+            } else {
+                await dbClient.userProfile.update({
+                    where: { id: existingProfile.id },
+                    data: {
+                        languages: ["it", "en"],
+                        skills: ["React", "Node.js"],
+                        seniority: "Mid",
+                        availability: "Immediate",
+                        bio: "Seeker Bio"
+                    }
+                });
+                console.log("Updated Seeker Profile");
             }
         }
 
+
+
+        // 4. Create Company and Job
+        let companyId;
+        const companyName = "E2E Tech Corp";
+        const existingCompany = await dbClient.company.findFirst({ where: { name: companyName } });
+
+        if (!existingCompany) {
+            const company = await dbClient.company.create({
+                data: {
+                    name: companyName,
+                    description: "A great company for E2E testing",
+                    location: "Milan, Italy",
+                    trustScore: 95.0,
+                    logo_url: "https://via.placeholder.com/150"
+                }
+            });
+            companyId = company.id;
+            console.log("Created Company: " + companyName);
+        } else {
+            companyId = existingCompany.id;
+            console.log("Found Company: " + companyName);
+        }
+
+        const jobTitle = "E2E Software Engineer";
+        const existingJob = await dbClient.job.findFirst({
+            where: {
+                title: jobTitle,
+                company_id: companyId
+            }
+        });
+
+        if (!existingJob) {
+            await dbClient.job.create({
+                data: {
+                    title: jobTitle,
+                    description: "<h1>Job Description</h1><p>This is a test job.</p>",
+                    company_id: companyId,
+                    link: "https://example.com/e2e-job-" + Date.now(),
+                    location: "Milan",
+                    remote: true,
+                    status: "active",
+                    employment_type: "Full-time",
+                    seniority: "Mid-Senior",
+                    published_at: new Date(),
+                    salary_min: 50000,
+                    salary_max: 80000,
+                    skills: ["Playwright", "TypeScript"],
+                    requirements: ["Experience with E2E testing"],
+                    benefits: ["Remote work"]
+                }
+            });
+            console.log("Created Job: " + jobTitle);
+        } else {
+            console.log("Found Job: " + jobTitle);
+        }
 
         // Verify password
         const savedSeeker = await dbClient.user.findUnique({ where: { email: seekerEmail } });
