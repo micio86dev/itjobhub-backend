@@ -21,20 +21,25 @@ export async function loginUser(app: App, userType: keyof typeof testUsers): Pro
     console.log('Register error (might be expected):', error);
   }
 
-  // If this is the admin user, force update their role in DB before logging in
-  // checking if they exist via email is safer but updateMany handles non-existence gracefully-ish or we can rely on register checks
+  // Always update the user's password and role to match test data
+  // This ensures that even if the DB is seeded with different data (e.g. for E2E),
+  // the unit tests will still pass.
+  const hashedPassword = await import('../../src/utils/password').then(m => m.hashPassword(userData.password));
+
+  await prisma.user.updateMany({
+    where: { email: userData.email },
+    data: {
+      password: hashedPassword,
+      role: userType === 'admin' ? 'ADMIN' : undefined // Only force admin role if needed, or maybe strictly follow userData?
+      // actually, let's just ensure password is correct. Role update was already there for admin.
+    }
+  });
+
   if (userType === 'admin') {
-    // We try to update. If user doesn't exist yet (registration failed?), this might throw or do nothing
-    // But since we just tried to register, they should exist
-    const updateResult = await prisma.user.updateMany({
+    await prisma.user.updateMany({
       where: { email: userData.email },
       data: { role: 'ADMIN' }
     });
-    console.log(`Admin update result for ${userData.email}:`, updateResult);
-
-    // Verify user
-    const updatedUser = await prisma.user.findFirst({ where: { email: userData.email } });
-    console.log(`Updated admin user debug:`, updatedUser);
   }
 
   // Login to get tokens (now with correct role)
