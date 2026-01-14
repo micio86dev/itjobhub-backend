@@ -16,14 +16,14 @@ async function seedE2E() {
                     password: hashedPassword,
                     first_name: "Admin",
                     last_name: "User",
-                    role: "ADMIN",
+                    role: "admin",
                 },
             });
             console.log("Created admin@test.com");
         } else {
             await dbClient.user.update({
                 where: { email: adminEmail },
-                data: { password: hashedPassword, role: "ADMIN" }
+                data: { password: hashedPassword, role: "admin" }
             });
             console.log("Updated admin@test.com");
         }
@@ -38,14 +38,14 @@ async function seedE2E() {
                     password: hashedPassword,
                     first_name: "Job",
                     last_name: "Seeker",
-                    role: "USER",
+                    role: "user",
                 },
             });
             console.log("Created seeker@test.com");
         } else {
             await dbClient.user.update({
                 where: { email: seekerEmail },
-                data: { password: hashedPassword, role: "USER" }
+                data: { password: hashedPassword, role: "user" }
             });
             console.log("Updated seeker@test.com");
         }

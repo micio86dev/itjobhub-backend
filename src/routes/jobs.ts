@@ -10,7 +10,7 @@ import {
   getTopSkills,
   trackJobInteraction
 } from "../services/jobs/job.service";
-import { calculateMatchScore } from "../services/jobs/match.service";
+import { calculateMatchScore, calculateBatchMatchScores } from "../services/jobs/match.service";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
 import { authMiddleware } from "../middleware/auth";
 
@@ -170,6 +170,57 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             skill: t.String(),
             count: t.Number()
           }))
+        }),
+        500: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
+        })
+      },
+      detail: {
+        tags: ["jobs"]
+      }
+    }
+  )
+  /**
+   * Calculate batch match scores for multiple jobs
+   * @method POST
+   * @path /jobs/match/batch
+   */
+  .post(
+    "/match/batch",
+    async ({ user, body, set }) => {
+      try {
+        if (!user) {
+          set.status = 401;
+          return formatError("Unauthorized", 401);
+        }
+
+        const scores = await calculateBatchMatchScores(user.id, body.jobIds);
+        return formatResponse(scores, "Batch match scores calculated");
+      } catch (error: unknown) {
+        set.status = 500;
+        return formatError(`Failed to calculate batch match scores: ${getErrorMessage(error)}`, 500);
+      }
+    },
+    {
+      body: t.Object({
+        jobIds: t.Array(t.String())
+      }),
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String(),
+          data: t.Record(t.String(), t.Object({
+            score: t.Number(),
+            label: t.Union([t.Literal('excellent'), t.Literal('good'), t.Literal('fair'), t.Literal('low')])
+          }))
+        }),
+        401: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
         }),
         500: t.Object({
           success: t.Boolean(),
@@ -345,7 +396,10 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           return formatError("Job not found", 404);
         }
 
-        return formatResponse(job, "Job retrieved successfully");
+        // If user is not authenticated, remove the external link from the response
+        const responseJob = user ? job : { ...job, link: null };
+
+        return formatResponse(responseJob, "Job retrieved successfully");
       } catch (error: unknown) {
         set.status = 500;
         return formatError(`Failed to retrieve job: ${getErrorMessage(error)}`, 500);

@@ -367,8 +367,9 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
       const et = job.employment_type.toLowerCase();
       if (et.includes('full') || et.includes('tempo pieno')) availability = 'full_time';
       else if (et.includes('part') || et.includes('part-time')) availability = 'part_time';
+      else if (et.includes('hybrid') || et.includes('ibrido')) availability = 'hybrid';
       else if (et.includes('contract') || et.includes('contratto')) availability = 'contract';
-      else if (et.includes('freelance') || et.includes('partita iva')) availability = 'contract';
+      else if (et.includes('freelance') || et.includes('partita iva')) availability = 'freelance';
       else if (et.includes('intern') || et.includes('tirocinio') || et.includes('stage')) availability = 'part_time'; // Map internships to part-time or create new category if needed
       else availability = et.replace(/-/g, '_'); // Fallback
     }
@@ -470,8 +471,9 @@ export const getJobById = async (id: string, userId?: string) => {
     const et = job.employment_type.toLowerCase();
     if (et.includes('full') || et.includes('tempo pieno')) availability = 'full_time';
     else if (et.includes('part') || et.includes('part-time')) availability = 'part_time';
+    else if (et.includes('hybrid') || et.includes('ibrido')) availability = 'hybrid';
     else if (et.includes('contract') || et.includes('contratto')) availability = 'contract';
-    else if (et.includes('freelance') || et.includes('partita iva')) availability = 'contract';
+    else if (et.includes('freelance') || et.includes('partita iva')) availability = 'freelance';
     else if (et.includes('intern') || et.includes('tirocinio') || et.includes('stage')) availability = 'part_time';
     else availability = et.replace(/-/g, '_');
   }

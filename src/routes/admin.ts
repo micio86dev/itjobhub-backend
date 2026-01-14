@@ -13,18 +13,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
                 set.status = 401;
                 return formatError("Unauthorized", 401);
             }
-            if (user.role !== "ADMIN") { // Check uppercase role used elsewhere? DB uses lowercase 'user' but tests use 'ADMIN'?
-                // In auth.service register: role: "user". 
-                // In api.test.ts: role: "ADMIN".
-                // In jobs.ts: user.role !== "ADMIN".
-                // So I should check against "ADMIN" (uppercase) if that's the convention for Admin. 
-                // Wait, original code said `user.role !== "admin"`. 
-                // Check `api.test.ts` or DB values. I'll stick to existing check but normalized if needed.
-                // Actually, `user.role` in `jobs.ts` checks against "ADMIN" and "COMPANY". 
-                // Existing `admin.ts` checked "admin". Likely inconsistent. 
-                // I will check `auth.service`... register sets "user". 
-                // `isAdmin` in tests sets "ADMIN". 
-                // Better to check `user.role.toUpperCase() !== "ADMIN"`.
+            if (user.role !== "admin") {
                 set.status = 403;
                 return formatError("Forbidden: Admin access required", 403);
             }
