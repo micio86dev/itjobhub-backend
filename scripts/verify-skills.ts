@@ -12,7 +12,7 @@ async function verifySkills() {
     const skillCounts: Record<string, number> = {};
     jobs.forEach(job => {
         if (Array.isArray(job.skills)) {
-            job.skills.forEach((skill: any) => {
+            job.skills.forEach((skill) => {
                 if (typeof skill === 'string') {
                     const normalizedSkill = skill.trim();
                     if (normalizedSkill) {

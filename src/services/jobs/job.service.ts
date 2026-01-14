@@ -280,7 +280,7 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   };
 
   // Get jobs with comment counts
-  let [jobsRaw, total] = await Promise.all([
+  const results = await Promise.all([
     dbClient.job.findMany({
       where,
       skip: filters?.lat && filters?.lng ? undefined : skip,
@@ -299,6 +299,8 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
     }),
     dbClient.job.count({ where })
   ]);
+  const jobsRaw = results[0];
+  let total = results[1];
 
   // Aggregate likes and dislikes for these jobs
   const jobIds = jobsRaw.map(j => j.id);
@@ -582,6 +584,8 @@ export const importJob = async (data: JobImportInput) => {
       skills: data.skills ? data.skills : [],
       remote: data.remote || false,
       location_geo: data.location_geo,
+      link: data.link,
+      source: data.source,
       published_at: data.published_at ? new Date(data.published_at) : undefined
     },
     include: {
@@ -656,7 +660,7 @@ export const batchImportJobs = async (jobs: JobImportInput[]) => {
 };
 
 export const getTopSkills = async (limit: number = 10, year?: number) => {
-  const where: any = {};
+  const where: Prisma.JobWhereInput = {};
 
   if (year) {
     const startDate = new Date(year, 0, 1);
@@ -668,7 +672,7 @@ export const getTopSkills = async (limit: number = 10, year?: number) => {
     ];
   }
 
-  const jobs = await dbClient.job.findMany({
+  const jobsRaw = await dbClient.job.findMany({ // Changed from 'const jobs' to 'const jobsRaw'
     where,
     select: {
       skills: true,
@@ -680,7 +684,7 @@ export const getTopSkills = async (limit: number = 10, year?: number) => {
 
   const processSkills = (skillsArray: string[] | undefined | null) => {
     if (Array.isArray(skillsArray)) {
-      skillsArray.forEach((skill: any) => {
+      skillsArray.forEach((skill) => {
         if (typeof skill === 'string') {
           const normalizedSkill = skill.trim();
           // Capitalize first letter for consistency
@@ -693,7 +697,7 @@ export const getTopSkills = async (limit: number = 10, year?: number) => {
     }
   };
 
-  jobs.forEach(job => {
+  jobsRaw.forEach(job => {
     processSkills(job.skills);
     processSkills(job.technical_skills);
   });
@@ -738,7 +742,7 @@ export const trackJobInteraction = async (
     return { success: true };
   } catch (error) {
     // If error is unique constraint violation (P2002), it means already tracked
-    if ((error as any).code === 'P2002') {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return { success: false, reason: 'already_tracked' };
     }
     console.error('Error tracking job interaction:', error);

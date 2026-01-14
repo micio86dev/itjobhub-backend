@@ -116,7 +116,7 @@ export const getStatistics = async (month?: number, year?: number) => {
         // Helper to process arrays
         const processSkills = (skillsArray: string[]) => {
             if (Array.isArray(skillsArray)) {
-                skillsArray.forEach((skill: any) => {
+                skillsArray.forEach((skill) => {
                     if (typeof skill === 'string') {
                         const normalizedSkill = skill.trim();
                         if (normalizedSkill) {

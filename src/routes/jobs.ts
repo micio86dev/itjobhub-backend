@@ -6,6 +6,7 @@ import {
   updateJob,
   deleteJob,
   importJob,
+  batchImportJobs,
   getTopSkills,
   trackJobInteraction
 } from "../services/jobs/job.service";
@@ -229,7 +230,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         if (query.dateRange) filters.dateRange = query.dateRange;
         if (query.looseSeniority) filters.looseSeniority = query.looseSeniority === "true";
 
-        const result = await getJobs(page, limit, filters, (user as any)?.id);
+        const result = await getJobs(page, limit, filters, user?.id);
 
         return formatResponse(result, "Jobs retrieved successfully");
       } catch (error: unknown) {
@@ -699,6 +700,101 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             }), t.Null()]),
             views_count: t.Number(),
             clicks_count: t.Number()
+          })
+        }),
+        401: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
+        }),
+        403: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
+        }),
+        500: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
+        })
+      },
+      detail: {
+        tags: ["jobs"]
+      }
+    }
+  )
+  /**
+   * Batch import jobs
+   * @method POST
+   * @path /jobs/import/batch
+   */
+  .post(
+    "/import/batch",
+    async ({ user, body, set }) => {
+      try {
+        if (!user) {
+          set.status = 401;
+          return formatError("Unauthorized", 401);
+        }
+
+        // Only admins can import jobs
+        if (user.role !== "ADMIN") {
+          set.status = 403;
+          return formatError("Forbidden: Only admins can import jobs", 403);
+        }
+
+        const results = await batchImportJobs(body.jobs);
+
+        const responseCallback = {
+          ...results,
+          companiesCreated: results.companiesCreated.size
+        };
+
+        set.status = 201;
+        return formatResponse(responseCallback, "Batch import completed", 201);
+      } catch (error: unknown) {
+        set.status = 500;
+        return formatError(`Failed to batch import jobs: ${getErrorMessage(error)}`, 500);
+      }
+    },
+    {
+      body: t.Object({
+        jobs: t.Array(t.Object({
+          title: t.String({ minLength: 1 }),
+          description: t.String({ minLength: 1 }),
+          company: t.Object({
+            name: t.String({ minLength: 1 }),
+            description: t.Optional(t.String()),
+            website: t.Optional(t.String()),
+            logo_url: t.Optional(t.String())
+          }),
+          location: t.Optional(t.String()),
+          salary_min: t.Optional(t.Number()),
+          salary_max: t.Optional(t.Number()),
+          seniority: t.Optional(t.String()),
+          skills: t.Optional(t.Array(t.String())),
+          technical_skills: t.Optional(t.Array(t.String())),
+          remote: t.Optional(t.Boolean()),
+          link: t.Optional(t.String()),
+          source: t.Optional(t.String()),
+          language: t.Optional(t.String())
+        }))
+      }),
+      response: {
+        201: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String(),
+          data: t.Object({
+            successful: t.Array(t.Any()),
+            failed: t.Array(t.Any()),
+            companiesCreated: t.Number(), // Set<string> serialized to count or array? Service returns Set but t.Any might need conversion or service returns count in summary
+            summary: t.Object({
+              totalJobs: t.Number(),
+              successfulJobs: t.Number(),
+              failedJobs: t.Number(),
+              companiesCreated: t.Number()
+            })
           })
         }),
         401: t.Object({

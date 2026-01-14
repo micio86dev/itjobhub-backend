@@ -8,7 +8,7 @@ import { loginUser, createAuthHeaders } from "./helpers/auth";
 const api = treaty(app);
 
 describe("Like/Dislike System", () => {
-    let authToken: any;
+    let authToken: Record<string, string>;
     let userId: string;
     let companyId: string;
     let jobId: string;
@@ -39,7 +39,8 @@ describe("Like/Dislike System", () => {
                     location: "Milan",
                     salary_min: 30000,
                     salary_max: 40000,
-                    seniority: "junior"
+                    seniority: "junior",
+                    link: `https://test.com/job-dislike-${Date.now()}`
                 }
             });
             jobId = job.id;

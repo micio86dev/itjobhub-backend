@@ -176,7 +176,7 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                 // Fetch all likes for these jobs
                 const allLikes = await prisma.like.findMany({
                     where: {
-                        likeable_type: 'job', // Assuming 'job' is the correct string
+                        likeable_type: 'job',
                         likeable_id: { in: jobIds }
                     }
                 });
@@ -193,7 +193,7 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                     const commentsCount = job.comments.length;
 
                     // Remove heavy arrays before sending
-                    const { comments, ...jobData } = job;
+                    const { comments: _, ...jobData } = job;
 
                     return {
                         ...fav,

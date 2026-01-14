@@ -111,7 +111,7 @@ describe('IT Job Hub API Tests', () => {
 
       expect(response.error?.status).toBe(401);
       if (response.error && typeof response.error.value === 'object' && response.error.value && 'message' in response.error.value) {
-        expect((response.error.value as any).message).toBe("Invalid credentials");
+        expect((response.error.value as { message: string }).message).toBe("Invalid credentials");
       }
     });
 
@@ -340,7 +340,8 @@ describe('IT Job Hub API Tests', () => {
         },
         location: "New York",
         skills: ["Python", "Django"],
-        remote: false
+        remote: false,
+        link: `https://example.com/imported-job-${Date.now()}`
       };
 
       const response = await app
@@ -367,7 +368,8 @@ describe('IT Job Hub API Tests', () => {
             company: {
               name: "Batch Company 1",
               description: "First batch company"
-            }
+            },
+            link: `https://example.com/batch-job-1-${Date.now()}`
           },
           {
             title: "Batch Job 2",
@@ -375,7 +377,8 @@ describe('IT Job Hub API Tests', () => {
             company: {
               name: "Batch Company 2",
               description: "Second batch company"
-            }
+            },
+            link: `https://example.com/batch-job-2-${Date.now()}`
           }
         ]
       };
@@ -390,6 +393,9 @@ describe('IT Job Hub API Tests', () => {
         );
 
       const data = await response.json();
+      if (response.status !== 201) {
+        console.log('Batch import failed:', JSON.stringify(data, null, 2));
+      }
       expect(response.status).toBe(201);
       expect(data.success).toBe(true);
       expect(data.data.summary.totalJobs).toBe(2);

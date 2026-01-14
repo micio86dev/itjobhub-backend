@@ -1,6 +1,7 @@
 import { dbClient } from "../../config/database";
 import { hashPassword, comparePasswords } from "../../utils/password";
 import { UserJwtPayload } from "../../utils/jwt";
+import { User, UserProfile } from "@prisma/client";
 
 export interface RegisterInput {
   email: string;
@@ -22,7 +23,7 @@ export interface LoginInput {
 /**
  * Helper to check if profile is complete
  */
-const isProfileComplete = (profile: any): boolean => {
+const isProfileComplete = (profile: UserProfile | null | undefined): boolean => {
   if (!profile) return false;
   return (
     Array.isArray(profile.languages) && profile.languages.length > 0 &&

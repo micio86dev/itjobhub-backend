@@ -92,3 +92,27 @@ We use the native Bun test runner.
 2. Ensure all environment variables are set
 3. Run `bun run build` to build the project
 4. Run `bun run start` to start the server
+## Git Hooks (Husky)
+
+This project uses [Husky](https://typicode.github.io/husky/) to enforce code quality with pre-commit hooks.
+
+### Installation
+To install Husky and its hooks (if not automatically installed):
+
+```shell
+bun run prepare
+# or explicitly
+bun husky init
+```
+
+### Pre-commit Hook
+Husky is configured to run automatically before you commit.
+- **Action**: Runs `bun test`.
+- **Behavior**: If tests fail, the commit is **blocked**. You must fix the tests before committing.
+
+### Testing the Hook
+To verify the hook works:
+1. Introduce a failure (e.g. modify a test to fail).
+2. Try to commit: `git commit -m "test"`.
+3. The commit should fail.
+4. Revert changes and commit again.

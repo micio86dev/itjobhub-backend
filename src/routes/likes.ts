@@ -41,7 +41,7 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
           return formatError("Either jobId or commentId must be provided", 400);
         }
 
-        const like = await createLike(user.id, likeable.type, likeable.id, body.type as any);
+        const like = await createLike(user.id, likeable.type, likeable.id, body.type);
 
         return formatResponse(like, "Liked successfully");
       } catch (error: unknown) {

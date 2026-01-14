@@ -31,7 +31,7 @@ describe('Auth Profile Completion Tests', () => {
 
         const response = await api.auth.register.post(newUser);
 
-        const responseData = response.data as any;
+        const responseData = response.data;
         expect(responseData?.status).toBe(201);
         expect(responseData?.success).toBe(true);
         // Use type assertion or check unsafe property if treaty types are not updated yet
@@ -49,7 +49,7 @@ describe('Auth Profile Completion Tests', () => {
 
         expect(response.data?.status).toBe(200);
         expect(response.data?.success).toBe(true);
-        const userData = response.data?.data.user as any;
+        const userData = response.data?.data.user;
         expect(userData.profileCompleted).toBe(false);
     });
 
@@ -73,7 +73,7 @@ describe('Auth Profile Completion Tests', () => {
         });
 
         expect(response.data?.success).toBe(true);
-        const userData = response.data?.data.user as any;
+        const userData = response.data?.data.user;
         expect(userData.profileCompleted).toBe(false);
     });
 
@@ -94,7 +94,7 @@ describe('Auth Profile Completion Tests', () => {
         });
 
         expect(response.data?.success).toBe(true);
-        const userData = response.data?.data.user as any;
+        const userData = response.data?.data.user;
         expect(userData.profileCompleted).toBe(true);
         expect(userData.languages).toContain('en');
         expect(userData.skills).toContain('typescript');

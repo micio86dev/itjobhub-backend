@@ -88,7 +88,8 @@ describe('Match Score Algorithm Tests', () => {
                     salary_min: 50000,
                     salary_max: 80000,
                     skills: ['React', 'Node.js', 'Python'],
-                    experience_level: 'senior'
+                    experience_level: 'senior',
+                    link: `https://test.com/job/${Date.now()}`
                 })
             })
         );

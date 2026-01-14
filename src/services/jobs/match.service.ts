@@ -1,5 +1,5 @@
 import { prisma as dbClient } from "../../config/database";
-import { Job, UserProfile, Company } from '@prisma/client';
+
 
 interface MatchFactors {
     skillsMatch: number;
@@ -77,7 +77,6 @@ export const calculateMatchScore = async (userId: string, jobId: string): Promis
     }
 
     // --- 2. Seniority Match (25%) ---
-    const levels = ['intern', 'junior', 'mid', 'senior', 'lead', 'manager', 'executive'];
     const normalizeSeniority = (s?: string | null) => {
         if (!s) return -1;
         s = s.toLowerCase();
