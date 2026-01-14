@@ -56,6 +56,7 @@ export const getCompanies = async (page = 1, limit = 10) => {
       },
     };
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Error in getCompanies service:", error);
     throw error;
   }

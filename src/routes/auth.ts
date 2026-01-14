@@ -168,7 +168,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
           },
           "Login successful"
         );
-      } catch (error: unknown) {
+      } catch {
         set.status = 401;
         return {
           success: false,
@@ -337,7 +337,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         refresh_token.remove();
 
         return formatResponse(null, "Logged out successfully");
-      } catch (error: unknown) {
+      } catch {
         set.status = 500;
         return {
           success: false,

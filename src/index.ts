@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { config } from "./config";
 import { setupDatabase } from "./config/database";
 import { app } from "./app";

@@ -1,7 +1,7 @@
 import { dbClient } from "../../config/database";
 import { hashPassword, comparePasswords } from "../../utils/password";
 import { UserJwtPayload } from "../../utils/jwt";
-import { User, UserProfile } from "@prisma/client";
+import { UserProfile } from "@prisma/client";
 
 export interface RegisterInput {
   email: string;
@@ -113,6 +113,7 @@ export const loginUser = async (input: LoginInput) => {
   });
 
   if (!user) {
+    // eslint-disable-next-line no-console
     console.log(`Login failed: user not found for email ${input.email}`);
     throw new Error("Invalid credentials");
   }
@@ -271,6 +272,7 @@ export const logoutUser = async (refreshToken: string) => {
     });
   } catch (error) {
     // Ignore errors if token doesn't exist
+    // eslint-disable-next-line no-console
     console.warn("Failed to delete refresh token:", error);
   }
 };

@@ -193,6 +193,7 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                     const commentsCount = job.comments.length;
 
                     // Remove heavy arrays before sending
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const { comments: _, ...jobData } = job;
 
                     return {

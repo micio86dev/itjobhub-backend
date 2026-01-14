@@ -59,7 +59,7 @@ export const translate = (key: string, lang: string = 'en'): string => {
     return translations[language][key] || key;
 };
 
-import { Elysia } from "elysia";
+
 
 
 export const deriveLang = ({ request }: { request: Request }) => {

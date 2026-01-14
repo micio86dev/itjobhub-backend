@@ -34,7 +34,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         try {
             const stats = await getStatistics(query.month, query.year);
             return formatResponse(stats, "Statistics retrieved successfully");
-        } catch (error) {
+        } catch {
             return formatError("Failed to retrieve statistics", 500);
         }
     }, {

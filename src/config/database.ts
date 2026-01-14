@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { dbClient } from "../db/client";
 
 export const setupDatabase = async () => {

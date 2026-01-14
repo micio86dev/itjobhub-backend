@@ -234,6 +234,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
 
         return formatResponse(result, "Jobs retrieved successfully");
       } catch (error: unknown) {
+        // eslint-disable-next-line no-console
         console.error("Error retrieving jobs:", error);
         set.status = 500;
         return formatError(`Failed to retrieve jobs: ${getErrorMessage(error)}`, 500);

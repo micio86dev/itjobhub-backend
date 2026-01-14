@@ -745,6 +745,7 @@ export const trackJobInteraction = async (
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return { success: false, reason: 'already_tracked' };
     }
+    // eslint-disable-next-line no-console
     console.error('Error tracking job interaction:', error);
     return { success: false, error };
   }
