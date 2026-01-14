@@ -113,8 +113,8 @@ export const loginUser = async (input: LoginInput) => {
   });
 
   if (!user) {
-    // eslint-disable-next-line no-console
-    console.log(`Login failed: user not found for email ${input.email}`);
+
+
     throw new Error("Invalid credentials");
   }
 
@@ -133,29 +133,15 @@ export const loginUser = async (input: LoginInput) => {
 
   const refreshToken = await generateRefreshToken(payload);
 
-  // Store or update refresh token
-  // Find existing refresh token for the user
-  const existingTokens = await dbClient.refreshToken.findMany({
-    where: { user_id: user.id },
+  // Store refresh token
+  // We allow multiple sessions to support parallel E2E tests and multiple devices
+  await dbClient.refreshToken.create({
+    data: {
+      refresh_token: refreshToken,
+      user_id: user.id,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    }
   });
-
-  if (existingTokens.length > 0) {
-    await dbClient.refreshToken.update({
-      where: { refresh_token: existingTokens[0].refresh_token },
-      data: {
-        refresh_token: refreshToken,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-      },
-    });
-  } else {
-    await dbClient.refreshToken.create({
-      data: {
-        refresh_token: refreshToken,
-        user_id: user.id,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-      }
-    });
-  }
 
   return {
     refreshToken,
@@ -270,10 +256,10 @@ export const logoutUser = async (refreshToken: string) => {
     await dbClient.refreshToken.delete({
       where: { refresh_token: refreshToken },
     });
-  } catch (error) {
+  } catch {
     // Ignore errors if token doesn't exist
-    // eslint-disable-next-line no-console
-    console.warn("Failed to delete refresh token:", error);
+
+
   }
 };
 

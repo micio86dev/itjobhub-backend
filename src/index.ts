@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import { config } from "./config";
 import { setupDatabase } from "./config/database";
 import { app } from "./app";
@@ -11,10 +11,13 @@ async function startServer() {
 
     // Start the server after database is ready
     app.listen(config.port, () => {
+      // eslint-disable-next-line no-console
       console.log(`IT Job Hub API is running on port ${config.port}`);
+      // eslint-disable-next-line no-console
       console.log(`Swagger UI available at http://localhost:${config.port}/docs`);
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Failed to start server:", error);
     process.exit(1);
   }

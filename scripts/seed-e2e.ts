@@ -16,14 +16,14 @@ async function seedE2E() {
                     password: hashedPassword,
                     first_name: "Admin",
                     last_name: "User",
-                    role: "admin",
+                    role: "ADMIN",
                 },
             });
             console.log("Created admin@test.com");
         } else {
             await dbClient.user.update({
                 where: { email: adminEmail },
-                data: { password: hashedPassword, role: "admin" }
+                data: { password: hashedPassword, role: "ADMIN" }
             });
             console.log("Updated admin@test.com");
         }

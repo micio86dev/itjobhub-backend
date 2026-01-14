@@ -65,8 +65,8 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
             content: t.String(),
             user_id: t.String(),
             job_id: t.Optional(t.String()),
-            created_at: t.Any(),
-            updated_at: t.Any(),
+            created_at: t.Union([t.String(), t.Date(), t.Null()]),
+            updated_at: t.Union([t.String(), t.Date(), t.Null()]),
             user: t.Object({
               id: t.String(),
               first_name: t.String(),
@@ -136,8 +136,8 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
               user_id: t.String(),
               job_id: t.Optional(t.String()),
               parentId: t.Optional(t.String()),
-              created_at: t.Any(),
-              updated_at: t.Any(),
+              created_at: t.Union([t.String(), t.Date(), t.Null()]),
+              updated_at: t.Union([t.String(), t.Date(), t.Null()]),
               user: t.Object({
                 id: t.String(),
                 first_name: t.String(),
@@ -149,8 +149,8 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
                 content: t.String(),
                 user_id: t.String(),
                 parentId: t.String(),
-                created_at: t.Any(),
-                updated_at: t.Any(),
+                created_at: t.Union([t.String(), t.Date(), t.Null()]),
+                updated_at: t.Union([t.String(), t.Date(), t.Null()]),
                 user: t.Object({
                   id: t.String(),
                   first_name: t.String(),
@@ -229,8 +229,8 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
             user_id: t.String(),
             job_id: t.Optional(t.String()),
             parentId: t.Optional(t.String()),
-            created_at: t.Any(),
-            updated_at: t.Any(),
+            created_at: t.Union([t.String(), t.Date(), t.Null()]),
+            updated_at: t.Union([t.String(), t.Date(), t.Null()]),
             user: t.Object({
               id: t.String(),
               first_name: t.String(),

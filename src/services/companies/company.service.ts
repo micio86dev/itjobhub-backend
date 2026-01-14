@@ -32,34 +32,27 @@ export const createCompany = async (data: CompanyCreateInput) => {
  * @returns Companies with pagination info
  */
 export const getCompanies = async (page = 1, limit = 10) => {
-  try {
-    const skip = (page - 1) * limit;
-
-    const [companies, total] = await Promise.all([
-      prisma.company.findMany({
-        skip,
-        take: limit,
-        orderBy: {
-          created_at: "desc",
-        },
-      }),
-      prisma.company.count(),
-    ]);
-
-    return {
-      companies,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
+  const skip = (page - 1) * limit;
+  const [companies, total] = await Promise.all([
+    prisma.company.findMany({
+      skip,
+      take: limit,
+      orderBy: {
+        created_at: "desc",
       },
-    };
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error in getCompanies service:", error);
-    throw error;
-  }
+    }),
+    prisma.company.count(),
+  ]);
+
+  return {
+    companies,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    },
+  };
 };
 
 /**

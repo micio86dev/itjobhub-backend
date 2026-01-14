@@ -524,8 +524,17 @@ export const updateJob = async (id: string, data: JobUpdateInput) => {
  */
 export const deleteJob = async (id: string) => {
   const jobUuid = id;
-  return await dbClient.job.delete({
-    where: { id: jobUuid }
+  return await dbClient.$transaction(async (tx) => {
+    // Delete all related data first to ensure clean deletion
+    await tx.favorite.deleteMany({ where: { job_id: jobUuid } });
+    await tx.comment.deleteMany({ where: { job_id: jobUuid } });
+    await tx.like.deleteMany({ where: { likeable_id: jobUuid, likeable_type: 'job' } });
+    await tx.jobView.deleteMany({ where: { job_id: jobUuid } });
+
+    // Delete the job
+    return await tx.job.delete({
+      where: { id: jobUuid }
+    });
   });
 };
 
@@ -719,6 +728,20 @@ export const trackJobInteraction = async (
   if (!userId && !fingerprint) return;
 
   try {
+    // Check if already tracked (to avoid noisy logs)
+    const existing = await dbClient.jobView.findFirst({
+      where: {
+        job_id: jobId,
+        type,
+        user_id: userId || null, // null check is redundant if userId is undefined but safe
+        fingerprint: (!userId && fingerprint) ? fingerprint : null
+      }
+    });
+
+    if (existing) {
+      return { success: false, reason: 'already_tracked' };
+    }
+
     await dbClient.$transaction(async (tx) => {
       // 1. Create the view record. This will throw P2002 if it already exists.
       await tx.jobView.create({
@@ -747,8 +770,8 @@ export const trackJobInteraction = async (
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return { success: false, reason: 'already_tracked' };
     }
-    // eslint-disable-next-line no-console
-    console.error('Error tracking job interaction:', error);
+
+
     return { success: false, error };
   }
 };
