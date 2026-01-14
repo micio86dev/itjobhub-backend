@@ -119,16 +119,9 @@ export const loginUser = async (input: LoginInput) => {
   }
 
   // Verify password
-  try {
-    fs.appendFileSync('debug.log', `[AuthService] Verifying for ${input.email}. Input: '${input.password}', Hash: '${user.password}'\n`);
-    const isPasswordValid = await comparePasswords(input.password, user.password);
-    fs.appendFileSync('debug.log', `[AuthService] Result: ${isPasswordValid}\n`);
-    if (!isPasswordValid) {
-      throw new Error("Invalid credentials");
-    }
-  } catch (e: any) {
-    fs.appendFileSync('debug.log', `[AuthService] Error: ${e.message}\n`);
-    throw e;
+  const isPasswordValid = await comparePasswords(input.password, user.password);
+  if (!isPasswordValid) {
+    throw new Error("Invalid credentials");
   }
 
   // Generate refresh token

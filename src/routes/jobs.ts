@@ -95,10 +95,10 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             experience_level: t.Optional(t.Union([t.String(), t.Null()])),
             remote: t.Boolean(),
             is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])),
-            published_at: t.Any(),
-            expires_at: t.Any(),
-            created_at: t.Any(),
-            updated_at: t.Any(),
+            published_at: t.Union([t.String(), t.Date(), t.Null()]),
+            expires_at: t.Union([t.String(), t.Date(), t.Null()]),
+            created_at: t.Union([t.String(), t.Date(), t.Null()]),
+            updated_at: t.Union([t.String(), t.Date(), t.Null()]),
             link: t.Optional(t.Union([t.String(), t.Null()])),
             source: t.Optional(t.Union([t.String(), t.Null()])),
             language: t.Optional(t.Union([t.String(), t.Null()])),
@@ -110,8 +110,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               website: t.Optional(t.Union([t.String(), t.Null()])),
               trustScore: t.Optional(t.Number()),
               totalRatings: t.Optional(t.Number()),
-              created_at: t.Any(),
-              updated_at: t.Any()
+              created_at: t.Union([t.String(), t.Date(), t.Null()]),
+              updated_at: t.Union([t.String(), t.Date(), t.Null()])
             }), t.Null()]),
             views_count: t.Number(),
             clicks_count: t.Number()
@@ -337,10 +337,10 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               remote: t.Optional(t.Union([t.Boolean(), t.Null()])),
               is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])),
               status: t.Optional(t.Union([t.String(), t.Null()])),
-              published_at: t.Any(),
-              expires_at: t.Any(),
-              created_at: t.Any(),
-              updated_at: t.Any(),
+              published_at: t.Union([t.String(), t.Date(), t.Null()]),
+              expires_at: t.Union([t.String(), t.Date(), t.Null()]),
+              created_at: t.Union([t.String(), t.Date(), t.Null()]),
+              updated_at: t.Union([t.String(), t.Date(), t.Null()]),
               link: t.Optional(t.Union([t.String(), t.Null()])),
               source: t.Optional(t.Union([t.String(), t.Null()])),
               language: t.Optional(t.Union([t.String(), t.Null()])),
@@ -436,8 +436,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             experience_level: t.Optional(t.Union([t.String(), t.Null()])),
             remote: t.Boolean(),
             is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])),
-            published_at: t.Any(),
-            expires_at: t.Any(),
+            published_at: t.Union([t.String(), t.Date(), t.Null()]),
+            expires_at: t.Union([t.String(), t.Date(), t.Null()]),
             link: t.Optional(t.Union([t.String(), t.Null()])),
             source: t.Optional(t.Union([t.String(), t.Null()])),
             language: t.Optional(t.Union([t.String(), t.Null()])),
@@ -448,8 +448,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             comments_count: t.Number(),
             availability: t.String(),
             is_favorite: t.Boolean(),
-            created_at: t.Any(),
-            updated_at: t.Any(),
+            created_at: t.Union([t.String(), t.Date(), t.Null()]),
+            updated_at: t.Union([t.String(), t.Date(), t.Null()]),
             company: t.Union([t.Object({
               id: t.String(),
               name: t.String(),
@@ -461,8 +461,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               totalRatings: t.Optional(t.Number()),
               totalLikes: t.Optional(t.Number()),
               totalDislikes: t.Optional(t.Number()),
-              created_at: t.Any(),
-              updated_at: t.Any()
+              created_at: t.Union([t.String(), t.Date(), t.Null()]),
+              updated_at: t.Union([t.String(), t.Date(), t.Null()])
             }), t.Null()]),
             views_count: t.Number(),
             clicks_count: t.Number()
@@ -553,10 +553,10 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             salary_max: t.Optional(t.Union([t.Number(), t.Null()])),
             seniority: t.Optional(t.Union([t.String(), t.Null()])),
             skills: t.Array(t.String()),
-            technical_skills: t.Optional(t.Array(t.String())), employment_type: t.Optional(t.Union([t.String(), t.Null()])), experience_level: t.Optional(t.Union([t.String(), t.Null()])), remote: t.Boolean(), is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])), published_at: t.Any(), expires_at: t.Any(), link: t.Optional(t.Union([t.String(), t.Null()])), source: t.Optional(t.Union([t.String(), t.Null()])), language: t.Optional(t.Union([t.String(), t.Null()])),
+            technical_skills: t.Optional(t.Array(t.String())), employment_type: t.Optional(t.Union([t.String(), t.Null()])), experience_level: t.Optional(t.Union([t.String(), t.Null()])), remote: t.Boolean(), is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])), published_at: t.Union([t.String(), t.Date(), t.Null()]), expires_at: t.Union([t.String(), t.Date(), t.Null()]), link: t.Optional(t.Union([t.String(), t.Null()])), source: t.Optional(t.Union([t.String(), t.Null()])), language: t.Optional(t.Union([t.String(), t.Null()])),
             status: t.Union([t.String(), t.Null(), t.Undefined()]),
-            created_at: t.Any(),
-            updated_at: t.Any(),
+            created_at: t.Union([t.String(), t.Date(), t.Null()]),
+            updated_at: t.Union([t.String(), t.Date(), t.Null()]),
             company: t.Union([t.Object({
               id: t.String(),
               name: t.String(),
@@ -567,8 +567,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               totalRatings: t.Optional(t.Number()),
               totalLikes: t.Optional(t.Number()),
               totalDislikes: t.Optional(t.Number()),
-              created_at: t.Any(),
-              updated_at: t.Any()
+              created_at: t.Union([t.String(), t.Date(), t.Null()]),
+              updated_at: t.Union([t.String(), t.Date(), t.Null()])
             }), t.Null()]),
             views_count: t.Number(),
             clicks_count: t.Number()
@@ -736,10 +736,10 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             salary_max: t.Optional(t.Union([t.Number(), t.Null()])),
             seniority: t.Optional(t.Union([t.String(), t.Null()])),
             skills: t.Array(t.String()),
-            technical_skills: t.Optional(t.Array(t.String())), employment_type: t.Optional(t.Union([t.String(), t.Null()])), experience_level: t.Optional(t.Union([t.String(), t.Null()])), remote: t.Boolean(), is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])), published_at: t.Any(), expires_at: t.Any(), link: t.Optional(t.Union([t.String(), t.Null()])), source: t.Optional(t.Union([t.String(), t.Null()])), language: t.Optional(t.Union([t.String(), t.Null()])),
+            technical_skills: t.Optional(t.Array(t.String())), employment_type: t.Optional(t.Union([t.String(), t.Null()])), experience_level: t.Optional(t.Union([t.String(), t.Null()])), remote: t.Boolean(), is_remote: t.Optional(t.Union([t.Boolean(), t.Null()])), published_at: t.Union([t.String(), t.Date(), t.Null()]), expires_at: t.Union([t.String(), t.Date(), t.Null()]), link: t.Optional(t.Union([t.String(), t.Null()])), source: t.Optional(t.Union([t.String(), t.Null()])), language: t.Optional(t.Union([t.String(), t.Null()])),
             status: t.Union([t.String(), t.Null(), t.Undefined()]),
-            created_at: t.Any(),
-            updated_at: t.Any(),
+            created_at: t.Union([t.String(), t.Date(), t.Null()]),
+            updated_at: t.Union([t.String(), t.Date(), t.Null()]),
             company: t.Union([t.Object({
               id: t.String(),
               name: t.String(),
@@ -750,8 +750,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               totalRatings: t.Optional(t.Number()),
               totalLikes: t.Optional(t.Number()),
               totalDislikes: t.Optional(t.Number()),
-              created_at: t.Any(),
-              updated_at: t.Any()
+              created_at: t.Union([t.String(), t.Date(), t.Null()]),
+              updated_at: t.Union([t.String(), t.Date(), t.Null()])
             }), t.Null()]),
             views_count: t.Number(),
             clicks_count: t.Number()
@@ -841,8 +841,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           status: t.Number(),
           message: t.String(),
           data: t.Object({
-            successful: t.Array(t.Any()),
-            failed: t.Array(t.Any()),
+            successful: t.Array(t.Unknown()),
+            failed: t.Array(t.Unknown()),
             companiesCreated: t.Number(), // Set<string> serialized to count or array? Service returns Set but t.Any might need conversion or service returns count in summary
             summary: t.Object({
               totalJobs: t.Number(),
@@ -909,7 +909,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           success: t.Boolean(),
           status: t.Number(),
           message: t.String(),
-          data: t.Any()
+          data: t.Unknown()
         }),
         500: t.Object({
           success: t.Boolean(),
