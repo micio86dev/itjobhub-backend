@@ -1,15 +1,13 @@
-
+import logger from "../utils/logger";
 import { dbClient } from "../db/client";
 
 export const setupDatabase = async () => {
   try {
     // Connect to MongoDB
     await dbClient.$connect();
-    // eslint-disable-next-line no-console
-    console.log("Database connected successfully");
+    logger.info("Database connected successfully");
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Database connection failed:", error);
+    logger.error({ err: error }, "Database connection failed");
     process.exit(1);
   }
 };
