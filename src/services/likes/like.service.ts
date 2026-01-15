@@ -159,7 +159,8 @@ export const createLike = async (
 export const removeLike = async (
   userId: string,
   likeableType: LikeableType,
-  likeableId: string
+  likeableId: string,
+  type?: LikeType
 ) => {
   return await prisma.$transaction(async (tx) => {
     // Find first to know type
@@ -167,7 +168,8 @@ export const removeLike = async (
       where: {
         user_id: userId,
         likeable_type: likeableType,
-        likeable_id: likeableId
+        likeable_id: likeableId,
+        ...(type ? { type } : {})
       }
     });
 

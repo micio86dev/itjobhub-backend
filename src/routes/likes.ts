@@ -121,7 +121,7 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
           return formatError("Either jobId or commentId must be provided", 400);
         }
 
-        await removeLike(user.id, likeable.type, likeable.id);
+        await removeLike(user.id, likeable.type, likeable.id, query.type);
 
         return formatResponse(null, "Unliked successfully");
       } catch (error: unknown) {
@@ -132,7 +132,8 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
     {
       query: t.Object({
         jobId: t.Optional(t.String()),
-        commentId: t.Optional(t.String())
+        commentId: t.Optional(t.String()),
+        type: t.Optional(t.Union([t.Literal('LIKE'), t.Literal('DISLIKE')]))
       }),
       response: {
         200: t.Object({

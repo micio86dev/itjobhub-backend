@@ -338,9 +338,11 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
 
   reactionCounts.forEach(r => {
     if (r.type === 'LIKE' || !r.type) { // Handle old records without type as LIKE if default applied, but prisma default handles it
-      likeCountMap.set(r.likeable_id, r._count._all);
+      const current = likeCountMap.get(r.likeable_id) || 0;
+      likeCountMap.set(r.likeable_id, current + r._count._all);
     } else if (r.type === 'DISLIKE') {
-      dislikeCountMap.set(r.likeable_id, r._count._all);
+      const current = dislikeCountMap.get(r.likeable_id) || 0;
+      dislikeCountMap.set(r.likeable_id, current + r._count._all);
     }
   });
 
@@ -448,10 +450,28 @@ export const getJobById = async (id: string, userId?: string) => {
   if (!job) return null;
 
   // Get like/dislike counts for the job
-  const [likes, dislikes] = await Promise.all([
-    dbClient.like.count({ where: { likeable_id: id, likeable_type: 'job', type: 'LIKE' } }),
-    dbClient.like.count({ where: { likeable_id: id, likeable_type: 'job', type: 'DISLIKE' } })
-  ]);
+  const reactionCounts = await dbClient.like.groupBy({
+    by: ['type'],
+    where: {
+      likeable_id: id,
+      likeable_type: 'job'
+    },
+    _count: {
+      _all: true
+    }
+  });
+
+  let likes = 0;
+  let dislikes = 0;
+
+  reactionCounts.forEach(r => {
+    // Handle legacy records with null type as LIKE
+    if (r.type === 'LIKE' || !r.type) {
+      likes += r._count._all;
+    } else if (r.type === 'DISLIKE') {
+      dislikes += r._count._all;
+    }
+  });
 
   // Get user reaction if userId provided
   let user_reaction = null;

@@ -241,12 +241,18 @@ describe("Like/Dislike System", () => {
         });
         expect(otherUserLike?.type).toBe("LIKE");
 
-        // Verify counts
+        // Verify counts via Prisma
         const likeCount = await prisma.like.count({ where: { likeable_id: jobId, type: "LIKE" } });
         const dislikeCount = await prisma.like.count({ where: { likeable_id: jobId, type: "DISLIKE" } });
 
         expect(likeCount).toBe(1); // 1 from Other User
         expect(dislikeCount).toBe(1); // 1 from Current User
+
+        // 5. Verify counts via getJobById API (Detail Page Logic)
+        const { data: jobResponse } = await api.jobs[jobId].get({ headers: authToken });
+        expect(jobResponse?.success).toBe(true);
+        expect(jobResponse?.data?.likes).toBe(1);
+        expect(jobResponse?.data?.dislikes).toBe(1);
 
         // Cleanup User 2
         await prisma.like.deleteMany({ where: { user_id: otherUser.id } });

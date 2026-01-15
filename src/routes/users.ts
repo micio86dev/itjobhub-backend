@@ -31,6 +31,11 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           firstName: userData.first_name,
           lastName: userData.last_name,
           role: userData.role,
+          phone: userData.phone || undefined,
+          location: userData.location || undefined,
+          birthDate: userData.birthDate || undefined,
+          bio: userData.bio || undefined,
+          avatar: userData.avatar || undefined,
           createdAt: userData.created_at?.toISOString() || new Date().toISOString(),
           profile: userData.profile ? {
             id: userData.profile.id,
@@ -67,6 +72,11 @@ export const userRoutes = new Elysia({ prefix: "/users" })
             firstName: t.String(),
             lastName: t.String(),
             role: t.String(),
+            phone: t.Optional(t.String()),
+            location: t.Optional(t.String()),
+            birthDate: t.Optional(t.String()),
+            bio: t.Optional(t.String()),
+            avatar: t.Optional(t.String()),
             createdAt: t.String(),
             profile: t.Optional(t.Object({
               id: t.String(),
