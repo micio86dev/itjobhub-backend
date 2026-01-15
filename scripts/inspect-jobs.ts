@@ -1,8 +1,9 @@
 
 import { prisma } from "../src/config/database";
+import logger from "../src/utils/logger";
 
 async function inspectJobs() {
-    console.log("Fetching first 5 jobs...");
+    logger.info("Fetching first 5 jobs...");
     const jobs = await prisma.job.findMany({
         take: 5,
         select: {
@@ -13,7 +14,7 @@ async function inspectJobs() {
         }
     });
 
-    console.log(JSON.stringify(jobs, null, 2));
+    logger.info(JSON.stringify(jobs, null, 2));
     await prisma.$disconnect();
 }
 

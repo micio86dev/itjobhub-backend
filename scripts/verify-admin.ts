@@ -1,9 +1,10 @@
 
 import { request } from 'undici';
+import logger from "../src/utils/logger";
 
 async function verifyAdmin() {
     try {
-        console.log("Logging in...");
+        logger.info("Logging in...");
         const loginRes = await request('http://localhost:3001/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -11,21 +12,21 @@ async function verifyAdmin() {
         });
 
         if (loginRes.statusCode !== 200) {
-            console.error(`Login failed: ${loginRes.statusCode}`);
+            logger.error(`Login failed: ${loginRes.statusCode}`);
             const text = await loginRes.body.text();
-            console.error(text);
+            logger.error(text);
             return;
         }
 
         const loginData = await loginRes.body.json() as any;
         const token = loginData.data?.token;
         if (!token) {
-            console.error("No token received");
+            logger.error("No token received");
             return;
         }
-        console.log("Login successful, token received.");
+        logger.info("Login successful, token received.");
 
-        console.log("Fetching stats...");
+        logger.info("Fetching stats...");
         const statsRes = await request('http://localhost:3001/admin/stats', {
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -33,17 +34,17 @@ async function verifyAdmin() {
         });
 
         if (statsRes.statusCode !== 200) {
-            console.error(`Stats failed: ${statsRes.statusCode}`);
+            logger.error(`Stats failed: ${statsRes.statusCode}`);
             const text = await statsRes.body.text();
-            console.error(text);
+            logger.error(text);
         } else {
             const statsData = await statsRes.body.json();
-            console.log("Stats fetched successfully:");
-            console.log(JSON.stringify(statsData, null, 2).substring(0, 200) + "...");
+            logger.info("Stats fetched successfully:");
+            logger.info(JSON.stringify(statsData, null, 2).substring(0, 200) + "...");
         }
 
     } catch (err) {
-        console.error("Error:", err);
+        logger.error({ err }, "Error in verifyAdmin");
     }
 }
 

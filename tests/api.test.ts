@@ -1,6 +1,7 @@
 
 import { describe, it, expect, beforeAll } from 'bun:test';
 import { treaty } from '@elysiajs/eden';
+import logger from '../src/utils/logger';
 import { setupDatabase } from "../src/config/database";
 import { testUsers, testCompany, testJob, testComment, testProfile } from './helpers/test-data';
 import { loginUser, createAuthHeaders, AuthTokens } from './helpers/auth';
@@ -43,7 +44,7 @@ describe('IT Job Hub API Tests', () => {
 
       await prisma.user.deleteMany({ where: { email: { in: testEmails } } });
     } catch (error) {
-      console.warn("Failed to clean database:", error);
+      logger.warn({ err: error }, "Failed to clean database");
     }
 
     // Setup test users and get auth tokens
@@ -52,7 +53,7 @@ describe('IT Job Hub API Tests', () => {
       companyTokens = await loginUser(app, 'company');
       jobSeekerTokens = await loginUser(app, 'jobSeeker');
     } catch (error) {
-      console.error('Failed to setup test users:', error);
+      logger.error({ err: error }, 'Failed to setup test users');
       throw error;
     }
   });
@@ -259,7 +260,7 @@ describe('IT Job Hub API Tests', () => {
 
       const data = await response.json();
       if (response.status !== 201) {
-        console.log('Job creation failed body:', JSON.stringify(data, null, 2));
+        logger.info('Job creation failed body: ' + JSON.stringify(data, null, 2));
       }
       expect(response.status).toBe(201);
       expect(data.success).toBe(true);
@@ -394,7 +395,7 @@ describe('IT Job Hub API Tests', () => {
 
       const data = await response.json();
       if (response.status !== 201) {
-        console.log('Batch import failed:', JSON.stringify(data, null, 2));
+        logger.info('Batch import failed: ' + JSON.stringify(data, null, 2));
       }
       expect(response.status).toBe(201);
       expect(data.success).toBe(true);
@@ -416,7 +417,7 @@ describe('IT Job Hub API Tests', () => {
 
       const data = await response.json();
       if (response.status !== 201) {
-        console.log('Comment creation failed body:', JSON.stringify(data, null, 2));
+        logger.info('Comment creation failed body: ' + JSON.stringify(data, null, 2));
       }
       expect(response.status).toBe(201);
       expect(data.success).toBe(true);

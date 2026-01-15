@@ -1,5 +1,6 @@
 import { treaty as edenTreaty } from '@elysiajs/eden';
 import { testUsers } from './test-data';
+import logger from '../../src/utils/logger';
 import { prisma } from '../../src/config/database';
 import type { App } from '../../src/app';
 
@@ -17,7 +18,7 @@ export async function loginUser(app: App, userType: keyof typeof testUsers): Pro
     // First try to register the user (in case they don't exist)
     await api.auth.register.post(userData);
   } catch (error) {
-    console.error('Register error (might be expected):', error);
+    logger.error({ err: error }, 'Register error (might be expected)');
   }
 
   // Always update the user's password and role to match test data
@@ -48,7 +49,7 @@ export async function loginUser(app: App, userType: keyof typeof testUsers): Pro
   });
 
   if (response.error) {
-    console.error('Login response error:', JSON.stringify(response.error, null, 2));
+    logger.error('Login response error: ' + JSON.stringify(response.error, null, 2));
     throw new Error(`Failed to login: ${JSON.stringify(response.error)}`);
   }
 

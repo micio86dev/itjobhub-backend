@@ -1,13 +1,14 @@
 
 import { prisma } from "../src/config/database";
+import logger from "../src/utils/logger";
 
 async function verifySkills() {
-    console.log("Fetching all jobs...");
+    logger.info("Fetching all jobs...");
     const jobs = await prisma.job.findMany({
         select: { skills: true }
     });
 
-    console.log(`Found ${jobs.length} jobs.`);
+    logger.info(`Found ${jobs.length} jobs.`);
 
     const skillCounts: Record<string, number> = {};
     jobs.forEach(job => {
@@ -28,9 +29,9 @@ async function verifySkills() {
         .sort((a, b) => b.value - a.value)
         .slice(0, 20);
 
-    console.log("Top 20 Skills:");
+    logger.info("Top 20 Skills:");
     topSkills.forEach((s, i) => {
-        console.log(`${i + 1}. ${s.label}: ${s.value}`);
+        logger.info(`${i + 1}. ${s.label}: ${s.value}`);
     });
 
     await prisma.$disconnect();

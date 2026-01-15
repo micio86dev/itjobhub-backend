@@ -182,7 +182,7 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                 });
 
                 const formattedFavorites = favorites.map(fav => {
-                    const job = fav.job;
+                    const { comments, ...job } = fav.job;
 
                     // Filter likes for this specific job
                     const jobLikes = allLikes.filter(l => l.likeable_id === job.id);
@@ -190,18 +190,12 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                     const likesCount = jobLikes.filter(l => l.type === 'LIKE').length;
                     const dislikesCount = jobLikes.filter(l => l.type === 'DISLIKE').length;
                     const userReaction = jobLikes.find(l => l.user_id === user.id)?.type || null;
-                    const commentsCount = job.comments.length;
-
-                    // Remove heavy arrays before sending
-                    const jobData = { ...job };
-                    if ('comments' in jobData) {
-                        delete (jobData as any).comments;
-                    }
+                    const commentsCount = comments.length;
 
                     return {
                         ...fav,
                         job: {
-                            ...jobData,
+                            ...job,
                             likes: likesCount,
                             dislikes: dislikesCount,
                             user_reaction: userReaction,

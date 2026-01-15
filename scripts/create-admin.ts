@@ -1,5 +1,6 @@
 import { dbClient } from "../src/config/database";
 import { hashPassword } from "../src/utils/password";
+import logger from "../src/utils/logger";
 
 async function createAdmin() {
     const email = process.env.ADMIN_EMAIL || "admin@itjobhub.com";
@@ -13,7 +14,7 @@ async function createAdmin() {
         });
 
         if (existingUser) {
-            console.log(`Admin user with email ${email} already exists.`);
+            logger.info(`Admin user with email ${email} already exists.`);
             process.exit(0);
         }
 
@@ -29,11 +30,11 @@ async function createAdmin() {
             },
         });
 
-        console.log("Admin user created successfully!");
-        console.log(`Email: ${email}`);
-        console.log(`Password: ${password}`);
+        logger.info("Admin user created successfully!");
+        logger.info(`Email: ${email}`);
+        logger.info(`Password: ${password}`);
     } catch (error) {
-        console.error("Error creating admin user:", error);
+        logger.error({ err: error }, "Error creating admin user");
     } finally {
         await dbClient.$disconnect();
     }

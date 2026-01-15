@@ -1,12 +1,13 @@
 import { beforeAll, afterAll } from 'bun:test';
 import { setupDatabase } from '../src/config/database';
+import logger from '../src/utils/logger';
 import { dbClient } from '../src/config/database';
 
 beforeAll(async () => {
   // Setup test database connection
-  console.log('Setting up test database...');
+  logger.info('Setting up test database...');
   await setupDatabase();
-  console.log('Test database setup complete');
+  logger.info('Test database setup complete');
 });
 
 afterAll(async () => {
@@ -15,5 +16,5 @@ afterAll(async () => {
   if (dbClient) {
     await dbClient.$disconnect();
   }
-  console.log('Test database cleanup complete');
+  logger.info('Test database cleanup complete');
 });

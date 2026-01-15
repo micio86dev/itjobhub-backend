@@ -1,5 +1,6 @@
 
 import { prisma } from "../src/config/database";
+import logger from "../src/utils/logger";
 
 async function test() {
     try {
@@ -7,11 +8,11 @@ async function test() {
         const job = await prisma.job.findFirst();
 
         if (!user || !job) {
-            console.log("Need at least one user and one job to test");
+            logger.info("Need at least one user and one job to test");
             return;
         }
 
-        console.log(`Testing comment insertion for user ${user.id} and job ${job.id}`);
+        logger.info(`Testing comment insertion for user ${user.id} and job ${job.id}`);
 
         const comment = await prisma.comment.create({
             data: {
@@ -30,11 +31,11 @@ async function test() {
             }
         });
 
-        console.log("Successfully created comment via Prisma:", comment);
+        logger.info({ comment }, "Successfully created comment via Prisma");
 
         // Now test via fetch if the server is running (optional, but let's just test Prisma first)
     } catch (error) {
-        console.error("Failed to insert comment:", error);
+        logger.error({ err: error }, "Failed to insert comment");
     } finally {
         await prisma.$disconnect();
     }

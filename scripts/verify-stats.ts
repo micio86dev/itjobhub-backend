@@ -1,8 +1,9 @@
 
 import { prisma } from "../src/config/database";
+import logger from "../src/utils/logger";
 
 async function verifyStats() {
-    console.log("Fetching all jobs...");
+    logger.info("Fetching all jobs...");
     const jobs = await prisma.job.findMany({
         select: {
             skills: true,
@@ -11,7 +12,7 @@ async function verifyStats() {
         }
     });
 
-    console.log(`Found ${jobs.length} jobs.`);
+    logger.info(`Found ${jobs.length} jobs.`);
 
     // --- Verify Skills ---
     const skillCounts: Record<string, number> = {};
@@ -35,8 +36,8 @@ async function verifyStats() {
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
 
-    console.log("\n--- Top 10 Skills (Revised) ---");
-    topSkills.forEach((s, i) => console.log(`${i + 1}. ${s.label}: ${s.value}`));
+    logger.info("\n--- Top 10 Skills (Revised) ---");
+    topSkills.forEach((s, i) => logger.info(`${i + 1}. ${s.label}: ${s.value}`));
 
     // --- Verify Employment Type ---
     const empCounts: Record<string, number> = {};
@@ -49,8 +50,8 @@ async function verifyStats() {
         .map(([label, value]) => ({ label, value }))
         .sort((a, b) => b.value - a.value);
 
-    console.log("\n--- Employment Types ---");
-    topEmp.forEach((s, i) => console.log(`${i + 1}. ${s.label}: ${s.value}`));
+    logger.info("\n--- Employment Types ---");
+    topEmp.forEach((s, i) => logger.info(`${i + 1}. ${s.label}: ${s.value}`));
 
     await prisma.$disconnect();
 }

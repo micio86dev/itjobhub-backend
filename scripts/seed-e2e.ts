@@ -1,5 +1,6 @@
 import { dbClient } from "../src/config/database";
 import { hashPassword, comparePasswords } from "../src/utils/password";
+import logger from "../src/utils/logger";
 
 async function seedE2E() {
     try {
@@ -19,13 +20,13 @@ async function seedE2E() {
                     role: "ADMIN",
                 },
             });
-            console.log("Created admin@test.com");
+            logger.info("Created admin@test.com");
         } else {
             await dbClient.user.update({
                 where: { email: adminEmail },
                 data: { password: hashedPassword, role: "ADMIN" }
             });
-            console.log("Updated admin@test.com");
+            logger.info("Updated admin@test.com");
         }
 
         // 2. Create Seeker
@@ -41,13 +42,13 @@ async function seedE2E() {
                     role: "user",
                 },
             });
-            console.log("Created seeker@test.com");
+            logger.info("Created seeker@test.com");
         } else {
             await dbClient.user.update({
                 where: { email: seekerEmail },
                 data: { password: hashedPassword, role: "user" }
             });
-            console.log("Updated seeker@test.com");
+            logger.info("Updated seeker@test.com");
         }
 
         // Create Profiles
@@ -65,7 +66,7 @@ async function seedE2E() {
                         bio: "Admin Bio"
                     }
                 });
-                console.log("Created Admin Profile");
+                logger.info("Created Admin Profile");
             } else {
                 await dbClient.userProfile.update({
                     where: { id: existingProfile.id },
@@ -77,7 +78,7 @@ async function seedE2E() {
                         bio: "Admin Bio"
                     }
                 });
-                console.log("Updated Admin Profile");
+                logger.info("Updated Admin Profile");
             }
         }
 
@@ -95,7 +96,7 @@ async function seedE2E() {
                         bio: "Seeker Bio"
                     }
                 });
-                console.log("Created Seeker Profile");
+                logger.info("Created Seeker Profile");
             } else {
                 await dbClient.userProfile.update({
                     where: { id: existingProfile.id },
@@ -107,7 +108,7 @@ async function seedE2E() {
                         bio: "Seeker Bio"
                     }
                 });
-                console.log("Updated Seeker Profile");
+                logger.info("Updated Seeker Profile");
             }
         }
 
@@ -129,10 +130,10 @@ async function seedE2E() {
                 }
             });
             companyId = company.id;
-            console.log("Created Company: " + companyName);
+            logger.info("Created Company: " + companyName);
         } else {
             companyId = existingCompany.id;
-            console.log("Found Company: " + companyName);
+            logger.info("Found Company: " + companyName);
         }
 
         const jobTitle = "E2E Software Engineer";
@@ -163,19 +164,19 @@ async function seedE2E() {
                     benefits: ["Remote work"]
                 }
             });
-            console.log("Created Job: " + jobTitle);
+            logger.info("Created Job: " + jobTitle);
         } else {
-            console.log("Found Job: " + jobTitle);
+            logger.info("Found Job: " + jobTitle);
         }
 
         // Verify password
         const savedSeeker = await dbClient.user.findUnique({ where: { email: seekerEmail } });
         const isMatch = await comparePasswords(password, savedSeeker?.password || "");
-        console.log(`Password verification for seeker@test.com: ${isMatch ? "MATCH" : "FAIL"}`);
+        logger.info(`Password verification for seeker@test.com: ${isMatch ? "MATCH" : "FAIL"}`);
 
-        console.log("E2E Seed completed successfully!");
+        logger.info("E2E Seed completed successfully!");
     } catch (error) {
-        console.error("Error seeding E2E users:", error);
+        logger.error({ err: error }, "Error seeding E2E users");
         process.exit(1);
     } finally {
         await dbClient.$disconnect();

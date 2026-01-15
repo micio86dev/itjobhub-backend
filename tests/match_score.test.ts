@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeAll } from 'bun:test';
 import { treaty } from '@elysiajs/eden';
 import { setupDatabase } from "../src/config/database";
+import logger from "../src/utils/logger";
 import { loginUser, createAuthHeaders, AuthTokens } from './helpers/auth';
 import { app } from '../src/app';
 import { prisma } from '../src/config/database';
@@ -111,8 +112,8 @@ describe('Match Score Algorithm Tests', () => {
 
         const { score, factors, details } = data.data;
 
-        console.log('Match Factors:', factors);
-        console.log('Final Score:', score);
+        logger.info({ factors }, 'Match Factors');
+        logger.info({ score }, 'Final Score');
 
         // Validations based on plan:
 

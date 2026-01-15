@@ -1,11 +1,12 @@
 
 import { getTopSkills } from "../src/services/jobs/job.service";
 import { prisma } from "../src/config/database";
+import logger from "../src/utils/logger";
 
 async function testService() {
-    console.log("Testing getTopSkills service...");
+    logger.info("Testing getTopSkills service...");
     const skills = await getTopSkills(5);
-    console.log("Top 5 Skills:", skills);
+    logger.info({ skills }, "Top 5 Skills");
     await prisma.$disconnect();
 }
 
