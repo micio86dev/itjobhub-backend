@@ -10,12 +10,16 @@ datasource db {
 model User {
   id         String    @id @default(auto()) @map("_id") @db.ObjectId
   email      String    @unique
-  password   String
+  password   String? // Optional for OAuth users
   first_name String
   last_name  String
   role       String    @default("user")
   created_at DateTime? @default(now())
   updated_at DateTime? @updatedAt
+
+  // OAuth fields
+  oauth_provider String? // 'github' | 'linkedin' | 'google'
+  oauth_id       String? // Provider's unique user ID
 
   phone     String?
   location  String?
