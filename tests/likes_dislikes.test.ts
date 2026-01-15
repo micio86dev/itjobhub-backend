@@ -51,8 +51,11 @@ describe("Like/Dislike System", () => {
 
     afterAll(async () => {
         // Cleanup
-        if (jobId) await prisma.like.deleteMany({ where: { likeable_id: jobId } });
-        if (jobId) await prisma.job.delete({ where: { id: jobId } });
+        if (jobId) {
+            await prisma.jobView.deleteMany({ where: { job_id: jobId } });
+            await prisma.like.deleteMany({ where: { likeable_id: jobId } });
+            await prisma.job.delete({ where: { id: jobId } });
+        }
         if (companyId) await prisma.company.delete({ where: { id: companyId } });
         // User cleanup handled by helper or global teardown usually
     });

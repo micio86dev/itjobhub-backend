@@ -33,16 +33,27 @@ describe('IT Job Hub API Tests', () => {
       ];
 
       // Delete specific test data to avoid wiping the entire database
-      await prisma.refreshToken.deleteMany({ where: { user: { email: { in: testEmails } } } });
-      await prisma.userProfile.deleteMany({ where: { user: { email: { in: testEmails } } } });
-      await prisma.like.deleteMany({ where: { user: { email: { in: testEmails } } } });
-      await prisma.comment.deleteMany({ where: { user: { email: { in: testEmails } } } });
+      // Find users by email first to get their IDs
+      const usersToDelete = await prisma.user.findMany({ where: { email: { in: testEmails } } });
+      const userIds = usersToDelete.map(u => u.id);
+
+      if (userIds.length > 0) {
+        // Delete all dependencies using user_id
+        await prisma.refreshToken.deleteMany({ where: { user_id: { in: userIds } } });
+        await prisma.userProfile.deleteMany({ where: { user_id: { in: userIds } } });
+        await prisma.like.deleteMany({ where: { user_id: { in: userIds } } });
+        await prisma.comment.deleteMany({ where: { user_id: { in: userIds } } });
+        await prisma.jobView.deleteMany({ where: { user_id: { in: userIds } } });
+        await prisma.favorite.deleteMany({ where: { user_id: { in: userIds } } });
+      }
 
       // We keep jobs and companies unless they specifically match test data
       await prisma.job.deleteMany({ where: { title: { in: [testJob.title, "Imported Job"] } } });
       await prisma.company.deleteMany({ where: { name: { in: [testCompany.name, "Imported Company"] } } });
 
-      await prisma.user.deleteMany({ where: { email: { in: testEmails } } });
+      if (userIds.length > 0) {
+        await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+      }
     } catch (error) {
       logger.warn({ err: error }, "Failed to clean database");
     }
