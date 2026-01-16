@@ -1,0 +1,51 @@
+import { MongoClient } from "mongodb";
+
+const uri = "mongodb+srv://itjobhub:BVJOuH3ezi2GRR61@cluster0.ug1ah2i.mongodb.net/itjobhub?retryWrites=true&w=majority&appName=Cluster0";
+const client = new MongoClient(uri);
+
+async function run() {
+    try {
+        await client.connect();
+        console.log("Connected to MongoDB for cleanup...");
+        const database = client.db("itjobhub");
+        const collection = database.collection("jobs");
+
+        // Also consider grouping by fewer fields if slight variations exist?
+        // User asked "Elimina gli annunci duplicati". Usually title + company + location (and maybe date).
+        const duplicates = await collection.aggregate([
+            {
+                $group: {
+                    _id: { title: "$title", company: "$company", location: "$location", publishDate: "$publishDate" },
+                    uniqueIds: { $push: "$_id" },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $match: { count: { $gt: 1 } }
+            }
+        ]).toArray();
+
+        console.log(`Found ${duplicates.length} sets of duplicates based on Title, Company, Location, Date.`);
+
+        let deletedCount = 0;
+        for (const doc of duplicates) {
+            const ids = doc.uniqueIds;
+            // Sort by ObjectId desc (newest first). Keep newest.
+            ids.sort((a, b) => b.toString().localeCompare(a.toString()));
+
+            const [keep, ...remove] = ids;
+
+            if (remove.length > 0) {
+                const res = await collection.deleteMany({ _id: { $in: remove } });
+                deletedCount += res.deletedCount;
+            }
+        }
+        console.log(`Deleted ${deletedCount} duplicate documents.`);
+
+    } catch (e) {
+        console.error("Error during cleanup:", e);
+    } finally {
+        await client.close();
+    }
+}
+run();

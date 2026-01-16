@@ -116,6 +116,7 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   radius_km?: number;
   dateRange?: string; // Add this
   looseSeniority?: boolean;
+  workModes?: string[];
 }, userId?: string) => {
   const skip = (page - 1) * limit;
   const where: Prisma.JobWhereInput = {};
@@ -170,6 +171,30 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
           { is_remote: filters.remote }
         ]
       });
+    }
+
+    if (filters.workModes && filters.workModes.length > 0) {
+      const wantsRemote = filters.workModes.includes('remote');
+      const wantsOnsite = filters.workModes.includes('onsite') || filters.workModes.includes('hybrid');
+
+      if (wantsRemote && !wantsOnsite) {
+        // User wants ONLY remote
+        andConditions.push({
+          OR: [
+            { remote: true },
+            { is_remote: true }
+          ]
+        });
+      } else if (wantsOnsite && !wantsRemote) {
+        // User wants ONLY onsite/hybrid (non-remote)
+        andConditions.push({
+          OR: [
+            { remote: false },
+            { is_remote: false }
+          ]
+        });
+      }
+      // If user wants BOTH, we don't add any filter (show all)
     }
 
     if (filters.dateRange) {

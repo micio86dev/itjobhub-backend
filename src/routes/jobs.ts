@@ -282,6 +282,11 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         if (query.radius_km) filters.radius_km = query.radius_km;
         if (query.dateRange) filters.dateRange = query.dateRange;
         if (query.looseSeniority) filters.looseSeniority = query.looseSeniority === "true";
+        if (query.workModes) {
+          filters.workModes = Array.isArray(query.workModes)
+            ? query.workModes
+            : query.workModes.split(",");
+        }
 
         const result = await getJobs(page, limit, filters, user?.id);
 
@@ -309,7 +314,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         lng: t.Optional(t.Numeric()),
         radius_km: t.Optional(t.Numeric()),
         dateRange: t.Optional(t.String()),
-        looseSeniority: t.Optional(t.String())
+        looseSeniority: t.Optional(t.String()),
+        workModes: t.Optional(t.Union([t.String(), t.Array(t.String())]))
       }),
       response: {
         200: t.Object({

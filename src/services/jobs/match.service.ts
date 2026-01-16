@@ -124,31 +124,46 @@ export const calculateMatchScore = async (userId: string, jobId: string): Promis
     }
 
     // --- 3. Location Match (15%) ---
-    const isRemote = job.remote || job.is_remote;
+    const isJobRemote = job.remote || job.is_remote;
     let locationStatus = 'unknown';
 
-    if (isRemote) {
-        factors.locationMatch = 100;
-        locationStatus = 'remote';
+    const userWorkModes = profile.workModes || [];
+    const wantsRemote = userWorkModes.includes('remote');
+    const wantsHybrid = userWorkModes.includes('hybrid');
+    const wantsOnsite = userWorkModes.includes('onsite');
+    const hasWorkModePref = userWorkModes.length > 0;
+
+    if (isJobRemote) {
+        if (!hasWorkModePref || wantsRemote) {
+            factors.locationMatch = 100;
+            locationStatus = 'remote_match';
+        } else {
+            // Job is remote but user DOES NOT want remote
+            factors.locationMatch = 0;
+            locationStatus = 'remote_mismatch';
+        }
     } else {
+        // Job is Onsite/Hybrid
         const jobLoc = (job.location || job.location_raw || "").toLowerCase();
         const userLoc = (profile.location || "").toLowerCase();
 
-        if (jobLoc && userLoc) {
-            if (jobLoc.includes(userLoc) || userLoc.includes(jobLoc)) {
-                factors.locationMatch = 100; // Exact/Close
-                locationStatus = 'exact';
-            } else {
-                // Simple check: different strings. Ideally we'd check distance or province.
-                // For now: 0 if different. 
-                // Improvement: Check common Italian regions/provinces if available.
-                // If "Milan" vs "Milano", includes() might handle it.
-                // If "Rome" vs "Naples", 0.
-                factors.locationMatch = 0;
-                locationStatus = 'different';
-            }
+        // If user ONLY wants remote, this is a mismatch
+        if (hasWorkModePref && !wantsOnsite && !wantsHybrid) {
+            factors.locationMatch = 0;
+            locationStatus = 'remote_only_mismatch';
         } else {
-            factors.locationMatch = 50; // Ambiguous
+            // User is open to onsite/hybrid
+            if (jobLoc && userLoc) {
+                if (jobLoc.includes(userLoc) || userLoc.includes(jobLoc)) {
+                    factors.locationMatch = 100; // Exact/Close
+                    locationStatus = 'exact';
+                } else {
+                    factors.locationMatch = 0;
+                    locationStatus = 'different_location';
+                }
+            } else {
+                factors.locationMatch = 50; // Ambiguous
+            }
         }
     }
 
@@ -285,15 +300,31 @@ export const calculateBatchMatchScores = async (userId: string, jobIds: string[]
         }
 
         // Location Match (14%)
-        const isRemote = job.remote || job.is_remote;
+        const isJobRemote = job.remote || job.is_remote;
         let locationMatch = 50;
-        if (isRemote) {
-            locationMatch = 100;
+
+        const userWorkModes = profile.workModes || [];
+        const wantsRemote = userWorkModes.includes('remote');
+        const wantsHybrid = userWorkModes.includes('hybrid');
+        const wantsOnsite = userWorkModes.includes('onsite');
+        const hasWorkModePref = userWorkModes.length > 0;
+
+        if (isJobRemote) {
+            if (!hasWorkModePref || wantsRemote) {
+                locationMatch = 100;
+            } else {
+                locationMatch = 0;
+            }
         } else {
             const jobLoc = (job.location || job.location_raw || "").toLowerCase();
             const userLoc = (profile.location || "").toLowerCase();
-            if (jobLoc && userLoc) {
-                locationMatch = (jobLoc.includes(userLoc) || userLoc.includes(jobLoc)) ? 100 : 0;
+
+            if (hasWorkModePref && !wantsOnsite && !wantsHybrid) {
+                locationMatch = 0;
+            } else {
+                if (jobLoc && userLoc) {
+                    locationMatch = (jobLoc.includes(userLoc) || userLoc.includes(jobLoc)) ? 100 : 0;
+                }
             }
         }
 

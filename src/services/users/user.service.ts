@@ -12,6 +12,7 @@ export interface UserProfileInput {
   skills?: string[];
   seniority?: string;
   availability?: string;
+  workModes?: string[];
   bio?: string;
   github?: string;
   linkedin?: string;
@@ -159,7 +160,9 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
     languages?: string[];
     skills?: string[];
     seniority?: string;
+    seniority?: string;
     availability?: string;
+    workModes?: string[];
     bio?: string;
     github?: string;
     linkedin?: string;
@@ -177,6 +180,7 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
     skills: data.skills,
     seniority: data.seniority,
     availability: data.availability,
+    workModes: data.workModes,
     bio: data.bio,
     github: data.github,
     linkedin: data.linkedin,
@@ -208,6 +212,7 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
         skills: data.skills || [],
         seniority: data.seniority,
         availability: data.availability,
+        workModes: data.workModes || [],
         bio: data.bio,
         github: data.github,
         linkedin: data.linkedin,

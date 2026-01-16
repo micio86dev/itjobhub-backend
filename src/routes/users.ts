@@ -44,6 +44,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
             skills: userData.profile.skills,
             seniority: userData.profile.seniority || undefined,
             availability: userData.profile.availability || undefined,
+            workModes: userData.profile.workModes || [],
             cvUrl: userData.profile.cv_url || undefined,
             bio: userData.profile.bio || undefined,
             github: userData.profile.github || undefined,
@@ -85,6 +86,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
               skills: t.Array(t.String()),
               seniority: t.Optional(t.String()),
               availability: t.Optional(t.String()),
+              workModes: t.Array(t.String()),
               cvUrl: t.Optional(t.String()),
               bio: t.Optional(t.String()),
               github: t.Optional(t.String()),
@@ -175,6 +177,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
             github: t.Optional(t.String()),
             linkedin: t.Optional(t.String()),
             website: t.Optional(t.String()),
+            workModes: t.Array(t.String()),
             createdAt: t.String(),
             updatedAt: t.String()
           })
@@ -218,6 +221,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           skills: profile.skills,
           seniority: profile.seniority || undefined,
           availability: profile.availability || undefined,
+          workModes: profile.workModes || [],
           cvUrl: profile.cv_url || undefined,
           bio: profile.bio || undefined,
           github: profile.github || undefined,
@@ -243,6 +247,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         skills: t.Optional(t.Array(t.String())),
         seniority: t.Optional(t.String()),
         availability: t.Optional(t.String()),
+        workModes: t.Optional(t.Array(t.String())),
         bio: t.Optional(t.String()),
         github: t.Optional(t.String()),
         linkedin: t.Optional(t.String()),
@@ -271,6 +276,8 @@ export const userRoutes = new Elysia({ prefix: "/users" })
             github: t.Optional(t.String()),
             linkedin: t.Optional(t.String()),
             website: t.Optional(t.String()),
+            website: t.Optional(t.String()),
+            workModes: t.Array(t.String()),
             createdAt: t.String(),
             updatedAt: t.String()
           })
