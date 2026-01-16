@@ -14,7 +14,7 @@ This repository contains the core API for the IT Job Hub platform. It is designe
 1.  **Auth**: Secure JWT-based authentication with cookie support.
 2.  **Jobs**: Comprehensive job listing management, including searching and filtering (with robust case-insensitive skill matching).
 3.  **Companies**: Management of company profiles and trust metrics.
-4.  **Community**: Real-time commenting and liking system.
+4.  **Community**: Real-time commenting and liking system with robust transaction management (automatic retries for write conflicts).
 5.  **Users**: Profile management and personalization data.
 
 ## Quality Standards

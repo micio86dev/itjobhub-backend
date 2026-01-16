@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../config/database";
 
 // Supported likeable types
@@ -27,126 +28,142 @@ export const createLike = async (
   likeableId: string,
   type: LikeType = "LIKE"
 ) => {
-  // Check if like already exists
-  const existingLike = await prisma.like.findFirst({
-    where: {
-      user_id: userId,
-      likeable_type: likeableType,
-      likeable_id: likeableId
-    }
-  });
+  const MAX_RETRIES = 3;
+  let attempts = 0;
 
-  if (existingLike) {
-    if (existingLike.type === type) {
-      throw new Error("Reaction already exists");
-    }
-
-    // Swap reaction (Like <-> Dislike)
-    return await prisma.$transaction(async (tx) => {
-      // Delete old
-      await tx.like.delete({
-        where: { id: existingLike.id }
-      });
-
-      // Create new
-      const like = await tx.like.create({
-        data: {
-          user_id: userId,
-          likeable_type: likeableType,
-          likeable_id: likeableId,
-          type: type
-        }
-      });
-
-      // Update Company Trust Score
-      if (likeableType === 'job') {
-        const job = await tx.job.findUnique({
-          where: { id: likeableId },
-          select: { company_id: true }
+  while (attempts < MAX_RETRIES) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        // Check if like already exists inside the transaction
+        const existingLike = await tx.like.findFirst({
+          where: {
+            user_id: userId,
+            likeable_type: likeableType,
+            likeable_id: likeableId
+          }
         });
 
-        if (job && job.company_id) {
-          const company = await tx.company.findUnique({
-            where: { id: job.company_id },
-            select: { totalLikes: true, totalDislikes: true }
+        if (existingLike) {
+          if (existingLike.type === type) {
+            throw new Error("Reaction already exists");
+          }
+
+          // Swap reaction (Like <-> Dislike)
+          // Delete old
+          await tx.like.delete({
+            where: { id: existingLike.id }
           });
 
-          if (company) {
-            let newLikes = company.totalLikes;
-            let newDislikes = company.totalDislikes;
-
-            if (type === 'LIKE') {
-              newLikes++;
-              newDislikes--;
-            } else {
-              newLikes--;
-              newDislikes++;
+          // Create new
+          const like = await tx.like.create({
+            data: {
+              user_id: userId,
+              likeable_type: likeableType,
+              likeable_id: likeableId,
+              type: type
             }
+          });
 
-            newLikes = Math.max(0, newLikes);
-            newDislikes = Math.max(0, newDislikes);
-
-            const newScore = calculateTrustScore(newLikes, newDislikes);
-
-            await tx.company.update({
-              where: { id: job.company_id },
-              data: {
-                totalLikes: newLikes,
-                totalDislikes: newDislikes,
-                trustScore: newScore
-              }
+          // Update Company Trust Score
+          if (likeableType === 'job') {
+            const job = await tx.job.findUnique({
+              where: { id: likeableId },
+              select: { company_id: true }
             });
+
+            if (job && job.company_id) {
+              const company = await tx.company.findUnique({
+                where: { id: job.company_id },
+                select: { totalLikes: true, totalDislikes: true }
+              });
+
+              if (company) {
+                let newLikes = company.totalLikes;
+                let newDislikes = company.totalDislikes;
+
+                if (type === 'LIKE') {
+                  newLikes++;
+                  newDislikes--;
+                } else {
+                  newLikes--;
+                  newDislikes++;
+                }
+
+                newLikes = Math.max(0, newLikes);
+                newDislikes = Math.max(0, newDislikes);
+
+                const newScore = calculateTrustScore(newLikes, newDislikes);
+
+                await tx.company.update({
+                  where: { id: job.company_id },
+                  data: {
+                    totalLikes: newLikes,
+                    totalDislikes: newDislikes,
+                    trustScore: newScore
+                  }
+                });
+              }
+            }
+          }
+          return like;
+        }
+
+        // New reaction
+        const like = await tx.like.create({
+          data: {
+            user_id: userId,
+            likeable_type: likeableType,
+            likeable_id: likeableId,
+            type: type
+          }
+        });
+
+        // Update Company Trust Score if it's a job like
+        if (likeableType === 'job') {
+          const job = await tx.job.findUnique({
+            where: { id: likeableId },
+            select: { company_id: true }
+          });
+
+          if (job && job.company_id) {
+            const company = await tx.company.findUnique({
+              where: { id: job.company_id },
+              select: { totalLikes: true, totalDislikes: true, totalRatings: true }
+            });
+
+            if (company) {
+              const newLikes = company.totalLikes + (type === 'LIKE' ? 1 : 0);
+              const newDislikes = company.totalDislikes + (type === 'DISLIKE' ? 1 : 0);
+              const newScore = calculateTrustScore(newLikes, newDislikes);
+
+              await tx.company.update({
+                where: { id: job.company_id },
+                data: {
+                  totalLikes: newLikes,
+                  totalDislikes: newDislikes,
+                  trustScore: newScore,
+                  totalRatings: company.totalRatings + 1
+                }
+              });
+            }
           }
         }
-      }
-      return like;
-    });
-  }
 
-  // New reaction
-  return await prisma.$transaction(async (tx) => {
-    const like = await tx.like.create({
-      data: {
-        user_id: userId,
-        likeable_type: likeableType,
-        likeable_id: likeableId,
-        type: type
-      }
-    });
-
-    // Update Company Trust Score if it's a job like
-    if (likeableType === 'job') {
-      const job = await tx.job.findUnique({
-        where: { id: likeableId },
-        select: { company_id: true }
+        return like;
       });
+    } catch (error: unknown) {
+      const isRetryable =
+        (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") ||
+        (error instanceof Error && error.message.includes("retry your transaction"));
 
-      if (job && job.company_id) {
-        const company = await tx.company.findUnique({
-          where: { id: job.company_id },
-          select: { totalLikes: true, totalDislikes: true, totalRatings: true }
-        });
-
-        if (company) {
-          const newLikes = company.totalLikes + (type === 'LIKE' ? 1 : 0);
-          const newDislikes = company.totalDislikes + (type === 'DISLIKE' ? 1 : 0);
-          const newScore = calculateTrustScore(newLikes, newDislikes);
-
-          await tx.company.update({
-            where: { id: job.company_id },
-            data: {
-              totalLikes: newLikes,
-              totalDislikes: newDislikes,
-              trustScore: newScore,
-              totalRatings: company.totalRatings + 1
-            }
-          });
-        }
+      if (isRetryable && attempts < MAX_RETRIES - 1) {
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, 50 * attempts));
+        continue;
       }
+      throw error;
     }
-
-    return like;
-  });
+  }
 };
 
 /**
