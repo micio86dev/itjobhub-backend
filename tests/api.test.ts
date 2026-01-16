@@ -48,7 +48,19 @@ describe('IT Job Hub API Tests', () => {
       }
 
       // We keep jobs and companies unless they specifically match test data
-      await prisma.job.deleteMany({ where: { title: { in: [testJob.title, "Imported Job"] } } });
+      const jobsToDelete = await prisma.job.findMany({
+        where: { title: { in: [testJob.title, "Imported Job"] } },
+        select: { id: true }
+      });
+      const jobIds = jobsToDelete.map(j => j.id);
+
+      if (jobIds.length > 0) {
+        await prisma.favorite.deleteMany({ where: { job_id: { in: jobIds } } });
+        await prisma.comment.deleteMany({ where: { job_id: { in: jobIds } } });
+        await prisma.jobView.deleteMany({ where: { job_id: { in: jobIds } } });
+        await prisma.like.deleteMany({ where: { likeable_id: { in: jobIds }, likeable_type: 'job' } });
+        await prisma.job.deleteMany({ where: { id: { in: jobIds } } });
+      }
       await prisma.company.deleteMany({ where: { name: { in: [testCompany.name, "Imported Company"] } } });
 
       if (userIds.length > 0) {
