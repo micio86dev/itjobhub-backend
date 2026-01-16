@@ -139,8 +139,8 @@ model Comment {
   updated_at DateTime? @updatedAt
 
   // Relations
-  job  Job  @relation(fields: [job_id], references: [id])
-  user User @relation(fields: [user_id], references: [id])
+  job  Job  @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("comments")
 }
@@ -154,7 +154,7 @@ model Like {
   created_at    DateTime? @default(now())
 
   // Relations
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, likeable_type, likeable_id])
   @@map("likes")
@@ -167,6 +167,7 @@ model UserProfile {
   skills       String[]
   seniority    String?
   availability String?
+  workModes    String[]
   cv_url       String?
   bio          String?
   location     String?
@@ -178,7 +179,7 @@ model UserProfile {
   updated_at   DateTime?    @updatedAt
 
   // Relations
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
 }
@@ -191,7 +192,7 @@ model RefreshToken {
   created_at    DateTime? @default(now())
 
   // Relations
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
 }
@@ -203,8 +204,8 @@ model Favorite {
   created_at DateTime? @default(now())
 
   // Relations
-  user User @relation(fields: [user_id], references: [id])
-  job  Job  @relation(fields: [job_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  job  Job  @relation(fields: [job_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, job_id])
   @@map("favorites")
@@ -219,8 +220,8 @@ model JobView {
   created_at  DateTime? @default(now())
 
   // Relations
-  job  Job   @relation(fields: [job_id], references: [id])
-  user User? @relation(fields: [user_id], references: [id])
+  job  Job   @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([job_id, user_id, fingerprint, type])
   @@map("jobs_views")
