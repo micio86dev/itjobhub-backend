@@ -64,7 +64,7 @@ export const app = new Elysia()
     )
     .use(
         rateLimit({
-            max: 100,
+            max: 1000,
             duration: 60000,
             generator: ipKeyGenerator,
         })

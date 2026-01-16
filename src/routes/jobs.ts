@@ -250,6 +250,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           company_id?: string;
           location?: string;
           seniority?: string;
+          employment_type?: string;
           remote?: boolean;
           skills?: string[];
           languages?: string[];
@@ -264,6 +265,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         if (query.company_id) filters.company_id = query.company_id;
         if (query.location) filters.location = query.location;
         if (query.seniority) filters.seniority = query.seniority;
+        if (query.employment_type) filters.employment_type = query.employment_type;
         if (query.remote !== undefined) filters.remote = query.remote === "true";
         if (query.skills) {
           filters.skills = Array.isArray(query.skills)
@@ -299,6 +301,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         company_id: t.Optional(t.String()),
         location: t.Optional(t.String()),
         seniority: t.Optional(t.String()),
+        employment_type: t.Optional(t.String()),
         remote: t.Optional(t.String()),
         skills: t.Optional(t.Union([t.String(), t.Array(t.String())])),
         languages: t.Optional(t.Union([t.String(), t.Array(t.String())])),

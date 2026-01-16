@@ -104,6 +104,7 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   company_id?: string;
   location?: string;
   experience_level?: string;
+  employment_type?: string;
   remote?: boolean;
   status?: string;
   q?: string;
@@ -129,8 +130,18 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
       andConditions.push({ company_id: filters.company_id });
     }
 
-    if (filters.location) {
+    if (filters.location && (!filters.lat || !filters.lng)) {
       andConditions.push({ location: { contains: filters.location, mode: 'insensitive' } });
+    }
+
+    if (filters.employment_type) {
+      // Map common frontend availability values to backend employment_type values if needed, 
+      // or just rely on the frontend sending correct values.
+      // The availability mapping in the frontend seems to be: 
+      // full-time, part-time, contract, freelance, internship
+      // Backend text is usually: Full-time, Part-time, Contract, etc.
+      // Let's use a flexible contains or case-insensitive match
+      andConditions.push({ employment_type: { contains: filters.employment_type, mode: 'insensitive' } });
     }
 
     if (filters.experience_level) {
@@ -372,7 +383,7 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
       else if (et.includes('hybrid') || et.includes('ibrido')) availability = 'hybrid';
       else if (et.includes('contract') || et.includes('contratto')) availability = 'contract';
       else if (et.includes('freelance') || et.includes('partita iva')) availability = 'freelance';
-      else if (et.includes('intern') || et.includes('tirocinio') || et.includes('stage')) availability = 'part_time'; // Map internships to part-time or create new category if needed
+      else if (et.includes('intern') || et.includes('tirocinio') || et.includes('stage')) availability = 'internship';
       else availability = et.replace(/-/g, '_'); // Fallback
     }
 
@@ -494,7 +505,7 @@ export const getJobById = async (id: string, userId?: string) => {
     else if (et.includes('hybrid') || et.includes('ibrido')) availability = 'hybrid';
     else if (et.includes('contract') || et.includes('contratto')) availability = 'contract';
     else if (et.includes('freelance') || et.includes('partita iva')) availability = 'freelance';
-    else if (et.includes('intern') || et.includes('tirocinio') || et.includes('stage')) availability = 'part_time';
+    else if (et.includes('intern') || et.includes('tirocinio') || et.includes('stage')) availability = 'internship';
     else availability = et.replace(/-/g, '_');
   }
 
