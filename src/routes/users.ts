@@ -146,6 +146,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           github: profile.github || undefined,
           linkedin: profile.linkedin || undefined,
           website: profile.website || undefined,
+          workModes: profile.workModes || [],
           createdAt: profile.created_at?.toISOString() || new Date().toISOString(),
           updatedAt: profile.updated_at?.toISOString() || new Date().toISOString()
         };
