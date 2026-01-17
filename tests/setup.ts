@@ -12,7 +12,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   // Clean up database connections
-  console.log('Cleaning up test database...');
+  logger.info('Cleaning up test database...');
   if (dbClient) {
     await dbClient.$disconnect();
   }

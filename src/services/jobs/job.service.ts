@@ -1,5 +1,6 @@
 import { prisma as dbClient } from "../../config/database";
 import { Prisma } from '@prisma/client';
+import logger from "../../utils/logger";
 
 export interface JobCreateInput {
   title: string;
@@ -338,14 +339,23 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   const jobsRaw = results[0];
   let total = results[1];
 
-  // Aggregate likes and dislikes for these jobs
+  // Aggregate likes, dislikes, views and clicks for these jobs
   const jobIds = jobsRaw.map(j => j.id);
-  const [reactionCounts, userReactions, userFavorites] = await Promise.all([
+  const [reactionCounts, interactionCounts, userReactions, userFavorites] = await Promise.all([
     dbClient.like.groupBy({
       by: ['likeable_id', 'type'],
       where: {
         likeable_type: 'job',
         likeable_id: { in: jobIds }
+      },
+      _count: {
+        _all: true
+      }
+    }),
+    dbClient.jobView.groupBy({
+      by: ['job_id', 'type'],
+      where: {
+        job_id: { in: jobIds }
       },
       _count: {
         _all: true
@@ -371,14 +381,26 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   // Map counts to jobs
   const likeCountMap = new Map<string, number>();
   const dislikeCountMap = new Map<string, number>();
+  const viewCountMap = new Map<string, number>();
+  const clickCountMap = new Map<string, number>();
 
   reactionCounts.forEach(r => {
-    if (r.type === 'LIKE' || !r.type) { // Handle old records without type as LIKE if default applied, but prisma default handles it
+    if (r.type === 'LIKE' || !r.type) {
       const current = likeCountMap.get(r.likeable_id) || 0;
       likeCountMap.set(r.likeable_id, current + r._count._all);
     } else if (r.type === 'DISLIKE') {
       const current = dislikeCountMap.get(r.likeable_id) || 0;
       dislikeCountMap.set(r.likeable_id, current + r._count._all);
+    }
+  });
+
+  interactionCounts.forEach(i => {
+    if (i.type === 'VIEW') {
+      const current = viewCountMap.get(i.job_id) || 0;
+      viewCountMap.set(i.job_id, current + i._count._all);
+    } else if (i.type === 'APPLY') {
+      const current = clickCountMap.get(i.job_id) || 0;
+      clickCountMap.set(i.job_id, current + i._count._all);
     }
   });
 
@@ -420,8 +442,8 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
       user_reaction: userReactionMap.get(job.id) || null,
       is_favorite: userFavoriteSet.has(job.id),
       comments_count: job._count.comments,
-      views_count: job.views_count || 0,
-      clicks_count: job.clicks_count || 0,
+      views_count: viewCountMap.get(job.id) || job.views_count || 0,
+      clicks_count: clickCountMap.get(job.id) || job.clicks_count || 0,
       availability: availability, // Explicitly map availability
       company: job.company ? {
         id: job.company.id,
@@ -471,85 +493,113 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
  * @returns Job details
  */
 export const getJobById = async (id: string, userId?: string) => {
-  const job = await dbClient.job.findUnique({
-    where: { id },
-    include: {
-      company: true,
-      _count: {
-        select: {
-          comments: true
+  if (!id || id === 'undefined') return null;
+
+  try {
+    const job = await dbClient.job.findUnique({
+      where: { id },
+      include: {
+        company: true,
+        _count: {
+          select: {
+            comments: true
+          }
         }
       }
-    }
-  });
+    });
 
-  if (!job) return null;
+    if (!job) return null;
 
-  // Get like/dislike counts for the job
-  const reactionCounts = await dbClient.like.groupBy({
-    by: ['type'],
-    where: {
-      likeable_id: id,
-      likeable_type: 'job'
-    },
-    _count: {
-      _all: true
-    }
-  });
-
-  let likes = 0;
-  let dislikes = 0;
-
-  reactionCounts.forEach(r => {
-    // Handle legacy records with null type as LIKE
-    if (r.type === 'LIKE' || !r.type) {
-      likes += r._count._all;
-    } else if (r.type === 'DISLIKE') {
-      dislikes += r._count._all;
-    }
-  });
-
-  // Get user reaction if userId provided
-  let user_reaction = null;
-  let is_favorite = false;
-  if (userId) {
-    const [reaction, favorite] = await Promise.all([
-      dbClient.like.findFirst({ where: { likeable_id: id, likeable_type: 'job', user_id: userId } }),
-      dbClient.favorite.findUnique({ where: { user_id_job_id: { user_id: userId, job_id: id } } })
+    // Get interaction counts for the job
+    const [reactionCounts, interactionCounts] = await Promise.all([
+      dbClient.like.groupBy({
+        by: ['type'],
+        where: {
+          likeable_id: id,
+          likeable_type: 'job'
+        },
+        _count: {
+          _all: true
+        }
+      }),
+      dbClient.jobView.groupBy({
+        by: ['type'],
+        where: {
+          job_id: id
+        },
+        _count: {
+          _all: true
+        }
+      })
     ]);
-    user_reaction = reaction?.type || null;
-    is_favorite = !!favorite;
-  }
 
-  // Normalize employment_type to availability
-  let availability = 'not_specified';
-  if (job.employment_type) {
-    const et = job.employment_type.toLowerCase();
-    if (et.includes('full') || et.includes('tempo pieno')) availability = 'full_time';
-    else if (et.includes('part') || et.includes('part-time')) availability = 'part_time';
-    else if (et.includes('hybrid') || et.includes('ibrido')) availability = 'hybrid';
-    else if (et.includes('contract') || et.includes('contratto')) availability = 'contract';
-    else if (et.includes('freelance') || et.includes('partita iva')) availability = 'freelance';
-    else if (et.includes('intern') || et.includes('tirocinio') || et.includes('stage')) availability = 'internship';
-    else availability = et.replace(/-/g, '_');
-  }
+    let likes = 0;
+    let dislikes = 0;
+    let views = 0;
+    let clicks = 0;
 
-  return {
-    ...job,
-    location: job.location || job.location_raw || job.formatted_address_verified || job.city,
-    likes,
-    dislikes,
-    user_reaction,
-    is_favorite,
-    availability,
-    comments_count: job._count.comments,
-    views_count: job.views_count || 0,
-    clicks_count: job.clicks_count || 0,
-    company: job.company ? {
-      ...job.company,
-      logo: job.company.logo_url || job.company.logo || null
-    } : null
-  };
+    reactionCounts.forEach(r => {
+      // Handle legacy records with null type as LIKE
+      if (r.type === 'LIKE' || !r.type) {
+        likes += r._count._all;
+      } else if (r.type === 'DISLIKE') {
+        dislikes += r._count._all;
+      }
+    });
+
+    interactionCounts.forEach(i => {
+      if (i.type === 'VIEW') {
+        views += i._count._all;
+      } else if (i.type === 'APPLY') {
+        clicks += i._count._all;
+      }
+    });
+
+    // Get user reaction if userId provided
+    let user_reaction = null;
+    let is_favorite = false;
+    if (userId) {
+      const [reaction, favorite] = await Promise.all([
+        dbClient.like.findFirst({ where: { likeable_id: id, likeable_type: 'job', user_id: userId } }),
+        dbClient.favorite.findUnique({ where: { user_id_job_id: { user_id: userId, job_id: id } } })
+      ]);
+      user_reaction = reaction?.type || null;
+      is_favorite = !!favorite;
+    }
+
+    // Normalize employment_type to availability
+    let availability = 'not_specified';
+    if (job.employment_type) {
+      const et = job.employment_type.toLowerCase();
+      if (et.includes('full') || et.includes('tempo pieno')) availability = 'full_time';
+      else if (et.includes('part') || et.includes('part-time')) availability = 'part_time';
+      else if (et.includes('hybrid') || et.includes('ibrido')) availability = 'hybrid';
+      else if (et.includes('contract') || et.includes('contratto')) availability = 'contract';
+      else if (et.includes('freelance') || et.includes('partita iva')) availability = 'freelance';
+      else if (et.includes('intern') || et.includes('tirocinio') || et.includes('stage')) availability = 'internship';
+      else availability = et.replace(/-/g, '_');
+    }
+
+    return {
+      ...job,
+      location: job.location || job.location_raw || job.formatted_address_verified || job.city,
+      likes,
+      dislikes,
+      user_reaction,
+      is_favorite,
+      availability,
+      comments_count: job._count.comments,
+      views_count: views > 0 ? views : (job.views_count || 0),
+      clicks_count: clicks > 0 ? clicks : (job.clicks_count || 0),
+      company: job.company ? {
+        ...job.company,
+        logo: job.company.logo_url || job.company.logo || null
+      } : null
+    };
+  } catch (error) {
+    logger.error({ id, error }, `Error fetching job ${id}`);
+    return null;
+  }
 };
 
 
@@ -792,7 +842,7 @@ export const trackJobInteraction = async (
       fingerprint: (!userId && fingerprint) ? fingerprint : null
     };
 
-    // Check if already tracked (to avoid noisy logs and extra DB writes)
+    // Check if already tracked
     const existing = await dbClient.jobView.findFirst({
       where: viewData
     });
@@ -801,15 +851,12 @@ export const trackJobInteraction = async (
       return { success: false, reason: 'already_tracked' };
     }
 
-    // Try to create the view record. 
-    // We do this outside an interactive transaction to avoid "noisy" P2002 error logs 
-    // that Prisma often emits when a transaction fails, even if the error is caught.
     try {
       await dbClient.jobView.create({
         data: viewData
       });
 
-      // If creation succeeded, increment the corresponding counter on the job
+      // Update counters on the job document (denormalized for list views)
       const updateData = type === 'VIEW'
         ? { views_count: { increment: 1 } }
         : { clicks_count: { increment: 1 } };
@@ -821,16 +868,14 @@ export const trackJobInteraction = async (
 
       return { success: true };
     } catch (error) {
-      // If error is unique constraint violation (P2002), it means another request 
-      // already created the record between our check and create.
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         return { success: false, reason: 'already_tracked' };
       }
+      logger.error({ error, jobId, type }, `[JobService] Error tracking ${type} for job ${jobId}`);
       throw error;
     }
   } catch (error) {
-    // Log unexpected errors but don't crash
-    // console.error('Error in trackJobInteraction:', error);
+    logger.error({ error }, '[JobService] trackJobInteraction failed');
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 };

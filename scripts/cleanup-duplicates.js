@@ -1,4 +1,7 @@
 import { MongoClient } from "mongodb";
+import pino from "pino";
+
+const logger = pino();
 
 const uri = "mongodb+srv://itjobhub:BVJOuH3ezi2GRR61@cluster0.ug1ah2i.mongodb.net/itjobhub?retryWrites=true&w=majority&appName=Cluster0";
 const client = new MongoClient(uri);
@@ -6,7 +9,7 @@ const client = new MongoClient(uri);
 async function run() {
     try {
         await client.connect();
-        console.log("Connected to MongoDB for cleanup...");
+        logger.info("Connected to MongoDB for cleanup...");
         const database = client.db("itjobhub");
         const collection = database.collection("jobs");
 
@@ -25,7 +28,7 @@ async function run() {
             }
         ]).toArray();
 
-        console.log(`Found ${duplicates.length} sets of duplicates based on Title, Company, Location, Date.`);
+        logger.info({ duplicateSets: duplicates.length }, "Found duplicates sets based on Title, Company, Location, Date.");
 
         let deletedCount = 0;
         for (const doc of duplicates) {
@@ -40,10 +43,10 @@ async function run() {
                 deletedCount += res.deletedCount;
             }
         }
-        console.log(`Deleted ${deletedCount} duplicate documents.`);
+        logger.info({ deletedCount }, "Deleted duplicate documents.");
 
     } catch (e) {
-        console.error("Error during cleanup:", e);
+        logger.error({ error: e }, "Error during cleanup");
     } finally {
         await client.close();
     }

@@ -4,6 +4,7 @@ import { treaty } from "@elysiajs/eden";
 import { app } from "../src/app";
 import { prisma } from "../src/config/database";
 import { loginUser, createAuthHeaders } from "./helpers/auth";
+import logger from "../src/utils/logger";
 
 const api = treaty(app);
 
@@ -45,7 +46,7 @@ describe("Like/Dislike System", () => {
             });
             jobId = job.id;
         } catch (e) {
-            console.error("Setup failed:", e);
+            logger.error({ e }, "Setup failed");
         }
     });
 
