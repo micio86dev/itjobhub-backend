@@ -1,15 +1,28 @@
 import { Elysia, t } from "elysia";
 import {
   createComment,
-  getCommentsByJob,
+  getCommentsByEntity,
   updateComment,
   deleteComment
 } from "../services/comments/comment.service";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
 import { authMiddleware } from "../middleware/auth";
+import logger from "../utils/logger";
 
 export const commentRoutes = new Elysia({ prefix: "/comments" })
   .use(authMiddleware)
+  .onError(({ code, error, set }) => {
+    if (code === 'VALIDATION') {
+      logger.error({ validationError: error.all }, "Comment Route Validation Error");
+      set.status = 422;
+      return {
+        success: false,
+        status: 422,
+        message: "Validation Error",
+        errors: error.all
+      };
+    }
+  })
   /**
    * Create a new comment
    * @method POST
@@ -24,22 +37,23 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
           return formatError("Unauthorized", 401);
         }
 
-        if (!body.jobId) {
+        if (!body.commentableId || !body.commentableType) {
           set.status = 400;
-          return formatError("jobId is required", 400);
+          return formatError("commentableId and commentableType are required", 400);
         }
 
         const isValidObjectId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
-        if (!isValidObjectId(body.jobId)) {
+        if (!isValidObjectId(body.commentableId)) {
           set.status = 400;
-          return formatError("Invalid jobId format", 400);
+          return formatError("Invalid commentableId format", 400);
         }
 
         const comment = await createComment({
           content: body.content,
           userId: user.id,
-          jobId: body.jobId,
-          parentId: body.parentId
+          commentableId: body.commentableId,
+          commentableType: body.commentableType as "job" | "news",
+          parentId: body.parentId || undefined
         });
 
         set.status = 201;
@@ -52,63 +66,28 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
     {
       body: t.Object({
         content: t.String({ minLength: 1 }),
-        jobId: t.Optional(t.String()),
-        parentId: t.Optional(t.String())
+        commentableId: t.String(),
+        commentableType: t.Union([t.Literal("job"), t.Literal("news")]),
+        parentId: t.Optional(t.Union([t.String(), t.Null()]))
       }),
-      response: {
-        201: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String(),
-          data: t.Object({
-            id: t.String(),
-            content: t.String(),
-            user_id: t.String(),
-            job_id: t.Optional(t.String()),
-            created_at: t.Union([t.String(), t.Date(), t.Null()]),
-            updated_at: t.Union([t.String(), t.Date(), t.Null()]),
-            user: t.Object({
-              id: t.String(),
-              first_name: t.String(),
-              last_name: t.String(),
-              avatar: t.Union([t.String(), t.Null()])
-            })
-          })
-        }),
-        400: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String()
-        }),
-        401: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String()
-        }),
-        500: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String()
-        })
-      },
       detail: {
         tags: ["comments"]
       }
     }
   )
-  /**
-   * Get comments for a job with pagination
-   * @method GET
-   * @path /comments/job/:jobId
-   */
   .get(
-    "/job/:jobId",
+    "/:type/:id",
     async ({ params, query, set }) => {
       try {
         const page = parseInt(query.page || "1");
         const limit = parseInt(query.limit || "10");
 
-        const result = await getCommentsByJob(params.jobId, page, limit);
+        if (params.type !== "job" && params.type !== "news") {
+          set.status = 400;
+          return formatError("Invalid entity type. Must be 'job' or 'news'", 400);
+        }
+
+        const result = await getCommentsByEntity(params.id, params.type, page, limit);
 
         return formatResponse(result, "Comments retrieved successfully");
       } catch (error: unknown) {
@@ -118,61 +97,13 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
     },
     {
       params: t.Object({
-        jobId: t.String()
+        type: t.String(),
+        id: t.String()
       }),
       query: t.Object({
         page: t.Optional(t.String()),
         limit: t.Optional(t.String())
       }),
-      response: {
-        200: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String(),
-          data: t.Object({
-            comments: t.Array(t.Object({
-              id: t.String(),
-              content: t.String(),
-              user_id: t.String(),
-              job_id: t.Optional(t.String()),
-              parentId: t.Optional(t.String()),
-              created_at: t.Union([t.String(), t.Date(), t.Null()]),
-              updated_at: t.Union([t.String(), t.Date(), t.Null()]),
-              user: t.Object({
-                id: t.String(),
-                first_name: t.String(),
-                last_name: t.String(),
-                avatar: t.Union([t.String(), t.Null()])
-              }),
-              replies: t.Optional(t.Array(t.Object({
-                id: t.String(),
-                content: t.String(),
-                user_id: t.String(),
-                parentId: t.String(),
-                created_at: t.Union([t.String(), t.Date(), t.Null()]),
-                updated_at: t.Union([t.String(), t.Date(), t.Null()]),
-                user: t.Object({
-                  id: t.String(),
-                  first_name: t.String(),
-                  last_name: t.String(),
-                  avatar: t.Union([t.String(), t.Null()])
-                })
-              })))
-            })),
-            pagination: t.Object({
-              page: t.Number(),
-              limit: t.Number(),
-              total: t.Number(),
-              pages: t.Number()
-            })
-          })
-        }),
-        500: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String()
-        })
-      },
       detail: {
         tags: ["comments"]
       }
@@ -218,48 +149,6 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
       body: t.Object({
         content: t.String({ minLength: 1 })
       }),
-      response: {
-        200: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String(),
-          data: t.Object({
-            id: t.String(),
-            content: t.String(),
-            user_id: t.String(),
-            job_id: t.Optional(t.String()),
-            parentId: t.Optional(t.String()),
-            created_at: t.Union([t.String(), t.Date(), t.Null()]),
-            updated_at: t.Union([t.String(), t.Date(), t.Null()]),
-            user: t.Object({
-              id: t.String(),
-              first_name: t.String(),
-              last_name: t.String(),
-              avatar: t.Union([t.String(), t.Null()])
-            })
-          })
-        }),
-        401: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String()
-        }),
-        403: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String()
-        }),
-        404: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String()
-        }),
-        500: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String()
-        })
-      },
       detail: {
         tags: ["comments"]
       }
@@ -302,33 +191,6 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
       params: t.Object({
         id: t.String()
       }),
-      response: {
-        200: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String()
-        }),
-        401: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String()
-        }),
-        403: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String()
-        }),
-        404: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String()
-        }),
-        500: t.Object({
-          success: t.Boolean(),
-          status: t.Number(),
-          message: t.String()
-        })
-      },
       detail: {
         tags: ["comments"]
       }

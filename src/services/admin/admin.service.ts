@@ -46,8 +46,18 @@ export const getStatistics = async (month?: number, year?: number) => {
         dbClient.job.count({ where: { created_at: { gte: startDate, lt: endDate } } }),
         dbClient.company.count(isFiltered ? { where: { created_at: { lt: endDate } } } : undefined),
         dbClient.company.count({ where: { created_at: { gte: startDate, lt: endDate } } }),
-        dbClient.comment.count(isFiltered ? { where: { created_at: { lt: endDate } } } : undefined),
-        dbClient.like.count(isFiltered ? { where: { created_at: { lt: endDate } } } : undefined),
+        dbClient.comment.count({
+            where: {
+                ...(isFiltered ? { created_at: { lt: endDate } } : {}),
+                commentable_type: 'job'
+            }
+        }),
+        dbClient.like.count({
+            where: {
+                ...(isFiltered ? { created_at: { lt: endDate } } : {}),
+                likeable_type: 'job'
+            }
+        }),
         dbClient.job.groupBy({
             by: ['seniority'],
             where: isFiltered ? { created_at: { lt: endDate } } : undefined,

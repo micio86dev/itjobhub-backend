@@ -36,12 +36,7 @@ export const calculateMatchScore = async (userId: string, jobId: string): Promis
         dbClient.job.findUnique({
             where: { id: jobId },
             include: {
-                company: true,
-                _count: {
-                    select: {
-                        jobViews: { where: { type: 'APPLY' } } // Approximate applications count from 'APPLY' clicks
-                    }
-                }
+                company: true
             }
         })
     ]);
@@ -194,7 +189,7 @@ export const calculateMatchScore = async (userId: string, jobId: string): Promis
     else factors.competition = 0;
 
     // --- 7. Application Rate (5%) ---
-    const applyCount = job._count?.jobViews || 0; // Assuming 'APPLY' type count
+    const applyCount = 0; // TODO: Fetch from interaction table separately if needed
     const ratio = views > 0 ? (applyCount / views) * 100 : 0;
 
     // Logic inverse: Low ratio = good opportunity
@@ -249,12 +244,7 @@ export const calculateBatchMatchScores = async (userId: string, jobIds: string[]
     const jobs = await dbClient.job.findMany({
         where: { id: { in: jobIds } },
         include: {
-            company: true,
-            _count: {
-                select: {
-                    jobViews: { where: { type: 'APPLY' } }
-                }
-            }
+            company: true
         }
     });
 
@@ -353,7 +343,7 @@ export const calculateBatchMatchScores = async (userId: string, jobIds: string[]
         else if (views < 300) competition = 30;
 
         // Application Rate (3%)
-        const applyCount = job._count?.jobViews || 0;
+        const applyCount = 0; // TODO: Fetch from interaction table separately if needed
         const ratio = views > 0 ? (applyCount / views) * 100 : 0;
         let applicationRate = 0;
         if (ratio < 15) applicationRate = 100;

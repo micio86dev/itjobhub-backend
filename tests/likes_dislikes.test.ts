@@ -53,7 +53,7 @@ describe("Like/Dislike System", () => {
     afterAll(async () => {
         // Cleanup
         if (jobId) {
-            await prisma.jobView.deleteMany({ where: { job_id: jobId } });
+            await prisma.interaction.deleteMany({ where: { trackable_id: jobId, trackable_type: 'job' } });
             await prisma.like.deleteMany({ where: { likeable_id: jobId } });
             await prisma.job.delete({ where: { id: jobId } });
         }

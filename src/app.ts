@@ -11,6 +11,7 @@ import { commentRoutes } from "./routes/comments";
 import { likeRoutes } from "./routes/likes";
 import { adminRoutes } from "./routes/admin";
 import { favoritesRoutes } from "./routes/favorites";
+import { newsRoutes } from "./routes/news";
 import { authMiddleware } from "./middleware/auth";
 import { deriveLang, translate } from "./i18n";
 
@@ -86,6 +87,7 @@ export const app = new Elysia()
                     { name: "comments", description: "Comment endpoints" },
                     { name: "likes", description: "Like endpoints" },
                     { name: "favorites", description: "Favorites endpoints" },
+                    { name: "news", description: "News endpoints" },
                 ],
             },
             path: "/docs",
@@ -101,6 +103,7 @@ export const app = new Elysia()
     .use(likeRoutes)
     .use(adminRoutes)
     .use(favoritesRoutes)
+    .use(newsRoutes)
     .onError(({ code, error, set, request }) => {
         if (code === 'VALIDATION') {
             const { lang } = deriveLang({ request });

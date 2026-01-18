@@ -33,7 +33,7 @@ model User {
   profile        UserProfile?
   refresh_tokens RefreshToken[]
   favorites      Favorite[]
-  jobViews       JobView[]
+  interactions   Interaction[]
 
   @@map("users")
 }
@@ -123,32 +123,54 @@ model Job {
   // Relations
   company       Company?   @relation(fields: [company_id], references: [id])
   seniority_ref Seniority? @relation(fields: [seniority_id], references: [id])
-  comments      Comment[]
   favorites     Favorite[]
-  jobViews      JobView[]
 
   @@map("jobs")
 }
 
-model Comment {
-  id         String    @id @default(auto()) @map("_id") @db.ObjectId
-  job_id     String    @db.ObjectId
-  user_id    String    @db.ObjectId
-  content    String
+model News {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  slug         String    @unique
+  summary      String?
+  content      String?
+  source_url   String?
+  image_url    String?
+  category     String? // e.g., "AI", "IT", "Security"
+  language     String? // "it", "en", etc.
+  is_published Boolean   @default(true)
+  published_at DateTime? @default(now())
+
+  // Tracking stats
+  views_count  Int @default(0)
+  clicks_count Int @default(0)
+
   created_at DateTime? @default(now())
   updated_at DateTime? @updatedAt
 
+  @@map("news")
+}
+
+model Comment {
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  commentable_id   String    @db.ObjectId
+  commentable_type String // "job" | "news"
+  user_id          String    @db.ObjectId
+  content          String
+  created_at       DateTime? @default(now())
+  updated_at       DateTime? @updatedAt
+
   // Relations
-  job  Job  @relation(fields: [job_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  @@index([commentable_id, commentable_type])
   @@map("comments")
 }
 
 model Like {
   id            String    @id @default(auto()) @map("_id") @db.ObjectId
   user_id       String    @db.ObjectId
-  likeable_type String // "job" | "comment"
+  likeable_type String // "job" | "news" | "comment"
   likeable_id   String    @db.ObjectId
   type          String    @default("LIKE") // "LIKE" | "DISLIKE"
   created_at    DateTime? @default(now())
@@ -211,18 +233,18 @@ model Favorite {
   @@map("favorites")
 }
 
-model JobView {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  job_id      String    @db.ObjectId
-  user_id     String?   @db.ObjectId
-  fingerprint String?
-  type        String // "VIEW" | "APPLY"
-  created_at  DateTime? @default(now())
+model Interaction {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  trackable_id   String    @db.ObjectId
+  trackable_type String // "job" | "news"
+  user_id        String?   @db.ObjectId
+  fingerprint    String?
+  type           String // "VIEW" | "APPLY" | "CLICK"
+  created_at     DateTime? @default(now())
 
   // Relations
-  job  Job   @relation(fields: [job_id], references: [id], onDelete: Cascade)
   user User? @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@unique([job_id, user_id, fingerprint, type])
-  @@map("jobs_views")
+  @@unique([trackable_id, trackable_type, user_id, fingerprint, type])
+  @@map("interactions")
 }

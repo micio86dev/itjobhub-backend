@@ -12,10 +12,12 @@ import { authMiddleware } from "../middleware/auth";
 // Helper to determine likeable type and id from request params
 const getLikeableParams = (
   jobId?: string,
-  commentId?: string
+  commentId?: string,
+  newsId?: string
 ): { type: LikeableType; id: string } | null => {
   if (jobId) return { type: "job", id: jobId };
   if (commentId) return { type: "comment", id: commentId };
+  if (newsId) return { type: "news", id: newsId };
   return null;
 };
 
@@ -35,10 +37,10 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
           return formatError("Unauthorized", 401);
         }
 
-        const likeable = getLikeableParams(body.jobId, body.commentId);
+        const likeable = getLikeableParams(body.jobId, body.commentId, body.newsId);
         if (!likeable) {
           set.status = 400;
-          return formatError("Either jobId or commentId must be provided", 400);
+          return formatError("Either jobId, newsId or commentId must be provided", 400);
         }
 
         const like = await createLike(user.id, likeable.type, likeable.id, body.type);
@@ -59,6 +61,7 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
       body: t.Object({
         jobId: t.Optional(t.String()),
         commentId: t.Optional(t.String()),
+        newsId: t.Optional(t.String()),
         type: t.Optional(t.Union([t.Literal('LIKE'), t.Literal('DISLIKE')]))
       }),
       response: {
@@ -115,10 +118,10 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
           return formatError("Unauthorized", 401);
         }
 
-        const likeable = getLikeableParams(query.jobId, query.commentId);
+        const likeable = getLikeableParams(query.jobId, query.commentId, query.newsId);
         if (!likeable) {
           set.status = 400;
-          return formatError("Either jobId or commentId must be provided", 400);
+          return formatError("Either jobId, newsId or commentId must be provided", 400);
         }
 
         await removeLike(user.id, likeable.type, likeable.id, query.type);
@@ -133,6 +136,7 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
       query: t.Object({
         jobId: t.Optional(t.String()),
         commentId: t.Optional(t.String()),
+        newsId: t.Optional(t.String()),
         type: t.Optional(t.Union([t.Literal('LIKE'), t.Literal('DISLIKE')]))
       }),
       response: {
@@ -171,10 +175,10 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
     "/count",
     async ({ query, set }) => {
       try {
-        const likeable = getLikeableParams(query.jobId, query.commentId);
+        const likeable = getLikeableParams(query.jobId, query.commentId, query.newsId);
         if (!likeable) {
           set.status = 400;
-          return formatError("Either jobId or commentId must be provided", 400);
+          return formatError("Either jobId, newsId or commentId must be provided", 400);
         }
 
         const count = await getLikeCount(likeable.type, likeable.id);
@@ -188,7 +192,8 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
     {
       query: t.Object({
         jobId: t.Optional(t.String()),
-        commentId: t.Optional(t.String())
+        commentId: t.Optional(t.String()),
+        newsId: t.Optional(t.String())
       }),
       response: {
         200: t.Object({
@@ -229,10 +234,10 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
           return formatError("Unauthorized", 401);
         }
 
-        const likeable = getLikeableParams(query.jobId, query.commentId);
+        const likeable = getLikeableParams(query.jobId, query.commentId, query.newsId);
         if (!likeable) {
           set.status = 400;
-          return formatError("Either jobId or commentId must be provided", 400);
+          return formatError("Either jobId, newsId or commentId must be provided", 400);
         }
 
         const liked = await hasUserLiked(user.id, likeable.type, likeable.id);
@@ -246,7 +251,8 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
     {
       query: t.Object({
         jobId: t.Optional(t.String()),
-        commentId: t.Optional(t.String())
+        commentId: t.Optional(t.String()),
+        newsId: t.Optional(t.String())
       }),
       response: {
         200: t.Object({

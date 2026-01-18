@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../../config/database";
 
 // Supported likeable types
-export type LikeableType = "job" | "comment";
+export type LikeableType = "job" | "comment" | "news";
 export type LikeType = "LIKE" | "DISLIKE";
 
 /**
@@ -148,6 +148,7 @@ export const createLike = async (
             }
           }
         }
+
 
         return like;
       });

@@ -3,7 +3,8 @@ import { prisma } from "../../config/database";
 export interface CommentCreateInput {
   content: string;
   userId: string;
-  jobId: string;
+  commentableId: string;
+  commentableType: "job" | "news";
   parentId?: string;
 }
 
@@ -17,7 +18,9 @@ export const createComment = async (data: CommentCreateInput) => {
     data: {
       content: data.content,
       user: { connect: { id: data.userId } },
-      job: { connect: { id: data.jobId } },
+      commentable_id: data.commentableId,
+      commentable_type: data.commentableType,
+      parentId: data.parentId
     },
     include: {
       user: {
@@ -33,19 +36,26 @@ export const createComment = async (data: CommentCreateInput) => {
 };
 
 /**
- * Get comments for a job with pagination
- * @param jobId - Job ID
+ * Get comments for an entity with pagination
+ * @param commentableId - Entity ID
+ * @param commentableType - Entity Type
  * @param page - Page number
  * @param limit - Number of items per page
  * @returns Comments with pagination info
  */
-export const getCommentsByJob = async (jobId: string, page: number = 1, limit: number = 10) => {
+export const getCommentsByEntity = async (
+  commentableId: string,
+  commentableType: string,
+  page: number = 1,
+  limit: number = 10
+) => {
   const skip = (page - 1) * limit;
 
   const [comments, total] = await Promise.all([
     prisma.comment.findMany({
       where: {
-        job_id: jobId
+        commentable_id: commentableId,
+        commentable_type: commentableType
       },
       skip,
       take: limit,
@@ -65,7 +75,8 @@ export const getCommentsByJob = async (jobId: string, page: number = 1, limit: n
     }),
     prisma.comment.count({
       where: {
-        job_id: jobId
+        commentable_id: commentableId,
+        commentable_type: commentableType
       }
     })
   ]);

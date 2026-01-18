@@ -43,7 +43,7 @@ describe('IT Job Hub API Tests', () => {
         await prisma.userProfile.deleteMany({ where: { user_id: { in: userIds } } });
         await prisma.like.deleteMany({ where: { user_id: { in: userIds } } });
         await prisma.comment.deleteMany({ where: { user_id: { in: userIds } } });
-        await prisma.jobView.deleteMany({ where: { user_id: { in: userIds } } });
+        await prisma.interaction.deleteMany({ where: { user_id: { in: userIds } } });
         await prisma.favorite.deleteMany({ where: { user_id: { in: userIds } } });
       }
 
@@ -56,8 +56,8 @@ describe('IT Job Hub API Tests', () => {
 
       if (jobIds.length > 0) {
         await prisma.favorite.deleteMany({ where: { job_id: { in: jobIds } } });
-        await prisma.comment.deleteMany({ where: { job_id: { in: jobIds } } });
-        await prisma.jobView.deleteMany({ where: { job_id: { in: jobIds } } });
+        await prisma.comment.deleteMany({ where: { commentable_id: { in: jobIds }, commentable_type: 'job' } });
+        await prisma.interaction.deleteMany({ where: { trackable_id: { in: jobIds }, trackable_type: 'job' } });
         await prisma.like.deleteMany({ where: { likeable_id: { in: jobIds }, likeable_type: 'job' } });
         await prisma.job.deleteMany({ where: { id: { in: jobIds } } });
       }
@@ -428,7 +428,7 @@ describe('IT Job Hub API Tests', () => {
 
   describe('Comment Routes', () => {
     it('should create a comment on a job', async () => {
-      const commentData = { ...testComment, jobId: testJobId };
+      const commentData = { ...testComment, commentableId: testJobId, commentableType: 'job' };
       const response = await app
         .handle(
           new Request('http://localhost/comments', {
@@ -449,7 +449,7 @@ describe('IT Job Hub API Tests', () => {
     });
 
     it('should fail to create comment without auth', async () => {
-      const commentData = { ...testComment, jobId: testJobId };
+      const commentData = { ...testComment, commentableId: testJobId, commentableType: 'job' };
       const response = await app
         .handle(
           new Request('http://localhost/comments', {

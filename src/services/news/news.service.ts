@@ -1,0 +1,211 @@
+import { prisma } from "../../config/database";
+
+export interface NewsCreateInput {
+    title: string;
+    slug: string;
+    summary?: string;
+    content?: string;
+    source_url?: string;
+    image_url?: string;
+    category?: string;
+    language?: string;
+    is_published?: boolean;
+    published_at?: Date;
+}
+
+/**
+ * Create a new news article
+ * @param data - News data
+ * @returns Created news article
+ */
+export const createNews = async (data: NewsCreateInput) => {
+    return await prisma.news.create({
+        data: {
+            ...data,
+            published_at: data.published_at || new Date(),
+        }
+    });
+};
+
+/**
+ * Get news articles with pagination
+ * @param page - Page number
+ * @param limit - Number of items per page
+ * @param filters - Filters for category, language, etc.
+ * @returns News articles with pagination info
+ */
+export const getNews = async (
+    page: number = 1,
+    limit: number = 10,
+    filters: { category?: string; language?: string; is_published?: boolean } = {},
+    userId?: string
+) => {
+    const skip = (page - 1) * limit;
+
+    const [newsRaw, total] = await Promise.all([
+        prisma.news.findMany({
+            where: {
+                ...filters,
+            },
+            skip,
+            take: limit,
+            orderBy: {
+                published_at: "desc"
+            }
+        }),
+        prisma.news.count({
+            where: {
+                ...filters,
+            }
+        })
+    ]);
+
+    // Aggregate likes, dislikes for these news
+    const newsIds = newsRaw.map(n => n.id);
+    const [reactionCounts, userReactions] = await Promise.all([
+        prisma.like.groupBy({
+            by: ['likeable_id', 'type'],
+            where: {
+                likeable_type: 'news',
+                likeable_id: { in: newsIds }
+            },
+            _count: {
+                _all: true
+            }
+        }),
+        // Fetch user specific reactions if userId is provided
+        userId ? prisma.like.findMany({
+            where: {
+                user_id: userId,
+                likeable_type: 'news',
+                likeable_id: { in: newsIds }
+            }
+        }) : Promise.resolve([])
+    ]);
+
+    // Map counts to news
+    const likeCountMap = new Map<string, number>();
+    const dislikeCountMap = new Map<string, number>();
+
+    reactionCounts.forEach(r => {
+        if (r.type === 'LIKE' || !r.type) {
+            const current = likeCountMap.get(r.likeable_id) || 0;
+            likeCountMap.set(r.likeable_id, current + r._count._all);
+        } else if (r.type === 'DISLIKE') {
+            const current = dislikeCountMap.get(r.likeable_id) || 0;
+            dislikeCountMap.set(r.likeable_id, current + r._count._all);
+        }
+    });
+
+    const userReactionMap = new Map<string, string>();
+    userReactions.forEach(r => {
+        userReactionMap.set(r.likeable_id, r.type);
+    });
+
+    const news = newsRaw.map(n => ({
+        ...n,
+        likes: likeCountMap.get(n.id) || 0,
+        dislikes: dislikeCountMap.get(n.id) || 0,
+        user_reaction: userReactionMap.get(n.id) || null
+    }));
+
+    return {
+        news,
+        pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit)
+        }
+    };
+};
+
+/**
+ * Get a single news article by slug
+ * @param slug - Article slug
+ * @returns News article
+ */
+export const getNewsBySlug = async (slug: string, userId?: string) => {
+    const newsItem = await prisma.news.findUnique({
+        where: { slug }
+    });
+
+    if (!newsItem) return null;
+
+    // Fetch likes info
+    const [counts, userReaction] = await Promise.all([
+        prisma.like.groupBy({
+            by: ['type'],
+            where: {
+                likeable_type: 'news',
+                likeable_id: newsItem.id
+            },
+            _count: {
+                _all: true
+            }
+        }),
+        userId ? prisma.like.findFirst({
+            where: {
+                user_id: userId,
+                likeable_type: 'news',
+                likeable_id: newsItem.id
+            }
+        }) : Promise.resolve(null)
+    ]);
+
+    let likes = 0;
+    let dislikes = 0;
+
+    counts.forEach(c => {
+        if (c.type === 'LIKE') likes = c._count._all;
+        if (c.type === 'DISLIKE') dislikes = c._count._all;
+    });
+
+    return {
+        ...newsItem,
+        likes,
+        dislikes,
+        user_reaction: userReaction?.type || null
+    };
+};
+
+/**
+ * Update a news article
+ * @param id - News ID
+ * @param data - Update data
+ * @returns Updated news article
+ */
+export const updateNews = async (id: string, data: Partial<NewsCreateInput>) => {
+    return await prisma.news.update({
+        where: { id },
+        data
+    });
+};
+
+/**
+ * Delete a news article
+ * @param id - News ID
+ * @returns Deletion result
+ */
+export const deleteNews = async (id: string) => {
+    return await prisma.news.delete({
+        where: { id }
+    });
+};
+
+import { trackInteraction } from "../tracking/tracking.service";
+
+export const trackNewsInteraction = async (
+    newsId: string,
+    type: 'VIEW' | 'CLICK',
+    userId?: string,
+    fingerprint?: string
+) => {
+    return await trackInteraction(
+        newsId,
+        'news',
+        type,
+        userId,
+        fingerprint
+    );
+};

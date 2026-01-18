@@ -323,12 +323,7 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
       skip: filters?.lat && filters?.lng ? undefined : skip,
       take: filters?.lat && filters?.lng ? undefined : limit,
       include: {
-        company: true,
-        _count: {
-          select: {
-            comments: true
-          }
-        }
+        company: true
       },
       orderBy: {
         created_at: 'desc'
@@ -352,10 +347,11 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
         _all: true
       }
     }),
-    dbClient.jobView.groupBy({
-      by: ['job_id', 'type'],
+    dbClient.interaction.groupBy({
+      by: ['trackable_id', 'type'],
       where: {
-        job_id: { in: jobIds }
+        trackable_type: 'job',
+        trackable_id: { in: jobIds }
       },
       _count: {
         _all: true
@@ -396,11 +392,11 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
 
   interactionCounts.forEach(i => {
     if (i.type === 'VIEW') {
-      const current = viewCountMap.get(i.job_id) || 0;
-      viewCountMap.set(i.job_id, current + i._count._all);
+      const current = viewCountMap.get(i.trackable_id) || 0;
+      viewCountMap.set(i.trackable_id, current + i._count._all);
     } else if (i.type === 'APPLY') {
-      const current = clickCountMap.get(i.job_id) || 0;
-      clickCountMap.set(i.job_id, current + i._count._all);
+      const current = clickCountMap.get(i.trackable_id) || 0;
+      clickCountMap.set(i.trackable_id, current + i._count._all);
     }
   });
 
@@ -419,6 +415,23 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
       userFavoriteSet.add(f.job_id);
     });
   }
+
+  // Fetch comment counts for all jobs in batch
+  const commentCounts = await dbClient.comment.groupBy({
+    by: ['commentable_id'],
+    where: {
+      commentable_type: 'job',
+      commentable_id: { in: jobIds }
+    },
+    _count: {
+      _all: true
+    }
+  });
+
+  const commentCountMap = new Map<string, number>();
+  commentCounts.forEach(c => {
+    commentCountMap.set(c.commentable_id, c._count._all);
+  });
 
   let jobs = jobsRaw.map(job => {
     // Normalize employment_type to availability
@@ -441,7 +454,7 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
       dislikes: dislikeCountMap.get(job.id) || 0,
       user_reaction: userReactionMap.get(job.id) || null,
       is_favorite: userFavoriteSet.has(job.id),
-      comments_count: job._count.comments,
+      comments_count: commentCountMap.get(job.id) || 0,
       views_count: viewCountMap.get(job.id) || job.views_count || 0,
       clicks_count: clickCountMap.get(job.id) || job.clicks_count || 0,
       availability: availability, // Explicitly map availability
@@ -499,19 +512,14 @@ export const getJobById = async (id: string, userId?: string) => {
     const job = await dbClient.job.findUnique({
       where: { id },
       include: {
-        company: true,
-        _count: {
-          select: {
-            comments: true
-          }
-        }
+        company: true
       }
     });
 
     if (!job) return null;
 
     // Get interaction counts for the job
-    const [reactionCounts, interactionCounts] = await Promise.all([
+    const [reactionCounts, interactionCounts, commentCount] = await Promise.all([
       dbClient.like.groupBy({
         by: ['type'],
         where: {
@@ -522,13 +530,20 @@ export const getJobById = async (id: string, userId?: string) => {
           _all: true
         }
       }),
-      dbClient.jobView.groupBy({
+      dbClient.interaction.groupBy({
         by: ['type'],
         where: {
-          job_id: id
+          trackable_type: 'job',
+          trackable_id: id
         },
         _count: {
           _all: true
+        }
+      }),
+      dbClient.comment.count({
+        where: {
+          commentable_id: id,
+          commentable_type: 'job'
         }
       })
     ]);
@@ -588,7 +603,7 @@ export const getJobById = async (id: string, userId?: string) => {
       user_reaction,
       is_favorite,
       availability,
-      comments_count: job._count.comments,
+      comments_count: commentCount || 0,
       views_count: views > 0 ? views : (job.views_count || 0),
       clicks_count: clicks > 0 ? clicks : (job.clicks_count || 0),
       company: job.company ? {
@@ -633,9 +648,9 @@ export const deleteJob = async (id: string) => {
   return await dbClient.$transaction(async (tx) => {
     // Delete all related data first to ensure clean deletion
     await tx.favorite.deleteMany({ where: { job_id: jobUuid } });
-    await tx.comment.deleteMany({ where: { job_id: jobUuid } });
+    await tx.comment.deleteMany({ where: { commentable_id: jobUuid, commentable_type: 'job' } });
     await tx.like.deleteMany({ where: { likeable_id: jobUuid, likeable_type: 'job' } });
-    await tx.jobView.deleteMany({ where: { job_id: jobUuid } });
+    await tx.interaction.deleteMany({ where: { trackable_type: 'job', trackable_id: jobUuid } });
 
     // Delete the job
     return await tx.job.delete({
@@ -825,57 +840,19 @@ export const getTopSkills = async (limit: number = 10, year?: number) => {
     .slice(0, limit);
 };
 
+import { trackInteraction } from "../tracking/tracking.service";
+
 export const trackJobInteraction = async (
   jobId: string,
   type: 'VIEW' | 'APPLY',
   userId?: string,
   fingerprint?: string
 ) => {
-  if (!userId && !fingerprint) return;
-
-  try {
-    // Use consistent data for both check and create
-    const viewData = {
-      job_id: jobId,
-      type,
-      user_id: userId || null,
-      fingerprint: (!userId && fingerprint) ? fingerprint : null
-    };
-
-    // Check if already tracked
-    const existing = await dbClient.jobView.findFirst({
-      where: viewData
-    });
-
-    if (existing) {
-      return { success: false, reason: 'already_tracked' };
-    }
-
-    try {
-      await dbClient.jobView.create({
-        data: viewData
-      });
-
-      // Update counters on the job document (denormalized for list views)
-      const updateData = type === 'VIEW'
-        ? { views_count: { increment: 1 } }
-        : { clicks_count: { increment: 1 } };
-
-      await dbClient.job.update({
-        where: { id: jobId },
-        data: updateData
-      });
-
-      return { success: true };
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        return { success: false, reason: 'already_tracked' };
-      }
-      logger.error({ error, jobId, type }, `[JobService] Error tracking ${type} for job ${jobId}`);
-      throw error;
-    }
-  } catch (error) {
-    logger.error({ error }, '[JobService] trackJobInteraction failed');
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
+  return await trackInteraction(
+    jobId,
+    'job',
+    type,
+    userId,
+    fingerprint
+  );
 };
