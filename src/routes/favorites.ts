@@ -181,28 +181,30 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                     }
                 });
 
-                const formattedFavorites = favorites.map(fav => {
-                    const { comments, ...job } = fav.job;
+                const formattedFavorites = favorites
+                    .filter(fav => fav.job) // Filter out favorites where job relation is broken
+                    .map(fav => {
+                        const { comments, ...job } = fav.job;
 
-                    // Filter likes for this specific job
-                    const jobLikes = allLikes.filter(l => l.likeable_id === job.id);
+                        // Filter likes for this specific job
+                        const jobLikes = allLikes.filter(l => l.likeable_id === job.id);
 
-                    const likesCount = jobLikes.filter(l => l.type === 'LIKE').length;
-                    const dislikesCount = jobLikes.filter(l => l.type === 'DISLIKE').length;
-                    const userReaction = jobLikes.find(l => l.user_id === user.id)?.type || null;
-                    const commentsCount = comments.length;
+                        const likesCount = jobLikes.filter(l => l.type === 'LIKE').length;
+                        const dislikesCount = jobLikes.filter(l => l.type === 'DISLIKE').length;
+                        const userReaction = jobLikes.find(l => l.user_id === user.id)?.type || null;
+                        const commentsCount = comments?.length || 0;
 
-                    return {
-                        ...fav,
-                        job: {
-                            ...job,
-                            likes: likesCount,
-                            dislikes: dislikesCount,
-                            user_reaction: userReaction,
-                            comments_count: commentsCount
-                        }
-                    };
-                });
+                        return {
+                            ...fav,
+                            job: {
+                                ...job,
+                                likes: likesCount,
+                                dislikes: dislikesCount,
+                                user_reaction: userReaction,
+                                comments_count: commentsCount
+                            }
+                        };
+                    });
 
                 return formatResponse(formattedFavorites, "Favorites retrieved successfully");
             } catch (error: unknown) {
