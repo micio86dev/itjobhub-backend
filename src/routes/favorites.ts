@@ -151,60 +151,78 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                     return formatError("Unauthorized", 401);
                 }
 
-                const favorites = await prisma.favorite.findMany({
+                // Step 1: Fetch favorites WITHOUT include to avoid Prisma failing on orphan records
+                const favoritesRaw = await prisma.favorite.findMany({
                     where: {
                         user_id: user.id
-                    },
-                    include: {
-                        job: {
-                            include: {
-                                company: true,
-                                comments: {
-                                    select: { id: true }
-                                }
-                            }
-                        }
                     },
                     orderBy: {
                         created_at: 'desc'
                     }
                 });
 
-                // Extract job IDs to fetch likes efficiently
-                const jobIds = favorites.map(f => f.job_id);
+                // Extract job IDs
+                const jobIds = favoritesRaw.map(f => f.job_id);
+
+                // Step 2: Fetch only jobs that actually exist
+                const jobs = await prisma.job.findMany({
+                    where: {
+                        id: { in: jobIds }
+                    },
+                    include: {
+                        company: true
+                    }
+                });
+
+                // Create a map for quick job lookup
+                const jobsMap = new Map(jobs.map(j => [j.id, j]));
+
+                // Filter favorites to only those with existing jobs
+                const validFavorites = favoritesRaw.filter(f => jobsMap.has(f.job_id));
+                const validJobIds = validFavorites.map(f => f.job_id);
 
                 // Fetch all likes for these jobs
                 const allLikes = await prisma.like.findMany({
                     where: {
                         likeable_type: 'job',
-                        likeable_id: { in: jobIds }
+                        likeable_id: { in: validJobIds }
                     }
                 });
 
-                const formattedFavorites = favorites
-                    .filter(fav => fav.job) // Filter out favorites where job relation is broken
-                    .map(fav => {
-                        const { comments, ...job } = fav.job;
+                // Fetch all comments for these jobs
+                const allComments = await prisma.comment.findMany({
+                    where: {
+                        commentable_type: 'job',
+                        commentable_id: { in: validJobIds }
+                    },
+                    select: { id: true, commentable_id: true }
+                });
 
-                        // Filter likes for this specific job
-                        const jobLikes = allLikes.filter(l => l.likeable_id === job.id);
+                const formattedFavorites = validFavorites.map(fav => {
+                    const job = jobsMap.get(fav.job_id)!;
 
-                        const likesCount = jobLikes.filter(l => l.type === 'LIKE').length;
-                        const dislikesCount = jobLikes.filter(l => l.type === 'DISLIKE').length;
-                        const userReaction = jobLikes.find(l => l.user_id === user.id)?.type || null;
-                        const commentsCount = comments?.length || 0;
+                    // Filter likes for this specific job
+                    const jobLikes = allLikes.filter(l => l.likeable_id === job.id);
 
-                        return {
-                            ...fav,
-                            job: {
-                                ...job,
-                                likes: likesCount,
-                                dislikes: dislikesCount,
-                                user_reaction: userReaction,
-                                comments_count: commentsCount
-                            }
-                        };
-                    });
+                    // Filter comments for this specific job
+                    const jobComments = allComments.filter(c => c.commentable_id === job.id);
+
+                    const likesCount = jobLikes.filter(l => l.type === 'LIKE').length;
+                    const dislikesCount = jobLikes.filter(l => l.type === 'DISLIKE').length;
+                    const userReaction = jobLikes.find(l => l.user_id === user.id)?.type || null;
+                    const commentsCount = jobComments.length;
+
+                    return {
+                        ...fav,
+                        job: {
+                            ...job,
+                            likes: likesCount,
+                            dislikes: dislikesCount,
+                            user_reaction: userReaction,
+                            comments_count: commentsCount
+                        }
+                    };
+                });
 
                 return formatResponse(formattedFavorites, "Favorites retrieved successfully");
             } catch (error: unknown) {
