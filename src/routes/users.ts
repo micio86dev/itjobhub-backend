@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { getUserById, getUserProfile, upsertUserProfile } from "../services/users/user.service";
+import { getUserById, getUserProfile, upsertUserProfile, addUserSkill } from "../services/users/user.service";
 import { authMiddleware } from "../middleware/auth";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
 
@@ -277,6 +277,87 @@ export const userRoutes = new Elysia({ prefix: "/users" })
             github: t.Optional(t.String()),
             linkedin: t.Optional(t.String()),
             website: t.Optional(t.String()),
+            website: t.Optional(t.String()),
+            workModes: t.Array(t.String()),
+            createdAt: t.String(),
+            updatedAt: t.String()
+          })
+        }),
+        401: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
+        }),
+        500: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
+        })
+      },
+      detail: {
+        tags: ["users"]
+      }
+    }
+  )
+  /**
+   * Add skill to user profile
+   * @method POST
+   * @path /users/me/skills
+   */
+  .post(
+    "/me/skills",
+    async ({ user, body, set }) => {
+      try {
+        if (!user) {
+          set.status = 401;
+          return formatError("Unauthorized", 401);
+        }
+
+        const profile = await addUserSkill(user.id, body.skill);
+
+        const formattedProfile = {
+          id: profile.id,
+          userId: profile.user_id,
+          languages: profile.languages,
+          skills: profile.skills,
+          seniority: profile.seniority || undefined,
+          availability: profile.availability || undefined,
+          workModes: profile.workModes || [],
+          cvUrl: profile.cv_url || undefined,
+          bio: profile.bio || undefined,
+          github: profile.github || undefined,
+          linkedin: profile.linkedin || undefined,
+          website: profile.website || undefined,
+          createdAt: profile.created_at?.toISOString() || new Date().toISOString(),
+          updatedAt: profile.updated_at?.toISOString() || new Date().toISOString()
+        };
+
+        return formatResponse(formattedProfile, "Skill added successfully");
+      } catch (error: unknown) {
+        set.status = 500;
+        return formatError(`Failed to add skill: ${getErrorMessage(error)}`, 500);
+      }
+    },
+    {
+      body: t.Object({
+        skill: t.String({ minLength: 1 })
+      }),
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String(),
+          data: t.Object({
+            id: t.String(),
+            userId: t.String(),
+            languages: t.Array(t.String()),
+            skills: t.Array(t.String()),
+            seniority: t.Optional(t.String()),
+            availability: t.Optional(t.String()),
+            cvUrl: t.Optional(t.String()),
+            bio: t.Optional(t.String()),
+            github: t.Optional(t.String()),
+            linkedin: t.Optional(t.String()),
             website: t.Optional(t.String()),
             workModes: t.Array(t.String()),
             createdAt: t.String(),

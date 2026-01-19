@@ -227,3 +227,43 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
     });
   }
 };
+
+/**
+ * Add a skill to user profile
+ * @param userId - User ID
+ * @param skill - Skill to add
+ * @returns Updated user profile
+ */
+export const addUserSkill = async (userId: string, skill: string) => {
+  // Ensure profile exists first
+  const profile = await getUserProfile(userId);
+  
+  if (!profile) {
+    // Create profile with initial skill if it doesn't exist
+    return await dbClient.userProfile.create({
+      data: {
+        user_id: userId,
+        skills: [skill],
+        languages: [],
+        workModes: [],
+      }
+    });
+  }
+
+  // Check if skill already exists (case-insensitive check could be done here or rely on specific normalization)
+  // Prisma push doesn't check for duplicates automatically in the array, so we should check.
+  // However, for atomic push, we can't easily check without reading. 
+  // Since we read 'profile' above, we can check.
+  if (profile.skills.includes(skill)) {
+    return profile;
+  }
+
+  return await dbClient.userProfile.update({
+    where: { user_id: userId },
+    data: {
+      skills: {
+        push: skill
+      }
+    }
+  });
+};
