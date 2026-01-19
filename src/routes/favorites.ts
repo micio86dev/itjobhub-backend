@@ -177,6 +177,18 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                 // Create a map for quick job lookup
                 const jobsMap = new Map(jobs.map(j => [j.id, j]));
 
+                // Identify missing jobs and delete their favorites globally
+                const existingJobIds = new Set(jobs.map(j => j.id));
+                const missingJobIds = jobIds.filter(id => !existingJobIds.has(id));
+
+                if (missingJobIds.length > 0) {
+                    await prisma.favorite.deleteMany({
+                        where: {
+                            job_id: { in: missingJobIds }
+                        }
+                    });
+                }
+
                 // Filter favorites to only those with existing jobs
                 const validFavorites = favoritesRaw.filter(f => jobsMap.has(f.job_id));
                 const validJobIds = validFavorites.map(f => f.job_id);
