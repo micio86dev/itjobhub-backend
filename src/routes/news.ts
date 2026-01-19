@@ -87,7 +87,7 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
      */
     .get(
         "/:slug",
-        async ({ params, set }) => {
+        async ({ params, user, set }) => {
             try {
                 // Need to access user from context. Is auth middleware used?
                 // The route definition doesn't show .use(authMiddleware).
