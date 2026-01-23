@@ -83,6 +83,65 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
         }
     )
     /**
+     * Import a news article
+     * @method POST
+     * @path /news/import
+     */
+    .post(
+        "/import",
+        async ({ body, user, set }) => {
+            try {
+                if (user?.role !== "admin") {
+                    set.status = 403;
+                    return formatError("Forbidden", 403);
+                }
+
+                const { importNews } = await import("../services/news/news.service");
+                const news = await importNews(body);
+                return formatResponse(news, "News imported successfully");
+            } catch (error: unknown) {
+                set.status = 500;
+                return formatError(`Failed to import news: ${getErrorMessage(error)}`, 500);
+            }
+        },
+        {
+            body: t.Object({
+                title: t.String(),
+                slug: t.String(),
+                summary: t.Optional(t.String()),
+                content: t.Optional(t.String()),
+                video_url: t.Optional(t.String()),
+                image_url: t.Optional(t.String()),
+                source_url: t.Optional(t.String()),
+                category: t.Optional(t.String()),
+                language: t.Optional(t.String()),
+                translations: t.Optional(t.Array(NewsTranslation)),
+                published_at: t.Optional(t.Union([t.String(), t.Date()]))
+            }),
+            response: {
+                200: t.Object({
+                    success: t.Boolean(),
+                    status: t.Number(),
+                    message: t.String(),
+                    data: t.Any()
+                }),
+                403: t.Object({
+                    success: t.Boolean(),
+                    status: t.Number(),
+                    message: t.String()
+                }),
+                500: t.Object({
+                    success: t.Boolean(),
+                    status: t.Number(),
+                    message: t.String()
+                })
+            },
+            detail: {
+                tags: ["news"]
+            }
+        }
+    )
+    /**
      * Get all news with pagination and filters
      * @method GET
      * @path /news

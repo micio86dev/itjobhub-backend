@@ -80,10 +80,37 @@ export interface RefreshToken {
   created_at: Date;
 }
 
+export interface NewsTranslation {
+  language: string;
+  title: string;
+  summary?: string;
+  content?: string;
+}
+
+export interface News {
+  id: string;
+  title: string;
+  slug: string;
+  summary?: string;
+  content?: string;
+  source_url?: string;
+  image_url?: string;
+  category?: string;
+  language?: string;
+  translations: NewsTranslation[];
+  is_published: boolean;
+  published_at?: Date;
+  views_count: number;
+  clicks_count: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export type DatabaseModels = {
   users: User;
   companies: Company;
   jobs: Job;
+  news: News;
   comments: Comment;
   likes: Like;
   user_profiles: UserProfile;
@@ -141,5 +168,17 @@ export type CreateUserProfile = Omit<UserProfile, 'id' | 'created_at' | 'updated
 };
 
 export type UpdateUserProfile = Partial<Omit<UserProfile, 'id' | 'user_id' | 'created_at'>> & {
+  updated_at?: Date;
+};
+
+export type CreateNews = Omit<News, 'id' | 'created_at' | 'updated_at' | 'views_count' | 'clicks_count'> & {
+  id?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  views_count?: number;
+  clicks_count?: number;
+};
+
+export type UpdateNews = Partial<Omit<News, 'id' | 'created_at'>> & {
   updated_at?: Date;
 };

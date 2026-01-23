@@ -36,6 +36,37 @@ export const createNews = async (data: NewsCreateInput) => {
 };
 
 /**
+ * Import a news article (handling duplicates via slug or source_url)
+ * @param data - News data
+ * @returns Created or updated news article
+ */
+export const importNews = async (data: NewsCreateInput) => {
+    const existing = await prisma.news.findFirst({
+        where: {
+            OR: [
+                { slug: data.slug },
+                { source_url: data.source_url }
+            ]
+        }
+    });
+
+    if (existing) {
+        return await prisma.news.update({
+            where: { id: existing.id },
+            data: {
+                ...data,
+                views_count: undefined,
+                clicks_count: undefined
+            }
+        });
+    }
+
+    return await createNews(data);
+};
+
+
+
+/**
  * Get news articles with pagination
  * @param page - Page number
  * @param limit - Number of items per page
@@ -68,14 +99,24 @@ export const getNews = async (
         })
     ]);
 
-    // Aggregate likes, dislikes for these news
+    // Aggregate likes, dislikes, views, clicks for these news
     const newsIds = newsRaw.map(n => n.id);
-    const [reactionCounts, userReactions, commentCounts] = await Promise.all([
+    const [reactionCounts, interactionCounts, userReactions, commentCounts] = await Promise.all([
         prisma.like.groupBy({
             by: ['likeable_id', 'type'],
             where: {
                 likeable_type: 'news',
                 likeable_id: { in: newsIds }
+            },
+            _count: {
+                _all: true
+            }
+        }),
+        prisma.interaction.groupBy({
+            by: ['trackable_id', 'type'],
+            where: {
+                trackable_type: 'news',
+                trackable_id: { in: newsIds }
             },
             _count: {
                 _all: true
@@ -106,6 +147,8 @@ export const getNews = async (
     const likeCountMap = new Map<string, number>();
     const dislikeCountMap = new Map<string, number>();
     const commentCountMap = new Map<string, number>();
+    const viewCountMap = new Map<string, number>();
+    const clickCountMap = new Map<string, number>();
 
     reactionCounts.forEach(r => {
         if (r.type === 'LIKE' || !r.type) {
@@ -114,6 +157,16 @@ export const getNews = async (
         } else if (r.type === 'DISLIKE') {
             const current = dislikeCountMap.get(r.likeable_id) || 0;
             dislikeCountMap.set(r.likeable_id, current + r._count._all);
+        }
+    });
+
+    interactionCounts.forEach(i => {
+        if (i.type === 'VIEW') {
+            const current = viewCountMap.get(i.trackable_id) || 0;
+            viewCountMap.set(i.trackable_id, current + i._count._all);
+        } else if (i.type === 'CLICK') {
+            const current = clickCountMap.get(i.trackable_id) || 0;
+            clickCountMap.set(i.trackable_id, current + i._count._all);
         }
     });
 
@@ -131,6 +184,8 @@ export const getNews = async (
         likes: likeCountMap.get(n.id) || 0,
         dislikes: dislikeCountMap.get(n.id) || 0,
         comments_count: commentCountMap.get(n.id) || 0,
+        views_count: viewCountMap.get(n.id) || n.views_count || 0,
+        clicks_count: clickCountMap.get(n.id) || n.clicks_count || 0,
         user_reaction: userReactionMap.get(n.id) || null
     }));
 
@@ -158,12 +213,22 @@ export const getNewsBySlug = async (slug: string, userId?: string) => {
     if (!newsItem) return null;
 
     // Fetch likes info
-    const [counts, userReaction, commentCount] = await Promise.all([
+    const [counts, interactionCounts, userReaction, commentCount] = await Promise.all([
         prisma.like.groupBy({
             by: ['type'],
             where: {
                 likeable_type: 'news',
                 likeable_id: newsItem.id
+            },
+            _count: {
+                _all: true
+            }
+        }),
+        prisma.interaction.groupBy({
+            by: ['type'],
+            where: {
+                trackable_type: 'news',
+                trackable_id: newsItem.id
             },
             _count: {
                 _all: true
@@ -186,10 +251,17 @@ export const getNewsBySlug = async (slug: string, userId?: string) => {
 
     let likes = 0;
     let dislikes = 0;
+    let views = 0;
+    let clicks = 0;
 
     counts.forEach(c => {
         if (c.type === 'LIKE') likes = c._count._all;
         if (c.type === 'DISLIKE') dislikes = c._count._all;
+    });
+
+    interactionCounts.forEach(i => {
+        if (i.type === 'VIEW') views += i._count._all;
+        if (i.type === 'CLICK') clicks += i._count._all;
     });
 
     return {
@@ -197,6 +269,8 @@ export const getNewsBySlug = async (slug: string, userId?: string) => {
         likes,
         dislikes,
         comments_count: commentCount,
+        views_count: views > 0 ? views : (newsItem.views_count || 0),
+        clicks_count: clicks > 0 ? clicks : (newsItem.clicks_count || 0),
         user_reaction: userReaction?.type || null
     };
 };
