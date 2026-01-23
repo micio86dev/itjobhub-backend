@@ -1,5 +1,12 @@
 import { prisma } from "../../config/database";
 
+export interface NewsTranslationInput {
+    language: string;
+    title: string;
+    summary?: string;
+    content?: string;
+}
+
 export interface NewsCreateInput {
     title: string;
     slug: string;
@@ -9,6 +16,7 @@ export interface NewsCreateInput {
     image_url?: string;
     category?: string;
     language?: string;
+    translations?: NewsTranslationInput[];
     is_published?: boolean;
     published_at?: Date;
 }
@@ -62,7 +70,7 @@ export const getNews = async (
 
     // Aggregate likes, dislikes for these news
     const newsIds = newsRaw.map(n => n.id);
-    const [reactionCounts, userReactions] = await Promise.all([
+    const [reactionCounts, userReactions, commentCounts] = await Promise.all([
         prisma.like.groupBy({
             by: ['likeable_id', 'type'],
             where: {
@@ -80,12 +88,24 @@ export const getNews = async (
                 likeable_type: 'news',
                 likeable_id: { in: newsIds }
             }
-        }) : Promise.resolve([])
+        }) : Promise.resolve([]),
+        // Fetch comment counts
+        prisma.comment.groupBy({
+            by: ['commentable_id'],
+            where: {
+                commentable_type: 'news',
+                commentable_id: { in: newsIds }
+            },
+            _count: {
+                _all: true
+            }
+        })
     ]);
 
     // Map counts to news
     const likeCountMap = new Map<string, number>();
     const dislikeCountMap = new Map<string, number>();
+    const commentCountMap = new Map<string, number>();
 
     reactionCounts.forEach(r => {
         if (r.type === 'LIKE' || !r.type) {
@@ -97,6 +117,10 @@ export const getNews = async (
         }
     });
 
+    commentCounts.forEach(c => {
+        commentCountMap.set(c.commentable_id, c._count._all);
+    });
+
     const userReactionMap = new Map<string, string>();
     userReactions.forEach(r => {
         userReactionMap.set(r.likeable_id, r.type);
@@ -106,6 +130,7 @@ export const getNews = async (
         ...n,
         likes: likeCountMap.get(n.id) || 0,
         dislikes: dislikeCountMap.get(n.id) || 0,
+        comments_count: commentCountMap.get(n.id) || 0,
         user_reaction: userReactionMap.get(n.id) || null
     }));
 
@@ -133,7 +158,7 @@ export const getNewsBySlug = async (slug: string, userId?: string) => {
     if (!newsItem) return null;
 
     // Fetch likes info
-    const [counts, userReaction] = await Promise.all([
+    const [counts, userReaction, commentCount] = await Promise.all([
         prisma.like.groupBy({
             by: ['type'],
             where: {
@@ -150,7 +175,13 @@ export const getNewsBySlug = async (slug: string, userId?: string) => {
                 likeable_type: 'news',
                 likeable_id: newsItem.id
             }
-        }) : Promise.resolve(null)
+        }) : Promise.resolve(null),
+        prisma.comment.count({
+            where: {
+                commentable_type: 'news',
+                commentable_id: newsItem.id
+            }
+        })
     ]);
 
     let likes = 0;
@@ -165,6 +196,7 @@ export const getNewsBySlug = async (slug: string, userId?: string) => {
         ...newsItem,
         likes,
         dislikes,
+        comments_count: commentCount,
         user_reaction: userReaction?.type || null
     };
 };
@@ -183,13 +215,30 @@ export const updateNews = async (id: string, data: Partial<NewsCreateInput>) => 
 };
 
 /**
- * Delete a news article
+ * Delete a news article (and all related data)
  * @param id - News ID
  * @returns Deletion result
  */
 export const deleteNews = async (id: string) => {
-    return await prisma.news.delete({
-        where: { id }
+    const newsId = id;
+
+    return await prisma.$transaction(async (tx) => {
+        // Delete related data first
+        await tx.comment.deleteMany({
+            where: { commentable_id: newsId, commentable_type: 'news' }
+        });
+
+        await tx.like.deleteMany({
+            where: { likeable_id: newsId, likeable_type: 'news' }
+        });
+
+        await tx.interaction.deleteMany({
+            where: { trackable_id: newsId, trackable_type: 'news' }
+        });
+
+        return await tx.news.delete({
+            where: { id: newsId }
+        });
     });
 };
 

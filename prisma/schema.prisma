@@ -128,18 +128,26 @@ model Job {
   @@map("jobs")
 }
 
+type NewsTranslation {
+  language String // "it", "en", "es", "de", "fr"
+  title    String
+  summary  String?
+  content  String?
+}
+
 model News {
-  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  id           String            @id @default(auto()) @map("_id") @db.ObjectId
   title        String
-  slug         String    @unique
+  slug         String            @unique
   summary      String?
   content      String?
   source_url   String?
   image_url    String?
   category     String? // e.g., "AI", "IT", "Security"
-  language     String? // "it", "en", etc.
-  is_published Boolean   @default(true)
-  published_at DateTime? @default(now())
+  language     String? // "it", "en", etc. (original language)
+  translations NewsTranslation[]
+  is_published Boolean           @default(true)
+  published_at DateTime?         @default(now())
 
   // Tracking stats
   views_count  Int @default(0)

@@ -16,9 +16,21 @@ This repository contains the core API for the IT Job Hub platform. It is designe
 3.  **Companies**: Management of company profiles and trust metrics.
 4.  **Community**: Real-time commenting and liking system with robust transaction management (automatic retries for write conflicts).
 5.  **Users**: Profile management and personalization data.
+6.  **News**: High-performance news article management with multi-language translation support and engagement tracking.
 
 ## Quality Standards
 
 - **TypeScript**: 100% type safety with strict schema validation. Verified via comprehensive `tsc` checks.
 - **Testing**: Automated unit and integration tests via `bun test`.
 - **Security**: Built-in protection with CSRF headers, rate limiting, and input sanitization.
+
+## Recent Changes
+
+### 2026-01-23: Tech News Engine Implementation
+
+- Developed **News Service** with support for pagination, category filtering, and polymorphic interactions.
+- Implemented **Multi-language Translations** at the schema level using Prisma types for MongoDB.
+- Exposed **Management Endpoints** for creating, updating, and deleting news articles (Admin only).
+- Integrated **Interaction System** allowing users to like, dislike, and comment on articles with optimized aggregation.
+- Added **Engagement Tracking** (views and clicks) with support for authenticated and anonymous metrics.
+- Verified system stability with 100% passing build and lint checks.
