@@ -84,7 +84,7 @@ We use the native Bun test runner.
 - **Coverage**: `bun test --coverage`
 
 > [!NOTE]
-> Integration tests (located in `tests/api.test.ts`) require a running MongoDB instance or a valid `MONGODB_URI` in your `.env`.
+> Integration tests (located in `tests/api.test.ts`) require a running MongoDB instance or a valid `DATABASE_URL` in your `.env`.
 
 ## Deployment
 

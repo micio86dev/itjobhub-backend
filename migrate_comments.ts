@@ -4,9 +4,9 @@ import path from 'path';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-const uri = process.env.MONGODB_URI;
+const uri = process.env.DATABASE_URL;
 if (!uri) {
-    console.error('MONGODB_URI not found in .env');
+    console.error('DATABASE_URL not found in .env');
     process.exit(1);
 }
 

@@ -9,7 +9,7 @@ HOST=localhost
 NODE_ENV=development
 
 # Database
-MONGODB_URI="mongodb+srv://itjobhub_dev:<db_password>@cluster0.vnuq4zl.mongodb.net/?appName=Cluster0"
+DATABASE_URL="mongodb+srv://itjobhub_dev:<db_password>@cluster0.vnuq4zl.mongodb.net/?appName=Cluster0"
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-here
@@ -39,7 +39,7 @@ HOST=0.0.0.0
 NODE_ENV=production
 
 # Database
-MONGODB_URI="mongodb+srv://itjobhub_dev:<db_password>@cluster0.vnuq4zl.mongodb.net/?appName=Cluster0"
+DATABASE_URL="mongodb+srv://itjobhub_dev:<db_password>@cluster0.vnuq4zl.mongodb.net/?appName=Cluster0"
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-here
@@ -69,7 +69,7 @@ HOST=0.0.0.0
 NODE_ENV=production
 
 # Database
-MONGODB_URI="mongodb+srv://itjobhub_dev:<db_password>@cluster0.vnuq4zl.mongodb.net/?appName=Cluster0"
+DATABASE_URL="mongodb+srv://itjobhub_dev:<db_password>@cluster0.vnuq4zl.mongodb.net/?appName=Cluster0"
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-here
