@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "mongodb"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -169,9 +168,9 @@ model Comment {
   updated_at       DateTime? @updatedAt
 
   // Self-relation for threading
-  parentId         String?   @db.ObjectId
-  parent           Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  replies          Comment[] @relation("CommentReplies")
+  parentId String?   @db.ObjectId
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies  Comment[] @relation("CommentReplies")
 
   // Relations
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
