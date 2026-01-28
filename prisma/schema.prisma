@@ -168,6 +168,11 @@ model Comment {
   created_at       DateTime? @default(now())
   updated_at       DateTime? @updatedAt
 
+  // Self-relation for threading
+  parentId         String?   @db.ObjectId
+  parent           Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies          Comment[] @relation("CommentReplies")
+
   // Relations
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
