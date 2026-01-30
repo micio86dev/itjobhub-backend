@@ -14,6 +14,9 @@ export const trackInteraction = async (
 ) => {
     if (!userId && !fingerprint) return;
 
+    // Disable tracking for news as per requirements
+    if (trackableType === 'news') return { success: true };
+
     try {
         const viewData = {
             trackable_id: trackableId,

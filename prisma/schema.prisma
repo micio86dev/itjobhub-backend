@@ -26,6 +26,10 @@ model User {
   birthDate String?
   avatar    String?
 
+  // Reset Password
+  reset_password_token   String?   @unique
+  reset_password_expires DateTime?
+
   // Relations
   comments       Comment[]
   likes          Like[]

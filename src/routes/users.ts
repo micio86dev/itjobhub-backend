@@ -240,6 +240,8 @@ export const userRoutes = new Elysia({ prefix: "/users" })
     },
     {
       body: t.Object({
+        firstName: t.Optional(t.String()),
+        lastName: t.Optional(t.String()),
         name: t.Optional(t.String()),
         phone: t.Optional(t.String()),
         birthDate: t.Optional(t.String()),

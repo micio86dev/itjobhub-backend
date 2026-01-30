@@ -26,6 +26,11 @@ This repository contains the core API for the IT Job Hub platform. It is designe
 
 ## Recent Changes
 
+### 2026-01-30: Maintenance Scripts Logging Enhancement
+
+- **Improved Logging**: Replaced `console.log` with structured `logger` in maintenance scripts (`check_db.ts`, `check_seeker.ts`) to ensure consistent log formatting and better debugging capabilities.
+
+
 ### 2026-01-23: Tech News Engine Implementation
 
 - Developed **News Service** with support for pagination, category filtering, and polymorphic interactions.

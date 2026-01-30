@@ -276,3 +276,76 @@ const generateRefreshToken = async (
   const random = Math.random().toString(36).substring(2);
   return `refresh_${payload.id}_${timestamp}_${random}`;
 };
+
+/**
+ * Handle forgot password request
+ * @param email - User email
+ */
+export const forgotPassword = async (email: string) => {
+  const user = await dbClient.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    // We return true even if user not found to prevent email enumeration
+    return true;
+  }
+
+  // Generate reset token
+  // Use crypto for secure token generation
+  const resetToken = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  await dbClient.user.update({
+    where: { id: user.id },
+    data: {
+      reset_password_token: resetToken,
+      reset_password_expires: expiresAt,
+    },
+  });
+
+  // Send email
+  // TODO: Get frontend URL from config
+  const frontendUrl = process.env.CLIENT_URL || "http://localhost:5173";
+  const resetLink = `${frontendUrl}/reset-password/${resetToken}`;
+
+  // Dynamic import to avoid circular dependencies if any, though likely not needed here
+  const { sendForgotPasswordEmail } = await import("../email/email.service");
+  await sendForgotPasswordEmail(email, resetLink);
+
+  return true;
+};
+
+/**
+ * Reset password with token
+ * @param token - Reset token
+ * @param newPassword - New password
+ */
+export const resetPassword = async (token: string, newPassword: string) => {
+  const user = await dbClient.user.findFirst({
+    where: {
+      reset_password_token: token,
+      reset_password_expires: {
+        gt: new Date(),
+      },
+    },
+  });
+
+  if (!user) {
+    throw new Error("Invalid or expired reset token");
+  }
+
+  const hashedPassword = await hashPassword(newPassword);
+
+  await dbClient.user.update({
+    where: { id: user.id },
+    data: {
+      password: hashedPassword,
+      reset_password_token: null,
+      reset_password_expires: null,
+    },
+  });
+
+  return true;
+};
+

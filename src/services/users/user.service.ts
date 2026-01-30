@@ -131,15 +131,22 @@ export const getUserProfile = async (userId: string) => {
   return profile;
 };
 
-export const upsertUserProfile = async (userId: string, data: UserProfileInput & { name?: string; phone?: string; birthDate?: string; avatar?: string }) => {
+export const upsertUserProfile = async (userId: string, data: UserProfileInput & { name?: string; firstName?: string; lastName?: string; phone?: string; birthDate?: string; avatar?: string }) => {
   // Check if profile exists
   const existingProfile = await getUserProfile(userId);
 
   // Update User model fields if provided
-  if (data.name || data.phone || data.birthDate || data.avatar) {
-    const nameParts = data.name ? data.name.split(' ') : [];
-    const firstName = nameParts.length > 0 ? nameParts[0] : undefined;
-    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined;
+  // Update User model fields if provided
+  if (data.name || data.firstName || data.lastName || data.phone || data.birthDate || data.avatar) {
+    let firstName = data.firstName;
+    let lastName = data.lastName;
+
+    // Fallback to splitting name if firstName/lastName not provided but name is
+    if (!firstName && !lastName && data.name) {
+      const nameParts = data.name.split(' ');
+      firstName = nameParts.length > 0 ? nameParts[0] : undefined;
+      lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined;
+    }
 
     await dbClient.user.update({
       where: { id: userId },
@@ -237,7 +244,7 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
 export const addUserSkill = async (userId: string, skill: string) => {
   // Ensure profile exists first
   const profile = await getUserProfile(userId);
-  
+
   if (!profile) {
     // Create profile with initial skill if it doesn't exist
     return await dbClient.userProfile.create({

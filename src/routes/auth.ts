@@ -5,6 +5,8 @@ import {
   loginUser,
   refreshAuthToken,
   logoutUser,
+  forgotPassword,
+  resetPassword,
 } from "../services/auth/auth.service";
 import { getAuthorizationUrl, processOAuthCallback } from "../services/auth/oauth.service";
 import { OAuthProvider, isOAuthConfigured } from "../config/oauth.config";
@@ -337,7 +339,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         }
 
         // Clear refresh token cookie
-        refresh_token.remove();
+        refresh_token.remove({ path: "/" });
 
         return formatResponse(null, "Logged out successfully");
       } catch {
@@ -358,6 +360,94 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
           data: t.Null(),
         }),
         500: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String(),
+        }),
+      },
+      detail: {
+        tags: ["auth"],
+      },
+    }
+  )
+  /**
+   * Request password reset
+   * @method POST
+   * @path /auth/forgot-password
+   */
+  .post(
+    "/forgot-password",
+    async ({ body, set }) => {
+      try {
+        await forgotPassword(body.email);
+        return formatResponse(
+          null,
+          "If an account exists with this email, a password reset link has been sent."
+        );
+      } catch (error: unknown) {
+        set.status = 500;
+        return {
+          success: false,
+          status: 500,
+          message: getErrorMessage(error) || "Failed to process request"
+        };
+      }
+    },
+    {
+      body: t.Object({
+        email: t.String({ format: "email" }),
+      }),
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String(),
+          data: t.Null(),
+        }),
+        500: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String(),
+        }),
+      },
+      detail: {
+        tags: ["auth"],
+      },
+    }
+  )
+  /**
+   * Reset password
+   * @method POST
+   * @path /auth/reset-password
+   */
+  .post(
+    "/reset-password",
+    async ({ body, set }) => {
+      try {
+        await resetPassword(body.token, body.password);
+        return formatResponse(null, "Password reset successfully");
+      } catch (error: unknown) {
+        set.status = 400;
+        return {
+          success: false,
+          status: 400,
+          message: getErrorMessage(error) || "Failed to reset password"
+        };
+      }
+    },
+    {
+      body: t.Object({
+        token: t.String(),
+        password: t.String({ minLength: 6 }),
+      }),
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String(),
+          data: t.Null(),
+        }),
+        400: t.Object({
           success: t.Boolean(),
           status: t.Number(),
           message: t.String(),
