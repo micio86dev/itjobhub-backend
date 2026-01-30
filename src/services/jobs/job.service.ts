@@ -303,6 +303,8 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   }
 
 
+
+
   // Haversine formula to calculate distance between two points in km
   const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371; // Earth's radius in km
@@ -333,6 +335,7 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   ]);
   const jobsRaw = results[0];
   let total = results[1];
+
 
   // Aggregate likes, dislikes, views and clicks for these jobs
   const jobIds = jobsRaw.map(j => j.id);
