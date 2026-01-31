@@ -21,7 +21,7 @@ export const healthCheckHandler = async () => {
         // Simple ping
         await dbClient.$runCommandRaw({ ping: 1 });
         status.database = "connected";
-    } catch (error) {
+    } catch {
         status.database = "disconnected";
         statusCode = 503;
         logger.error("Health check failed: DB disconnected");
