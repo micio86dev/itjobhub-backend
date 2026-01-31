@@ -167,7 +167,6 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
     languages?: string[];
     skills?: string[];
     seniority?: string;
-    seniority?: string;
     availability?: string;
     workModes?: string[];
     bio?: string;
