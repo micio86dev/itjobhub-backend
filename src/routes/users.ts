@@ -25,6 +25,12 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           return formatError("User not found", 404);
         }
 
+        const isProfileCompleted = !!userData.profile &&
+          (userData.profile.languages?.length > 0 || false) &&
+          (userData.profile.skills?.length > 0 || false) &&
+          !!userData.profile.seniority &&
+          !!userData.profile.availability;
+
         const formattedUser = {
           id: userData.id,
           email: userData.email,
@@ -36,6 +42,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           birthDate: userData.birthDate || undefined,
           bio: userData.bio || undefined,
           avatar: userData.avatar || undefined,
+          profileCompleted: isProfileCompleted,
           createdAt: userData.created_at?.toISOString() || new Date().toISOString(),
           profile: userData.profile ? {
             id: userData.profile.id,
@@ -73,6 +80,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
             firstName: t.String(),
             lastName: t.String(),
             role: t.String(),
+            profileCompleted: t.Boolean(),
             phone: t.Optional(t.String()),
             location: t.Optional(t.String()),
             birthDate: t.Optional(t.String()),
