@@ -288,9 +288,57 @@ export const findOrCreateOAuthUser = async (userData: OAuthUserData) => {
         include: { profile: true },
     });
 
+    // Helper to enrich profile data for existing users
+    const enrichProfile = async (user: any) => {
+        if (!user.profile) {
+            // Should not happen usually as we create profile on signup, but for safety
+            const profileData: any = {
+                user_id: user.id,
+                languages: userData.languages || [],
+                skills: userData.skills || [],
+                bio: userData.bio,
+                github: userData.githubUrl,
+                linkedin: userData.linkedinUrl,
+                website: userData.websiteUrl,
+                location: userData.location,
+            };
+            await dbClient.userProfile.create({ data: profileData });
+            return;
+        }
+
+        const updateData: any = {};
+
+        // Only update if field is missing in DB but present in OAuth data
+        if ((!user.profile.languages || user.profile.languages.length === 0) && userData.languages && userData.languages.length > 0) {
+            updateData.languages = userData.languages;
+        }
+        if ((!user.profile.skills || user.profile.skills.length === 0) && userData.skills && userData.skills.length > 0) {
+            updateData.skills = userData.skills;
+        }
+        if (!user.profile.bio && userData.bio) updateData.bio = userData.bio;
+        if (!user.profile.github && userData.githubUrl) updateData.github = userData.githubUrl;
+        if (!user.profile.linkedin && userData.linkedinUrl) updateData.linkedin = userData.linkedinUrl;
+        if (!user.profile.website && userData.websiteUrl) updateData.website = userData.websiteUrl;
+        if (!user.profile.location && userData.location) updateData.location = userData.location;
+
+        if (Object.keys(updateData).length > 0) {
+            await dbClient.userProfile.update({
+                where: { id: user.profile.id },
+                data: updateData,
+            });
+            logger.info({ userId: user.id, fields: Object.keys(updateData) }, 'Enriched existing user profile with OAuth data');
+        }
+    };
+
     if (user) {
         logger.info({ userId: user.id, provider: userData.provider }, 'OAuth user found, logging in');
-        return user;
+        await enrichProfile(user);
+
+        // Re-fetch to get updated profile if needed
+        return dbClient.user.findUnique({
+            where: { id: user.id },
+            include: { profile: true },
+        });
     }
 
     // Check if user exists with same email (linking accounts)
@@ -312,7 +360,13 @@ export const findOrCreateOAuthUser = async (userData: OAuthUserData) => {
             include: { profile: true },
         });
         logger.info({ userId: user.id, provider: userData.provider }, 'Linked OAuth to existing account');
-        return user;
+
+        await enrichProfile(user);
+
+        return dbClient.user.findUnique({
+            where: { id: user.id },
+            include: { profile: true },
+        });
     }
 
     // Create new user
