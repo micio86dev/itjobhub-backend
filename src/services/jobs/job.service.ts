@@ -118,6 +118,8 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   dateRange?: string; // Add this
   looseSeniority?: boolean;
   workModes?: string[];
+  salaryMin?: number;
+  salaryMax?: number;
 }, userId?: string) => {
   const skip = (page - 1) * limit;
   const where: Prisma.JobWhereInput = {};
@@ -294,6 +296,20 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
           { skills: { hasSome: skillsList } },
           { technical_skills: { hasSome: skillsList } }
         ]
+      });
+    }
+
+    // Salary range filtering
+    // If salaryMin is set, filter jobs where salary_max >= salaryMin (job's max is at least user's min)
+    if (filters.salaryMin !== undefined) {
+      andConditions.push({
+        salary_max: { gte: filters.salaryMin }
+      });
+    }
+    // If salaryMax is set, filter jobs where salary_min <= salaryMax (job's min is at most user's max)
+    if (filters.salaryMax !== undefined) {
+      andConditions.push({
+        salary_min: { lte: filters.salaryMax }
       });
     }
 

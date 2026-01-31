@@ -9,6 +9,9 @@ describe("Job Search API", () => {
     let jobId3: string; // Monza (close to Milan)
     let jobId4: string; // Full-time
     let jobId5: string; // Contract
+    let jobIdSalary1: string; // Low salary (30k-40k)
+    let jobIdSalary2: string; // Mid salary (50k-70k)
+    let jobIdSalary3: string; // High salary (80k-120k)
 
     beforeAll(async () => {
         // Clean up
@@ -112,6 +115,49 @@ describe("Job Search API", () => {
             }
         });
         jobId5 = job5.id;
+
+        // Jobs with salary data for salary range testing
+        const jobSalary1 = await prisma.job.create({
+            data: {
+                title: "TEST_SEARCH_SALARY_LOW",
+                description: "Low salary job",
+                company_id: companyId,
+                location: "Remote",
+                salary_min: 30000,
+                salary_max: 40000,
+                status: "active",
+                link: "https://example.com/salary1_" + Date.now()
+            }
+        });
+        jobIdSalary1 = jobSalary1.id;
+
+        const jobSalary2 = await prisma.job.create({
+            data: {
+                title: "TEST_SEARCH_SALARY_MID",
+                description: "Mid salary job",
+                company_id: companyId,
+                location: "Remote",
+                salary_min: 50000,
+                salary_max: 70000,
+                status: "active",
+                link: "https://example.com/salary2_" + Date.now()
+            }
+        });
+        jobIdSalary2 = jobSalary2.id;
+
+        const jobSalary3 = await prisma.job.create({
+            data: {
+                title: "TEST_SEARCH_SALARY_HIGH",
+                description: "High salary job",
+                company_id: companyId,
+                location: "Remote",
+                salary_min: 80000,
+                salary_max: 120000,
+                status: "active",
+                link: "https://example.com/salary3_" + Date.now()
+            }
+        });
+        jobIdSalary3 = jobSalary3.id;
     });
 
     afterAll(async () => {
@@ -165,4 +211,42 @@ describe("Job Search API", () => {
         expect(titles).not.toContain("TEST_SEARCH_CONTRACT");
         expect(titles).not.toContain("TEST_SEARCH_DEV_MONZA"); // Part-time
     });
+
+    // Salary range filtering tests
+    it("should filter by minimum salary (salary_min)", async () => {
+        // Filter for jobs with salary_max >= 45000
+        const response = await app.handle(new Request("http://localhost/jobs?salary_min=45000&q=TEST_SEARCH_SALARY"));
+        const json = await response.json();
+        expect(response.status).toBe(200);
+        const titles = json.data.jobs.map((j: any) => j.title);
+
+        expect(titles).not.toContain("TEST_SEARCH_SALARY_LOW"); // 30k-40k, max < 45k
+        expect(titles).toContain("TEST_SEARCH_SALARY_MID"); // 50k-70k, max >= 45k
+        expect(titles).toContain("TEST_SEARCH_SALARY_HIGH"); // 80k-120k, max >= 45k
+    });
+
+    it("should filter by maximum salary (salary_max)", async () => {
+        // Filter for jobs with salary_min <= 55000
+        const response = await app.handle(new Request("http://localhost/jobs?salary_max=55000&q=TEST_SEARCH_SALARY"));
+        const json = await response.json();
+        expect(response.status).toBe(200);
+        const titles = json.data.jobs.map((j: any) => j.title);
+
+        expect(titles).toContain("TEST_SEARCH_SALARY_LOW"); // 30k-40k, min <= 55k
+        expect(titles).toContain("TEST_SEARCH_SALARY_MID"); // 50k-70k, min <= 55k
+        expect(titles).not.toContain("TEST_SEARCH_SALARY_HIGH"); // 80k-120k, min > 55k
+    });
+
+    it("should filter by salary range (both min and max)", async () => {
+        // Filter for jobs where salary overlaps with 45k-75k range
+        const response = await app.handle(new Request("http://localhost/jobs?salary_min=45000&salary_max=75000&q=TEST_SEARCH_SALARY"));
+        const json = await response.json();
+        expect(response.status).toBe(200);
+        const titles = json.data.jobs.map((j: any) => j.title);
+
+        expect(titles).not.toContain("TEST_SEARCH_SALARY_LOW"); // 30k-40k, max < 45k
+        expect(titles).toContain("TEST_SEARCH_SALARY_MID"); // 50k-70k, overlaps with 45k-75k
+        expect(titles).not.toContain("TEST_SEARCH_SALARY_HIGH"); // 80k-120k, min > 75k
+    });
 });
+
