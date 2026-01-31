@@ -6,6 +6,12 @@
 import { dbClient } from '../../config/database';
 import { oauthConfig, getOAuthCallbackUrl, OAuthProvider, isOAuthConfigured } from '../../config/oauth.config';
 import logger from "../../utils/logger";
+import type { User, UserProfile } from '@prisma/client';
+
+/**
+ * User with optional profile relation
+ */
+type UserWithProfile = User & { profile: UserProfile | null };
 
 export interface OAuthUserData {
     provider: OAuthProvider;
@@ -289,10 +295,20 @@ export const findOrCreateOAuthUser = async (userData: OAuthUserData) => {
     });
 
     // Helper to enrich profile data for existing users
-    const enrichProfile = async (user: any) => {
+    const enrichProfile = async (user: UserWithProfile): Promise<void> => {
         if (!user.profile) {
             // Should not happen usually as we create profile on signup, but for safety
-            const profileData: any = {
+            interface NewProfileData {
+                user_id: string;
+                languages: string[];
+                skills: string[];
+                bio?: string;
+                github?: string;
+                linkedin?: string;
+                website?: string;
+                location?: string;
+            }
+            const profileData: NewProfileData = {
                 user_id: user.id,
                 languages: userData.languages || [],
                 skills: userData.skills || [],
@@ -306,7 +322,16 @@ export const findOrCreateOAuthUser = async (userData: OAuthUserData) => {
             return;
         }
 
-        const updateData: any = {};
+        interface ProfileUpdateData {
+            languages?: string[];
+            skills?: string[];
+            bio?: string;
+            github?: string;
+            linkedin?: string;
+            website?: string;
+            location?: string;
+        }
+        const updateData: ProfileUpdateData = {};
 
         // Only update if field is missing in DB but present in OAuth data
         if ((!user.profile.languages || user.profile.languages.length === 0) && userData.languages && userData.languages.length > 0) {
