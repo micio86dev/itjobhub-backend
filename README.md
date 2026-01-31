@@ -1,6 +1,6 @@
-# IT Job Hub Backend
+# DevBoards.io Backend
 
-Backend API for the IT Job Hub platform built with ElysiaJS, BunJS, Prisma, and MongoDB Atlas.
+Backend API for the DevBoards.io platform built with ElysiaJS, BunJS, Prisma, and MongoDB Atlas.
 
 ## Features
 

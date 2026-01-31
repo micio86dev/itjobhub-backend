@@ -32,7 +32,7 @@ export interface EmailOptions {
 
 export const sendEmail = async ({ to, subject, html }: EmailOptions) => {
   const mg = getMgClient();
-  const from = process.env.MAILGUN_FROM_EMAIL || "ITJobHub <noreply@itjobhub.com>";
+  const from = process.env.MAILGUN_FROM_EMAIL || "DevBoards.io <noreply@itjobhub.com>";
   const domain = process.env.MAILGUN_DOMAIN || "";
 
   if (!mg) {
@@ -55,7 +55,7 @@ export const sendEmail = async ({ to, subject, html }: EmailOptions) => {
 };
 
 export const sendForgotPasswordEmail = async (to: string, resetLink: string) => {
-  const subject = "Reset Your Password - ITJobHub";
+  const subject = "Reset Your Password - DevBoards.io";
   const html = `
     <!DOCTYPE html>
     <html>
@@ -71,13 +71,13 @@ export const sendForgotPasswordEmail = async (to: string, resetLink: string) => 
       <div class="container">
         <h2>Reset Your Password</h2>
         <p>Hello,</p>
-        <p>We received a request to reset your password for your ITJobHub account.</p>
+        <p>We received a request to reset your password for your DevBoards.io account.</p>
         <p>Click the button below to reset it:</p>
         <a href="${resetLink}" class="button">Reset Password</a>
         <p>If you didn't ask to reset your password, you can ignore this email.</p>
         <p>This link will expire in 1 hour.</p>
         <div class="footer">
-          <p>© ${new Date().getFullYear()} ITJobHub. All rights reserved.</p>
+          <p>© ${new Date().getFullYear()} DevBoards.io. All rights reserved.</p>
         </div>
       </div>
     </body>

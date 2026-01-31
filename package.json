@@ -1,7 +1,7 @@
 {
   "name": "it-job-hub-backend",
   "version": "0.0.1",
-  "description": "Backend API for IT Job Hub platform",
+  "description": "Backend API for DevBoards.io platform",
   "main": "src/index.ts",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
@@ -52,6 +52,6 @@
     "jobs",
     "mongodb"
   ],
-  "author": "IT Job Hub Team",
+  "author": "DevBoards.io Team",
   "license": "MIT"
 }

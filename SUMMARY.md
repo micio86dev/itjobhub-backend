@@ -1,6 +1,6 @@
-# Backend - IT Job Hub
+# Backend - DevBoards.io
 
-This repository contains the core API for the IT Job Hub platform. It is designed for high performance, type safety, and scalability.
+This repository contains the core API for the DevBoards.io platform. It is designed for high performance, type safety, and scalability.
 
 ## Architecture
 

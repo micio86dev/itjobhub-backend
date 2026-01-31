@@ -76,9 +76,9 @@ export const app = new Elysia()
         swagger({
             documentation: {
                 info: {
-                    title: "IT Job Hub API",
+                    title: "DevBoards.io API",
                     version: "1.0.0",
-                    description: "API for IT Job Hub platform",
+                    description: "API for DevBoards.io platform",
                 },
                 tags: [
                     { name: "auth", description: "Authentication endpoints" },
@@ -119,7 +119,7 @@ export const app = new Elysia()
     })
     // Health check endpoint
     .get("/", () => ({
-        message: "IT Job Hub API is running!",
+        message: "DevBoards.io API is running!",
         timestamp: new Date().toISOString()
     }))
     .get("/health", healthCheckHandler);

@@ -11,7 +11,7 @@ async function startServer() {
 
     // Start the server after database is ready
     app.listen(config.port, () => {
-      logger.info(`IT Job Hub API is running on port ${config.port}`);
+      logger.info(`DevBoards.io API is running on port ${config.port}`);
       logger.info(`Swagger UI available at http://localhost:${config.port}/docs`);
     });
   } catch (error) {

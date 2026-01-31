@@ -12,7 +12,7 @@ const api = treaty(app);
 
 import { prisma } from '../src/config/database';
 
-describe('IT Job Hub API Tests', () => {
+describe('DevBoards.io API Tests', () => {
   let adminTokens: AuthTokens;
   let companyTokens: AuthTokens;
   let jobSeekerTokens: AuthTokens;
@@ -87,7 +87,7 @@ describe('IT Job Hub API Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.message).toBe("IT Job Hub API is running!");
+      expect(data.message).toBe("DevBoards.io API is running!");
       expect(data.timestamp).toBeDefined();
     });
   });
