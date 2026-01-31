@@ -217,13 +217,25 @@ const mapLinkedInUserData = (data: Record<string, unknown>): OAuthUserData => {
     // Map locale to language if available (e.g. "it_IT" -> "Italian")
     const languages = [];
     if (data.locale) {
-        // Simple mapping, can be expanded
-        const locale = (data.locale as string).substring(0, 2).toLowerCase();
-        if (locale === 'it') languages.push('italian');
-        else if (locale === 'en') languages.push('english');
-        else if (locale === 'fr') languages.push('french');
-        else if (locale === 'de') languages.push('german');
-        else if (locale === 'es') languages.push('spanish');
+        let localeStr = '';
+        if (typeof data.locale === 'string') {
+            localeStr = data.locale;
+        } else if (typeof data.locale === 'object' && data.locale !== null) {
+            // Handle structured locale object e.g. { country: 'US', language: 'en' }
+            const localeObj = data.locale as { language?: string; country?: string };
+            if (localeObj.language) {
+                localeStr = localeObj.language;
+            }
+        }
+
+        if (localeStr) {
+            const langCode = localeStr.substring(0, 2).toLowerCase();
+            if (langCode === 'it') languages.push('italian');
+            else if (langCode === 'en') languages.push('english');
+            else if (langCode === 'fr') languages.push('french');
+            else if (langCode === 'de') languages.push('german');
+            else if (langCode === 'es') languages.push('spanish');
+        }
     }
 
     return {
