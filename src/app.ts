@@ -14,6 +14,7 @@ import { favoritesRoutes } from "./routes/favorites";
 import { newsRoutes } from "./routes/news";
 import { authMiddleware } from "./middleware/auth";
 import { deriveLang, translate } from "./i18n";
+import { healthCheckHandler } from "./healthcheck";
 
 // Custom key generator to extract IP from request
 const ipKeyGenerator = (req: Request): string => {
@@ -117,9 +118,6 @@ export const app = new Elysia()
         }
     })
     // Health check endpoint
-    .get("/", () => ({
-        message: "IT Job Hub API is running!",
-        timestamp: new Date().toISOString(),
-    }));
+    .get("/health", healthCheckHandler);
 
 export type App = typeof app;
