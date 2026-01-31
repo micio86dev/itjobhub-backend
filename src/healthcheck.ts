@@ -1,5 +1,5 @@
-import { dbClient } from "../config/database";
-import logger from "../utils/logger";
+import { dbClient } from "./config/database";
+import logger from "./utils/logger";
 // Assuming you might have a redis client. If not, we skip or add basic connectivity check if user uses one.
 // The user plan mentions "Redis + RediSearch".
 // Check if redis client exists in project, if not we simulate or skip.

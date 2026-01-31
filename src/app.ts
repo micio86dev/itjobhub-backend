@@ -118,6 +118,10 @@ export const app = new Elysia()
         }
     })
     // Health check endpoint
+    .get("/", () => ({
+        message: "IT Job Hub API is running!",
+        timestamp: new Date().toISOString()
+    }))
     .get("/health", healthCheckHandler);
 
 export type App = typeof app;
