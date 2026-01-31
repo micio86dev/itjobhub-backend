@@ -19,6 +19,8 @@ export interface OAuthUserData {
     websiteUrl?: string;
     githubUrl?: string;
     linkedinUrl?: string;
+    languages?: string[];
+    skills?: string[];
 }
 
 /**
@@ -163,6 +165,32 @@ const mapGitHubUserData = async (data: Record<string, unknown>, accessToken: str
         }
     }
 
+    // Fetch user repos to infer skills/languages
+    const languagesSet = new Set<string>();
+    const skillsSet = new Set<string>();
+
+    try {
+        const reposResponse = await fetch('https://api.github.com/user/repos?sort=pushed&per_page=10', {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: 'application/json',
+            },
+        });
+
+        if (reposResponse.ok) {
+            const repos = await reposResponse.json() as Array<{ language: string }>;
+            repos.forEach(repo => {
+                if (repo.language) {
+                    const lang = repo.language.toLowerCase();
+                    languagesSet.add(lang);
+                    skillsSet.add(repo.language); // Use original casing for skills display initially, or normalize
+                }
+            });
+        }
+    } catch (error) {
+        logger.warn({ error }, 'Failed to fetch GitHub repos for skills inference');
+    }
+
     const name = (data.name as string) || (data.login as string) || '';
     const nameParts = name.split(' ');
 
@@ -177,6 +205,8 @@ const mapGitHubUserData = async (data: Record<string, unknown>, accessToken: str
         location: data.location as string,
         githubUrl: data.html_url as string,
         websiteUrl: data.blog as string,
+        languages: Array.from(languagesSet),
+        skills: Array.from(skillsSet),
     };
 };
 
@@ -184,6 +214,18 @@ const mapGitHubUserData = async (data: Record<string, unknown>, accessToken: str
  * Map LinkedIn user data to our format (using OpenID Connect)
  */
 const mapLinkedInUserData = (data: Record<string, unknown>): OAuthUserData => {
+    // Map locale to language if available (e.g. "it_IT" -> "Italian")
+    const languages = [];
+    if (data.locale) {
+        // Simple mapping, can be expanded
+        const locale = (data.locale as string).substring(0, 2).toLowerCase();
+        if (locale === 'it') languages.push('italian');
+        else if (locale === 'en') languages.push('english');
+        else if (locale === 'fr') languages.push('french');
+        else if (locale === 'de') languages.push('german');
+        else if (locale === 'es') languages.push('spanish');
+    }
+
     return {
         provider: 'linkedin',
         providerId: data.sub as string,
@@ -191,7 +233,8 @@ const mapLinkedInUserData = (data: Record<string, unknown>): OAuthUserData => {
         firstName: data.given_name as string || 'LinkedIn',
         lastName: data.family_name as string || 'User',
         avatar: data.picture as string,
-        linkedinUrl: `https://www.linkedin.com/in/${data.sub}`,
+        linkedinUrl: `https://www.linkedin.com/in/${data.sub}`, // Note: OIDC sub might not be public ID
+        languages,
     };
 };
 
@@ -199,6 +242,16 @@ const mapLinkedInUserData = (data: Record<string, unknown>): OAuthUserData => {
  * Map Google user data to our format
  */
 const mapGoogleUserData = (data: Record<string, unknown>): OAuthUserData => {
+    const languages = [];
+    if (data.locale) {
+        const locale = (data.locale as string).substring(0, 2).toLowerCase();
+        if (locale === 'it') languages.push('italian');
+        else if (locale === 'en') languages.push('english');
+        else if (locale === 'fr') languages.push('french');
+        else if (locale === 'de') languages.push('german');
+        else if (locale === 'es') languages.push('spanish');
+    }
+
     return {
         provider: 'google',
         providerId: data.id as string,
@@ -206,6 +259,7 @@ const mapGoogleUserData = (data: Record<string, unknown>): OAuthUserData => {
         firstName: data.given_name as string || 'Google',
         lastName: data.family_name as string || 'User',
         avatar: data.picture as string,
+        languages,
     };
 };
 
@@ -286,6 +340,8 @@ export const findOrCreateOAuthUser = async (userData: OAuthUserData) => {
     if (userData.linkedinUrl) profileData.linkedin = userData.linkedinUrl;
     if (userData.websiteUrl) profileData.website = userData.websiteUrl;
     if (userData.location) profileData.location = userData.location;
+    if (userData.languages) profileData.languages = userData.languages;
+    if (userData.skills) profileData.skills = userData.skills;
 
     await dbClient.userProfile.create({ data: profileData });
 
