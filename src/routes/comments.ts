@@ -3,7 +3,8 @@ import {
   createComment,
   getCommentsByEntity,
   updateComment,
-  deleteComment
+  deleteComment,
+  toggleLike
 } from "../services/comments/comment.service";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
 import { authMiddleware } from "../middleware/auth";
@@ -59,8 +60,17 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
         set.status = 201;
         return formatResponse(comment, "Comment created successfully", 201);
       } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        if (message.includes("not found")) {
+          set.status = 404;
+          return formatError(message, 404);
+        }
+        if (message.includes("different entity")) {
+          set.status = 400;
+          return formatError(message, 400);
+        }
         set.status = 500;
-        return formatError(`Failed to create comment: ${getErrorMessage(error)}`, 500);
+        return formatError(`Failed to create comment: ${message}`, 500);
       }
     },
     {
@@ -77,7 +87,7 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
   )
   .get(
     "/:type/:id",
-    async ({ params, query, set }) => {
+    async ({ params, query, set, user }) => {
       try {
         const page = parseInt(query.page || "1");
         const limit = parseInt(query.limit || "10");
@@ -87,7 +97,13 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
           return formatError("Invalid entity type. Must be 'job' or 'news'", 400);
         }
 
-        const result = await getCommentsByEntity(params.id, params.type, page, limit);
+        const isValidObjectId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
+        if (!isValidObjectId(params.id)) {
+          set.status = 400;
+          return formatError("Invalid entity ID format", 400);
+        }
+
+        const result = await getCommentsByEntity(params.id, params.type, page, limit, user?.id);
 
         return formatResponse(result, "Comments retrieved successfully");
       } catch (error: unknown) {
@@ -110,6 +126,37 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
     }
   )
   /**
+   * Toggle like on a comment
+   * @method POST
+   * @path /comments/:id/like
+   */
+  .post(
+    "/:id/like",
+    async ({ user, params, set }) => {
+      try {
+        if (!user) {
+          set.status = 401;
+          return formatError("Unauthorized", 401);
+        }
+
+        const result = await toggleLike(params.id, user.id);
+
+        return formatResponse(result, "Like toggled successfully");
+      } catch (error: unknown) {
+        set.status = 500;
+        return formatError(`Failed to toggle like: ${getErrorMessage(error)}`, 500);
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String()
+      }),
+      detail: {
+        tags: ["comments"]
+      }
+    }
+  )
+  /**
    * Update comment
    * @method PUT
    * @path /comments/:id
@@ -123,7 +170,7 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
           return formatError("Unauthorized", 401);
         }
 
-        const comment = await updateComment(params.id, body.content, user.id);
+        const comment = await updateComment(params.id, body.content, user.id, user.role);
 
         return formatResponse(comment, "Comment updated successfully");
       } catch (error: unknown) {

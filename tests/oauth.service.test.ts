@@ -4,6 +4,18 @@ import { oauthConfig, getOAuthCallbackUrl } from '../src/config/oauth.config';
 import { dbClient } from '../src/config/database';
 import { app } from '../src/app';
 
+// Mock logger to prevent expected errors from polluting the test output
+mock.module('../src/utils/logger', () => {
+    return {
+        default: {
+            info: () => { },
+            error: () => { },
+            warn: () => { },
+            debug: () => { }
+        }
+    };
+});
+
 describe('OAuth Service', () => {
     describe('getAuthorizationUrl', () => {
         it('should generate a valid Google authorization URL', () => {
@@ -130,6 +142,8 @@ describe('OAuth Service', () => {
     describe('findOrCreateOAuthUser', () => {
         beforeEach(async () => {
             // Cleanup database
+            await dbClient.comment.deleteMany({ where: { parentId: { not: null } } });
+            await dbClient.comment.deleteMany({});
             await dbClient.user.deleteMany({});
             await dbClient.userProfile.deleteMany({});
         });

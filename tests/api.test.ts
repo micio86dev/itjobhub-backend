@@ -472,6 +472,8 @@ describe('DevBoards.io API Tests', () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(Array.isArray(data.data.comments)).toBe(true);
+      expect(data.data.comments.length).toBeGreaterThan(0);
+      expect(data.data.comments[0].content).toBe(testComment.content);
     });
 
     it('should update comment (author only)', async () => {

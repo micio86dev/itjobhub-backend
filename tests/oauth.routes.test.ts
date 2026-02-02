@@ -29,6 +29,18 @@ mock.module('../src/services/auth/oauth.service', () => {
     };
 });
 
+// Mock logger to avoid scary error logs in tests
+mock.module('../src/utils/logger', () => {
+    return {
+        default: {
+            info: () => { },
+            error: () => { },
+            warn: () => { },
+            debug: () => { }
+        }
+    };
+});
+
 describe('OAuth Routes', () => {
     it('GET /auth/oauth/google should redirect to Google auth URL', async () => {
         const response = await app.handle(
