@@ -182,7 +182,14 @@ export const getCommentsByEntity = async (
     });
   }
 
-  const mapComment = (c: any) => ({
+  interface CommentWithReplies {
+    id: string;
+    replies?: CommentWithReplies[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+  }
+
+  const mapComment = (c: CommentWithReplies) => ({
     ...c,
     likesCount: reactionMap.get(c.id)?.likes || 0,
     dislikesCount: reactionMap.get(c.id)?.dislikes || 0,
