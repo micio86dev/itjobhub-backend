@@ -6,6 +6,7 @@
 import { dbClient } from '../../config/database';
 import { oauthConfig, getOAuthCallbackUrl, OAuthProvider, isOAuthConfigured } from '../../config/oauth.config';
 import logger from "../../utils/logger";
+import { fetchWithRetry, fetchWithTimeout } from '../../utils/fetch-utils';
 import type { User, UserProfile } from '@prisma/client';
 
 /**
@@ -71,6 +72,8 @@ export const exchangeCodeForTokens = async (
     const config = oauthConfig[provider];
     const callbackUrl = getOAuthCallbackUrl(provider);
 
+    logger.info({ provider }, 'Exchanging authorization code for tokens');
+
     const body = new URLSearchParams({
         client_id: config.clientId,
         client_secret: config.clientSecret,
@@ -88,24 +91,33 @@ export const exchangeCodeForTokens = async (
         headers['Accept'] = 'application/json';
     }
 
-    const response = await fetch(config.tokenUrl, {
-        method: 'POST',
-        headers,
-        body: body.toString(),
-    });
+    try {
+        // Use fetchWithRetry for better error handling
+        const response = await fetchWithRetry(config.tokenUrl, {
+            method: 'POST',
+            headers,
+            body: body.toString(),
+            timeout: 15000, // 15 second timeout
+            maxRetries: 2,
+        });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        logger.error({ provider, status: response.status, error: errorText }, 'Failed to exchange code for tokens');
-        throw new Error(`Failed to exchange code for tokens: ${errorText}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            logger.error({ provider, status: response.status, error: errorText }, 'Failed to exchange code for tokens');
+            throw new Error(`Failed to exchange code for tokens: ${errorText}`);
+        }
+
+        const data = await response.json();
+        logger.info({ provider }, 'Successfully exchanged code for tokens');
+
+        return {
+            accessToken: data.access_token,
+            refreshToken: data.refresh_token,
+        };
+    } catch (error) {
+        logger.error({ provider, error }, 'Error exchanging code for tokens');
+        throw error;
     }
-
-    const data = await response.json();
-
-    return {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-    };
 };
 
 /**
@@ -117,31 +129,40 @@ export const getProviderUserData = async (
 ): Promise<OAuthUserData> => {
     const config = oauthConfig[provider];
 
-    const response = await fetch(config.userInfoUrl, {
-        headers: {
-            Authorization: `Bearer ${accessToken}`,
-            Accept: 'application/json',
-        },
-    });
+    logger.info({ provider }, 'Fetching user data from provider');
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        logger.error({ provider, status: response.status, error: errorText }, 'Failed to fetch user data');
-        throw new Error(`Failed to fetch user data: ${errorText}`);
-    }
+    try {
+        const response = await fetchWithTimeout(config.userInfoUrl, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: 'application/json',
+            },
+            timeout: 10000, // 10 second timeout
+        });
 
-    const data = await response.json();
+        if (!response.ok) {
+            const errorText = await response.text();
+            logger.error({ provider, status: response.status, error: errorText }, 'Failed to fetch user data');
+            throw new Error(`Failed to fetch user data: ${errorText}`);
+        }
 
-    // Map provider-specific data to our format
-    switch (provider) {
-        case 'github':
-            return mapGitHubUserData(data, accessToken);
-        case 'linkedin':
-            return mapLinkedInUserData(data);
-        case 'google':
-            return mapGoogleUserData(data);
-        default:
-            throw new Error(`Unknown provider: ${provider}`);
+        const data = await response.json();
+        logger.info({ provider }, 'Successfully fetched user data');
+
+        // Map provider-specific data to our format
+        switch (provider) {
+            case 'github':
+                return mapGitHubUserData(data, accessToken);
+            case 'linkedin':
+                return mapLinkedInUserData(data);
+            case 'google':
+                return mapGoogleUserData(data);
+            default:
+                throw new Error(`Unknown provider: ${provider}`);
+        }
+    } catch (error) {
+        logger.error({ provider, error }, 'Error fetching user data from provider');
+        throw error;
     }
 };
 
@@ -154,11 +175,12 @@ const mapGitHubUserData = async (data: Record<string, unknown>, accessToken: str
 
     if (!email) {
         try {
-            const emailsResponse = await fetch('https://api.github.com/user/emails', {
+            const emailsResponse = await fetchWithTimeout('https://api.github.com/user/emails', {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
                     Accept: 'application/json',
                 },
+                timeout: 5000,
             });
 
             if (emailsResponse.ok) {
@@ -176,11 +198,12 @@ const mapGitHubUserData = async (data: Record<string, unknown>, accessToken: str
     const skillsSet = new Set<string>();
 
     try {
-        const reposResponse = await fetch('https://api.github.com/user/repos?sort=pushed&per_page=10', {
+        const reposResponse = await fetchWithTimeout('https://api.github.com/user/repos?sort=pushed&per_page=10', {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
                 Accept: 'application/json',
             },
+            timeout: 5000,
         });
 
         if (reposResponse.ok) {
@@ -450,22 +473,33 @@ export const findOrCreateOAuthUser = async (userData: OAuthUserData) => {
  * Process OAuth callback: exchange code and create/login user
  */
 export const processOAuthCallback = async (provider: OAuthProvider, code: string) => {
+    logger.info({ provider }, 'Processing OAuth callback');
+
     if (!isOAuthConfigured(provider)) {
         throw new Error(`OAuth not configured for ${provider}`);
     }
 
-    // Exchange code for tokens
-    const { accessToken } = await exchangeCodeForTokens(provider, code);
+    try {
+        // Exchange code for tokens
+        logger.debug({ provider }, 'Step 1/3: Exchanging code for tokens');
+        const { accessToken } = await exchangeCodeForTokens(provider, code);
 
-    // Get user data from provider
-    const userData = await getProviderUserData(provider, accessToken);
+        // Get user data from provider
+        logger.debug({ provider }, 'Step 2/3: Fetching user data');
+        const userData = await getProviderUserData(provider, accessToken);
 
-    if (!userData.email) {
-        throw new Error('Email not provided by OAuth provider');
+        if (!userData.email) {
+            throw new Error('Email not provided by OAuth provider');
+        }
+
+        // Find or create user
+        logger.debug({ provider }, 'Step 3/3: Finding or creating user in database');
+        const user = await findOrCreateOAuthUser(userData);
+
+        logger.info({ provider, userId: user?.id }, 'OAuth callback processed successfully');
+        return user;
+    } catch (error) {
+        logger.error({ provider, error }, 'Failed to process OAuth callback');
+        throw error;
     }
-
-    // Find or create user
-    const user = await findOrCreateOAuthUser(userData);
-
-    return user;
 };
