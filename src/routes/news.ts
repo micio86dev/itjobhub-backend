@@ -43,7 +43,7 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
                     }))
                 });
                 return formatResponse(news, "News created successfully");
-            } catch (error: unknown) {
+            } catch (error) {
                 set.status = 500;
                 return formatError(`Failed to create news: ${getErrorMessage(error)}`, 500);
             }
@@ -117,7 +117,7 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
                     }))
                 });
                 return formatResponse(news, "News imported successfully");
-            } catch (error: unknown) {
+            } catch (error) {
                 set.status = 500;
                 return formatError(`Failed to import news: ${getErrorMessage(error)}`, 500);
             }
@@ -180,7 +180,7 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
                 }, user?.id);
 
                 return formatResponse(result, "News retrieved successfully");
-            } catch (error: unknown) {
+            } catch (error) {
                 set.status = 500;
                 return formatError(`Failed to retrieve news: ${getErrorMessage(error)}`, 500);
             }
@@ -253,7 +253,7 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
                 }
 
                 return formatResponse(news, "News retrieved successfully");
-            } catch (error: unknown) {
+            } catch (error) {
                 set.status = 500;
                 return formatError(`Failed to retrieve news: ${getErrorMessage(error)}`, 500);
             }
@@ -324,7 +324,7 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
 
                 await deleteNews(params.id);
                 return formatResponse(null, "News deleted successfully");
-            } catch (error: unknown) {
+            } catch (error) {
                 set.status = 500;
                 return formatError(`Failed to delete news: ${getErrorMessage(error)}`, 500);
             }
@@ -381,7 +381,7 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
                 );
 
                 return formatResponse(result, "Interaction tracked");
-            } catch (error: unknown) {
+            } catch (error) {
                 set.status = 500;
                 return formatError(`Failed to track interaction: ${getErrorMessage(error)}`, 500);
             }

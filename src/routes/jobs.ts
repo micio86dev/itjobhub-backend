@@ -56,7 +56,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
 
         set.status = 201;
         return formatResponse(job, "Job created successfully", 201);
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to create job: ${getErrorMessage(error)}`, 500);
       }
@@ -151,7 +151,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         const year = query.year;
         const skills = await getTopSkills(limit, year);
         return formatResponse(skills, "Top skills retrieved successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to retrieve top skills: ${getErrorMessage(error)}`, 500);
       }
@@ -198,7 +198,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
 
         const scores = await calculateBatchMatchScores(user.id, body.jobIds);
         return formatResponse(scores, "Batch match scores calculated");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to calculate batch match scores: ${getErrorMessage(error)}`, 500);
       }
@@ -296,7 +296,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         const result = await getJobs(page, limit, filters, user?.id);
 
         return formatResponse(result, "Jobs retrieved successfully");
-      } catch (error: unknown) {
+      } catch (error) {
 
 
         set.status = 500;
@@ -416,7 +416,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         const responseJob = user ? job : { ...job, link: null };
 
         return formatResponse(responseJob, "Job retrieved successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to retrieve job: ${getErrorMessage(error)}`, 500);
       }
@@ -534,7 +534,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         });
 
         return formatResponse(updatedJob, "Job updated successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to update job: ${getErrorMessage(error)}`, 500);
       }
@@ -646,7 +646,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         await deleteJob(params.id);
 
         return formatResponse(null, "Job deleted successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to delete job: ${getErrorMessage(error)}`, 500);
       }
@@ -711,7 +711,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
 
         set.status = 201;
         return formatResponse(job, "Job imported successfully", 201);
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to import job: ${getErrorMessage(error)}`, 500);
       }
@@ -823,7 +823,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
 
         set.status = 201;
         return formatResponse(responseCallback, "Batch import completed", 201);
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to batch import jobs: ${getErrorMessage(error)}`, 500);
       }
@@ -907,7 +907,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         );
 
         return formatResponse(result, "Interaction tracked");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to track interaction: ${getErrorMessage(error)}`, 500);
       }
@@ -954,7 +954,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
 
         const score = await calculateMatchScore(user.id, params.id);
         return formatResponse(score, "Match score calculated");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to calculate match: ${getErrorMessage(error)}`, 500);
       }

@@ -152,7 +152,7 @@ export const createLike = async (
 
         return like;
       });
-    } catch (error: unknown) {
+    } catch (error) {
       const isRetryable =
         (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") ||
         (error instanceof Error && error.message.includes("retry your transaction"));

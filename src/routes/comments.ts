@@ -59,7 +59,7 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
 
         set.status = 201;
         return formatResponse(comment, "Comment created successfully", 201);
-      } catch (error: unknown) {
+      } catch (error) {
         const message = getErrorMessage(error);
         if (message.includes("not found")) {
           set.status = 404;
@@ -106,7 +106,7 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
         const result = await getCommentsByEntity(params.id, params.type, page, limit, user?.id);
 
         return formatResponse(result, "Comments retrieved successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to retrieve comments: ${getErrorMessage(error)}`, 500);
       }
@@ -142,7 +142,7 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
         const result = await toggleLike(params.id, user.id);
 
         return formatResponse(result, "Like toggled successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to toggle like: ${getErrorMessage(error)}`, 500);
       }
@@ -173,7 +173,7 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
         const comment = await updateComment(params.id, body.content, user.id, user.role);
 
         return formatResponse(comment, "Comment updated successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         const message = getErrorMessage(error);
         if (message === "Comment not found") {
           set.status = 404;
@@ -218,7 +218,7 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
         await deleteComment(params.id, user.id, user.role);
 
         return formatResponse(null, "Comment deleted successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         const message = getErrorMessage(error);
         if (message === "Comment not found") {
           set.status = 404;

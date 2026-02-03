@@ -9,7 +9,10 @@ export class ValidationError extends Error {
 
 // ... imports
 
-export interface ValidationRule<T = unknown> {
+// Define strict type for generic values
+export type SafeValue = string | number | boolean | null | undefined | object | Date | Array<SafeValue>;
+
+export interface ValidationRule<T = SafeValue> {
   validate: (value: T) => boolean | string;
   message?: string;
 }
@@ -17,7 +20,7 @@ export interface ValidationRule<T = unknown> {
 export class Validator {
   static required(message = 'This field is required'): ValidationRule {
     return {
-      validate: (value: unknown) => value !== undefined && value !== null && value !== '',
+      validate: (value: SafeValue) => value !== undefined && value !== null && value !== '',
       message
     };
   }
@@ -45,8 +48,8 @@ export function validateData<T extends keyof DatabaseModels>(
 
   for (const [field, fieldRules] of Object.entries(rules)) {
     // Safely access data field. Since data is Partial<Model>, we need to be careful.
-    // We treat it as unknown for validation purposes.
-    const value = (data as Record<string, unknown>)[field];
+    // We treat it as SafeValue for validation purposes.
+    const value = (data as Record<string, SafeValue>)[field];
 
     // Skip validation for undefined values in updates
     if (isUpdate && value === undefined) continue;

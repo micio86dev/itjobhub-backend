@@ -63,7 +63,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         };
 
         return formatResponse(formattedUser, "User data retrieved successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to retrieve user data: ${getErrorMessage(error)}`, 500);
       }
@@ -160,7 +160,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         };
 
         return formatResponse(formattedProfile, "Profile retrieved successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to retrieve profile: ${getErrorMessage(error)}`, 500);
       }
@@ -241,7 +241,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         };
 
         return formatResponse(formattedProfile, "Profile updated successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to update profile: ${getErrorMessage(error)}`, 500);
       }
@@ -342,7 +342,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         };
 
         return formatResponse(formattedProfile, "Skill added successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to add skill: ${getErrorMessage(error)}`, 500);
       }

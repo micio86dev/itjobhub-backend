@@ -46,7 +46,7 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
         const like = await createLike(user.id, likeable.type, likeable.id, body.type);
 
         return formatResponse(like, "Liked successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         const message = getErrorMessage(error);
         if (message === "Reaction already exists") {
           set.status = 409;
@@ -127,7 +127,7 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
         await removeLike(user.id, likeable.type, likeable.id, query.type);
 
         return formatResponse(null, "Unliked successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to unlike: ${getErrorMessage(error)}`, 500);
       }
@@ -184,7 +184,7 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
         const count = await getLikeCount(likeable.type, likeable.id);
 
         return formatResponse({ count }, "Like count retrieved successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to retrieve like count: ${getErrorMessage(error)}`, 500);
       }
@@ -243,7 +243,7 @@ export const likeRoutes = new Elysia({ prefix: "/likes" })
         const liked = await hasUserLiked(user.id, likeable.type, likeable.id);
 
         return formatResponse({ liked }, "Like status retrieved successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return formatError(`Failed to retrieve like status: ${getErrorMessage(error)}`, 500);
       }

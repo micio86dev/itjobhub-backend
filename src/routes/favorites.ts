@@ -42,7 +42,7 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                 });
 
                 return formatResponse(favorite, "Added to favorites");
-            } catch (error: unknown) {
+            } catch (error) {
                 set.status = 500;
                 return formatError(`Failed to add favorite: ${getErrorMessage(error)}`, 500);
             }
@@ -106,7 +106,7 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                 });
 
                 return formatResponse(null, "Removed from favorites");
-            } catch (error: unknown) {
+            } catch (error) {
                 set.status = 500;
                 return formatError(`Failed to remove favorite: ${getErrorMessage(error)}`, 500);
             }
@@ -237,7 +237,7 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                 });
 
                 return formatResponse(formattedFavorites, "Favorites retrieved successfully");
-            } catch (error: unknown) {
+            } catch (error) {
                 set.status = 500;
                 return formatError(`Failed to get favorites: ${getErrorMessage(error)}`, 500);
             }

@@ -77,7 +77,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
           "User registered successfully",
           201
         );
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 400;
         return {
           success: false,
@@ -272,7 +272,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
           },
           "Token refreshed successfully"
         );
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 401;
         return {
           success: false,
@@ -384,7 +384,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
           null,
           "If an account exists with this email, a password reset link has been sent."
         );
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 500;
         return {
           success: false,
@@ -426,7 +426,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
       try {
         await resetPassword(body.token, body.password);
         return formatResponse(null, "Password reset successfully");
-      } catch (error: unknown) {
+      } catch (error) {
         set.status = 400;
         return {
           success: false,

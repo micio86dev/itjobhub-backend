@@ -86,6 +86,8 @@ export const exchangeCodeForTokens = async (
         'Content-Type': 'application/x-www-form-urlencoded',
     };
 
+    logger.info({ provider, callbackUrl }, 'Exchanging auth code with callback URL');
+
     // GitHub requires Accept header for JSON response
     if (provider === 'github') {
         headers['Accept'] = 'application/json';
