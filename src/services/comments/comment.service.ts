@@ -184,8 +184,20 @@ export const getCommentsByEntity = async (
 
   interface CommentWithReplies {
     id: string;
+    content: string;
+    user_id: string;
+    commentable_id: string;
+    commentable_type: string;
+    created_at: Date | null;
+    updated_at: Date | null;
+    parentId: string | null;
+    user: {
+      id: string;
+      first_name: string;
+      last_name: string;
+      avatar: string | null;
+    };
     replies?: CommentWithReplies[];
-    [key: string]: any;
   }
 
   interface MappedComment extends CommentWithReplies {

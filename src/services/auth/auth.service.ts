@@ -118,6 +118,10 @@ export const loginUser = async (input: LoginInput) => {
     throw new Error("Invalid credentials");
   }
 
+  if (!user.password) {
+    throw new Error("User has no password. Please use your OAuth provider to login.");
+  }
+
   // Verify password
   const isPasswordValid = await comparePasswords(input.password, user.password);
   if (!isPasswordValid) {

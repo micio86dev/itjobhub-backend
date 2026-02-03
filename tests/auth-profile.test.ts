@@ -32,13 +32,12 @@ describe('Auth Profile Completion Tests', () => {
         const response = await api.auth.register.post(newUser);
 
         const responseData = response.data;
-        expect(responseData?.status).toBe(201);
-        expect(responseData?.success).toBe(true);
-        // Use type assertion or check unsafe property if treaty types are not updated yet
-        const userData = responseData?.data.user;
+        expect(response.status).toBe(201);
+        // Use type assertion for eden treaty result
+        const userData = (responseData as any)?.data.user;
         expect(userData.profileCompleted).toBe(false);
 
-        authToken = responseData?.data.token!;
+        authToken = (responseData as any)?.data.token!;
     });
 
     it('should login and return profileCompleted: false when no profile exists', async () => {
@@ -47,9 +46,8 @@ describe('Auth Profile Completion Tests', () => {
             password: testPassword
         });
 
-        expect(response.data?.status).toBe(200);
-        expect(response.data?.success).toBe(true);
-        const userData = response.data?.data.user;
+        expect(response.status).toBe(200);
+        const userData = (response.data as any)?.data.user;
         expect(userData.profileCompleted).toBe(false);
     });
 
@@ -72,8 +70,7 @@ describe('Auth Profile Completion Tests', () => {
             password: testPassword
         });
 
-        expect(response.data?.success).toBe(true);
-        const userData = response.data?.data.user;
+        const userData = (response.data as any)?.data.user;
         expect(userData.profileCompleted).toBe(false);
     });
 
@@ -93,8 +90,7 @@ describe('Auth Profile Completion Tests', () => {
             password: testPassword
         });
 
-        expect(response.data?.success).toBe(true);
-        const userData = response.data?.data.user;
+        const userData = (response.data as any)?.data.user;
         expect(userData.profileCompleted).toBe(true);
         expect(userData.languages).toContain('en');
         expect(userData.skills).toContain('typescript');

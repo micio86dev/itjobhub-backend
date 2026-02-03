@@ -59,7 +59,7 @@ describe('OAuth Service', () => {
 
             global.fetch = mock(() =>
                 Promise.resolve(new Response(JSON.stringify(mockResponse), { status: 200 }))
-            );
+            ) as any;
 
             const result = await oauthService.exchangeCodeForTokens('google', 'mock-code');
 
@@ -70,7 +70,7 @@ describe('OAuth Service', () => {
         it('should throw error if exchange fails', async () => {
             global.fetch = mock(() =>
                 Promise.resolve(new Response('Error', { status: 400 }))
-            );
+            ) as any;
 
             expect(oauthService.exchangeCodeForTokens('google', 'invalid-code')).rejects.toThrow();
         });
@@ -89,7 +89,7 @@ describe('OAuth Service', () => {
 
             global.fetch = mock(() =>
                 Promise.resolve(new Response(JSON.stringify(mockGoogleData), { status: 200 }))
-            );
+            ) as any;
 
             const userData = await oauthService.getProviderUserData('google', 'token');
 
@@ -120,7 +120,7 @@ describe('OAuth Service', () => {
                 { language: 'JavaScript' }
             ];
 
-            global.fetch = mock((url) => {
+            global.fetch = mock((url: any) => {
                 if (url.toString().includes('user/emails')) {
                     return Promise.resolve(new Response(JSON.stringify(mockGitHubEmails), { status: 200 }));
                 }
@@ -128,7 +128,7 @@ describe('OAuth Service', () => {
                     return Promise.resolve(new Response(JSON.stringify(mockGitHubRepos), { status: 200 }));
                 }
                 return Promise.resolve(new Response(JSON.stringify(mockGitHubUser), { status: 200 }));
-            });
+            }) as any;
 
             const userData = await oauthService.getProviderUserData('github', 'token');
 

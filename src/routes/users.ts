@@ -287,7 +287,6 @@ export const userRoutes = new Elysia({ prefix: "/users" })
             github: t.Optional(t.String()),
             linkedin: t.Optional(t.String()),
             website: t.Optional(t.String()),
-            website: t.Optional(t.String()),
             workModes: t.Array(t.String()),
             createdAt: t.String(),
             updatedAt: t.String()

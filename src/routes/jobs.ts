@@ -261,6 +261,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           looseSeniority?: boolean;
           salaryMin?: number;
           salaryMax?: number;
+          workModes?: string[];
         } = {};
 
         if (query.q) filters.q = query.q;

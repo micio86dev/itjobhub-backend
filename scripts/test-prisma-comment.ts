@@ -18,7 +18,8 @@ async function test() {
             data: {
                 content: "Manual test comment " + Date.now(),
                 user: { connect: { id: user.id } },
-                job: { connect: { id: job.id } },
+                commentable_id: job.id,
+                commentable_type: "job",
             },
             include: {
                 user: {

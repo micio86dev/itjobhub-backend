@@ -339,7 +339,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         }
 
         // Clear refresh token cookie
-        refresh_token.remove({ path: "/" });
+        refresh_token.remove();
 
         return formatResponse(null, "Logged out successfully");
       } catch {

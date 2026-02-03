@@ -71,13 +71,13 @@ describe("News System", () => {
         // First get the slug to be sure
         const news = await prisma.news.findUnique({ where: { id: newsId } });
 
-        const { data, status } = await api.news[news!.slug].get();
+        const { data, status } = await api.news({ id: news!.slug }).get();
         expect(status).toBe(200);
         expect(data?.data?.id).toBe(newsId);
     });
 
     it("should track view interaction", async () => {
-        const { data, status } = await api.news[newsId].track.post({
+        const { data, status } = await api.news({ id: newsId }).track.post({
             type: 'VIEW'
         }, { headers: userAuth });
 
@@ -85,7 +85,7 @@ describe("News System", () => {
     });
 
     it("should allow admin to delete news", async () => {
-        const { status } = await api.news[newsId].delete(undefined, { headers: adminAuth });
+        const { status } = await api.news({ id: newsId }).delete(undefined, { headers: adminAuth });
         expect(status).toBe(200);
 
         // Verify deletion

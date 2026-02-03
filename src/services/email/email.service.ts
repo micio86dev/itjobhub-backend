@@ -13,7 +13,7 @@ const getMgClient = () => {
 
   const isPlaceholder = (val?: string) => !val || val.startsWith("your-") || val.includes("placeholder");
 
-  if (isPlaceholder(apiKey) || isPlaceholder(domain)) {
+  if (!apiKey || !domain || isPlaceholder(apiKey) || isPlaceholder(domain)) {
     logger.warn("Mailgun credentials missing or invalid (placeholder detected). Email sending will be skipped/mocked.");
     return null;
   }

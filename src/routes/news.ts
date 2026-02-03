@@ -32,7 +32,16 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
                     return formatError("Forbidden", 403);
                 }
 
-                const news = await createNews(body);
+                const news = await createNews({
+                    ...body,
+                    published_at: body.published_at ? new Date(body.published_at) : undefined,
+                    translations: body.translations?.map(t => ({
+                        language: t.language,
+                        title: t.title,
+                        summary: t.summary || undefined,
+                        content: t.content || undefined
+                    }))
+                });
                 return formatResponse(news, "News created successfully");
             } catch (error: unknown) {
                 set.status = 500;
@@ -97,7 +106,16 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
                 }
 
                 const { importNews } = await import("../services/news/news.service");
-                const news = await importNews(body);
+                const news = await importNews({
+                    ...body,
+                    published_at: body.published_at ? new Date(body.published_at) : undefined,
+                    translations: body.translations?.map(t => ({
+                        language: t.language,
+                        title: t.title,
+                        summary: t.summary || undefined,
+                        content: t.content || undefined
+                    }))
+                });
                 return formatResponse(news, "News imported successfully");
             } catch (error: unknown) {
                 set.status = 500;
@@ -123,7 +141,7 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
                     success: t.Boolean(),
                     status: t.Number(),
                     message: t.String(),
-                    data: t.Any()
+                    data: t.Unknown()
                 }),
                 403: t.Object({
                     success: t.Boolean(),
@@ -224,10 +242,10 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
      * @path /news/:slug
      */
     .get(
-        "/:slug",
+        "/:id",
         async ({ params, user, set }) => {
             try {
-                const news = await getNewsBySlug(params.slug, user?.id);
+                const news = await getNewsBySlug(params.id, user?.id);
 
                 if (!news) {
                     set.status = 404;
@@ -242,7 +260,7 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
         },
         {
             params: t.Object({
-                slug: t.String()
+                id: t.String()
             }),
             response: {
                 200: t.Object({

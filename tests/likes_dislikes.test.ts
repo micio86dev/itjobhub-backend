@@ -250,7 +250,8 @@ describe("Like/Dislike System", () => {
         expect(dislikeCount).toBe(1); // 1 from Current User
 
         // 5. Verify counts via getJobById API (Detail Page Logic)
-        const { data: jobResponse } = await api.jobs[jobId].get({ headers: authToken });
+        const jobResponseResult = await api.jobs({ id: jobId }).get({ headers: authToken });
+        const jobResponse = jobResponseResult.data;
         expect(jobResponse?.success).toBe(true);
         expect(jobResponse?.data?.likes).toBe(1);
         expect(jobResponse?.data?.dislikes).toBe(1);
