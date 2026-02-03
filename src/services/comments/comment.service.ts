@@ -185,16 +185,23 @@ export const getCommentsByEntity = async (
   interface CommentWithReplies {
     id: string;
     replies?: CommentWithReplies[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
   }
 
-  const mapComment = (c: CommentWithReplies) => ({
+  interface MappedComment extends CommentWithReplies {
+    likesCount: number;
+    dislikesCount: number;
+    userReaction: "LIKE" | "DISLIKE" | null;
+    userHasLiked: boolean;
+    replies: MappedComment[];
+  }
+
+  const mapComment = (c: CommentWithReplies): MappedComment => ({
     ...c,
     likesCount: reactionMap.get(c.id)?.likes || 0,
     dislikesCount: reactionMap.get(c.id)?.dislikes || 0,
     userReaction: userReactionMap.get(c.id) || null,
-    userHasLiked: userReactionMap.get(c.id) === 'LIKE', // Keep for backward compatibility if needed
+    userHasLiked: userReactionMap.get(c.id) === 'LIKE',
     replies: c.replies ? c.replies.map(mapComment) : []
   });
 
@@ -269,9 +276,36 @@ export const deleteComment = async (id: string, userId: string, userRole: string
     throw new Error("Not authorized to delete this comment");
   }
 
-  return await prisma.comment.delete({
-    where: { id }
-  });
+  /**
+   * Helper function to recursively delete comments and their likes
+   */
+  const recursiveDelete = async (commentId: string) => {
+    // 1. Find all replies to this comment
+    const replies = await prisma.comment.findMany({
+      where: { parentId: commentId },
+      select: { id: true }
+    });
+
+    // 2. Recursively delete each reply first (depth-first to respect constraints)
+    for (const reply of replies) {
+      await recursiveDelete(reply.id);
+    }
+
+    // 3. Delete all likes associated with this comment
+    await prisma.like.deleteMany({
+      where: {
+        likeable_id: commentId,
+        likeable_type: "comment"
+      }
+    });
+
+    // 4. Finally delete the comment itself
+    return await prisma.comment.delete({
+      where: { id: commentId }
+    });
+  };
+
+  return await recursiveDelete(id);
 };
 
 /**
