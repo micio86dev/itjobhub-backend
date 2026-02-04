@@ -12,6 +12,7 @@ import { likeRoutes } from "./routes/likes";
 import { adminRoutes } from "./routes/admin";
 import { favoritesRoutes } from "./routes/favorites";
 import { newsRoutes } from "./routes/news";
+import { contactRoutes } from "./routes/contact";
 import { authMiddleware } from "./middleware/auth";
 import { deriveLang, translate } from "./i18n";
 import { healthCheckHandler } from "./healthcheck";
@@ -105,6 +106,7 @@ export const app = new Elysia()
     .use(adminRoutes)
     .use(favoritesRoutes)
     .use(newsRoutes)
+    .use(contactRoutes)
     .onError(({ code, error, set, request }) => {
         if (code === 'VALIDATION') {
             const { lang } = deriveLang({ request });
