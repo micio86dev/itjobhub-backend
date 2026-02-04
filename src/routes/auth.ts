@@ -465,8 +465,9 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
    */
   .get(
     "/oauth/:provider",
-    async ({ params, set, redirect }) => {
+    async ({ params, query, set, redirect }) => {
       const provider = params.provider as OAuthProvider;
+      const returnTo = query.return_to;
 
       // Validate provider
       if (!['github', 'linkedin', 'google'].includes(provider)) {
@@ -480,13 +481,21 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         return formatError(`OAuth not configured for ${provider}`, 503);
       }
 
-      // Generate state for CSRF protection
-      const state = Math.random().toString(36).substring(2);
+      // Generate state for CSRF protection and navigation
+      const csrf = Math.random().toString(36).substring(2);
+      const stateObj = {
+        csrf,
+        returnTo: returnTo || "/"
+      };
+
+      // Encode state as Base64 to be URL-safe
+      // We use Buffer.from because it's available in Bun
+      const state = Buffer.from(JSON.stringify(stateObj)).toString('base64');
 
       // Get authorization URL
       const authUrl = getAuthorizationUrl(provider, state);
 
-      logger.info({ provider }, 'Initiating OAuth flow');
+      logger.info({ provider, returnTo }, 'Initiating OAuth flow');
 
       // Redirect to provider
       return redirect(authUrl, 302);
@@ -494,6 +503,9 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     {
       params: t.Object({
         provider: t.String(),
+      }),
+      query: t.Object({
+        return_to: t.Optional(t.String()),
       }),
       detail: {
         tags: ["auth"],

@@ -83,7 +83,6 @@ export const renderEmailLayout = ({
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 16px;
           text-decoration: none;
         }
         .logo-box {
@@ -96,6 +95,9 @@ export const renderEmailLayout = ({
           font-weight: bold;
           font-size: 18px;
           line-height: 1;
+          display: inline-block;
+          vertical-align: middle;
+          margin-right: 12px;
         }
         .logo-text {
           color: #f0f6fc;
@@ -103,6 +105,8 @@ export const renderEmailLayout = ({
           font-weight: bold;
           letter-spacing: -0.5px;
           line-height: 1;
+          display: inline-block;
+          vertical-align: middle;
         }
         .logo-highlight {
           color: #00FF41;
