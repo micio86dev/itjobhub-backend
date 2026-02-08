@@ -34,16 +34,17 @@ FROM oven/bun:1-alpine AS runner
 
 # Security: Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 --ingroup nodejs nextjs
+  adduser --system --uid 1001 --ingroup nodejs nextjs
 
 WORKDIR /app
 
 # Copy binary from builder
 COPY --from=builder --chown=nextjs:nodejs /app/server ./server
-# Copy any other necessary files (e.g. public folder, or prisma migrations check)
-# If prisma is needed at runtime for migrations, we might need more, but for a compiled binary often it bundles engine or we stick to node-based migration runner.
-# For strictly running the app, the compiled binary is enough usually.
-# However, if we need schema.prisma for some runtime introspection, copy it.
+
+# Copy Prisma client with native query engine (required for database connectivity)
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma/client ./node_modules/@prisma/client
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
 # Set environment
 ENV NODE_ENV=production
