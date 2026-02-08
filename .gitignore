@@ -21,7 +21,6 @@ dist/
 .idea/
 
 # Bun lock file
-bun.lock
 
 # Tools
 .husky
