@@ -15,39 +15,35 @@ describe("Like/Dislike System", () => {
     let jobId: string;
 
     beforeAll(async () => {
-        try {
-            // Create user and get token
-            const tokens = await loginUser(app, 'jobSeeker');
-            authToken = createAuthHeaders(tokens);
-            userId = tokens.userId;
+        // Create user and get token
+        const tokens = await loginUser(app, 'jobSeeker');
+        authToken = createAuthHeaders(tokens);
+        userId = tokens.userId;
 
-            // Create a company
-            const company = await prisma.company.create({
-                data: {
-                    name: `Test Company ${Date.now()}`,
-                    trustScore: 80,
-                    totalRatings: 10
-                }
-            });
-            companyId = company.id;
+        // Create a company
+        const company = await prisma.company.create({
+            data: {
+                name: `Test Company ${Date.now()}`,
+                trustScore: 80,
+                totalRatings: 10
+            }
+        });
+        companyId = company.id;
 
-            // Create a job
-            const job = await prisma.job.create({
-                data: {
-                    title: "Test Job for Dislikes",
-                    description: "Description",
-                    company: { connect: { id: companyId } },
-                    location: "Milan",
-                    salary_min: 30000,
-                    salary_max: 40000,
-                    seniority: "junior",
-                    link: `https://test.com/job-dislike-${Date.now()}`
-                }
-            });
-            jobId = job.id;
-        } catch (e) {
-            logger.error({ e }, "Setup failed");
-        }
+        // Create a job
+        const job = await prisma.job.create({
+            data: {
+                title: "Test Job for Dislikes",
+                description: "Description",
+                company: { connect: { id: companyId } },
+                location: "Milan",
+                salary_min: 30000,
+                salary_max: 40000,
+                seniority: "junior",
+                link: `https://test.com/job-dislike-${Date.now()}`
+            }
+        });
+        jobId = job.id;
     });
 
     afterAll(async () => {
