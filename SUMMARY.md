@@ -39,3 +39,9 @@ This repository contains the core API for the DevBoards.io platform. It is desig
 - Integrated **Interaction System** allowing users to like, dislike, and comment on articles with optimized aggregation.
 - Added **Engagement Tracking** (views and clicks) with support for authenticated and anonymous metrics.
 - Verified system stability with 100% passing build and lint checks.
+
+### 2026-02-08: Prisma & Docker Build Optimization
+
+- **Docker Build Fix**: Resolved an issue where `prisma generate` failed during Docker builds by providing a dummy `DATABASE_URL` and ensuring `prisma.config.ts` is copied into the container.
+- **Prisma 6.x Compatibility**: Added `@prisma-ignore` annotations to the schema as required by current Prisma versions for MongoDB environments.
+- **Skill Updates**: Enhanced the `prisma-esperto` skill documentation to include these best practices for future development.
