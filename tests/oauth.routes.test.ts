@@ -41,6 +41,26 @@ mock.module('../src/utils/logger', () => {
     };
 });
 
+// Mock configuration to avoid 503 errors (missing env vars in CI)
+mock.module('../src/config/oauth.config', () => {
+    return {
+        isOAuthConfigured: () => true,
+        oauthConfig: {
+            google: {
+                clientId: 'mock-client',
+                clientSecret: 'mock-secret',
+                authorizeUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+                tokenUrl: 'https://oauth2.googleapis.com/token',
+                userInfoUrl: 'https://www.googleapis.com/oauth2/v2/userinfo',
+                scopes: ['openid', 'profile', 'email']
+            },
+            github: { clientId: 'mock', clientSecret: 'mock', authorizeUrl: '', tokenUrl: '', userInfoUrl: '', scopes: [] },
+            linkedin: { clientId: 'mock', clientSecret: 'mock', authorizeUrl: '', tokenUrl: '', userInfoUrl: '', scopes: [] }
+        },
+        getOAuthCallbackUrl: () => 'http://localhost:5173/auth/callback'
+    };
+});
+
 describe('OAuth Routes', () => {
     it('GET /auth/oauth/google should redirect to Google auth URL', async () => {
         const response = await app.handle(
