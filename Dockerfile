@@ -10,14 +10,15 @@ WORKDIR /app
 
 # Copy dependency manifests
 COPY package.json bun.lock tsconfig.json ./
-# Copy prisma schema if it exists (adjust path if needed)
+# Copy prisma schema and config file
 COPY prisma ./prisma/
+COPY prisma.config.ts ./
 
 # Install dependencies (dev included for build)
 RUN bun install --frozen-lockfile
 
-# Generate prisma client
-RUN bun run prisma generate
+# Generate prisma client (dummy DATABASE_URL for generation only - runtime uses real value)
+RUN DATABASE_URL="mongodb://dummy:27017/dummy" bun run prisma generate
 
 # Copy source code
 COPY src ./src

@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "mongodb"
+  // @prisma-ignore: Required for Prisma 6.x - will be removed in Prisma 7 upgrade
   url      = env("DATABASE_URL")
 }
 
