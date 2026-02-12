@@ -12,11 +12,17 @@ describe("Job Language Filtering", () => {
         // Use the robust helper to login/register the test user
         jobSeekerTokens = await loginUser(app, 'jobSeeker');
 
-        // Ensure the profile has the expected languages for the test
-        await prisma.userProfile.update({
+        // Ensure the profile exists and has the expected languages for the test
+        await prisma.userProfile.upsert({
             where: { user_id: jobSeekerTokens.userId },
-            data: {
+            update: {
                 languages: testProfile.languages // ["English", "Italian"]
+            },
+            create: {
+                user_id: jobSeekerTokens.userId,
+                languages: testProfile.languages,
+                skills: [],
+                workModes: []
             }
         });
     });
