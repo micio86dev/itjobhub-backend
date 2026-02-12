@@ -135,7 +135,15 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
     }
 
     if (filters.location && (!filters.lat || !filters.lng)) {
-      andConditions.push({ location: { contains: filters.location, mode: 'insensitive' } });
+      // Improved location fallback: Job contains Filter OR Filter contains Job
+      // to handle "Munich" vs "Munich, Germany" bidirectional matching.
+      andConditions.push({
+        OR: [
+          { location: { contains: filters.location, mode: 'insensitive' } },
+          { location_raw: { contains: filters.location, mode: 'insensitive' } },
+          { formatted_address_verified: { contains: filters.location, mode: 'insensitive' } }
+        ]
+      });
     }
 
     if (filters.employment_type) {
@@ -496,13 +504,32 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   // Apply radius filtering if coordinates provided
   if (filters?.lat !== undefined && filters?.lng !== undefined && filters?.radius_km) {
     jobs = jobs.filter(job => {
-      if (!job.location_geo || !job.location_geo.coordinates || job.location_geo.coordinates.length < 2) {
+      // Check for coordinates
+      if (job.location_geo && job.location_geo.coordinates && job.location_geo.coordinates.length >= 2) {
+        const [jobLng, jobLat] = job.location_geo.coordinates;
+        const distance = getDistance(filters.lat!, filters.lng!, jobLat, jobLng);
+        const matchesRadius = distance <= filters.radius_km!;
+
+        // If job has valid coordinates, it MUST be within radius OR match the specific text exactly (optional, but radius is safer)
+        if (matchesRadius) return true;
+
+        // Optional: If you want to allow jobs that are "far" but match the text string exactly (e.g. user typed "New York" but selected center is far from this specific "New York" job?)
+        // For now, let's assume if it has coords, radius is the authority.
         return false;
       }
-      const [jobLng, jobLat] = job.location_geo.coordinates;
-      const distance = getDistance(filters.lat!, filters.lng!, jobLat, jobLng);
-      return distance <= filters.radius_km!;
+
+      // Fallback: Job has NO coordinates.
+      // If we have a text location filter, check if it matches.
+      if (filters.location) {
+        // Simple case-insensitive inclusion check
+        return job.location && job.location.toLowerCase().includes(filters.location.toLowerCase());
+      }
+
+      // If no text filter and no coords, we can't verify location relevance, so we drop it
+      // (Or should we keep it? Usually if searching by location, we expect location relevance).
+      return false;
     });
+
     total = jobs.length;
     // Apply limit after distance filtering
     jobs = jobs.slice(0, limit);

@@ -137,28 +137,38 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
 
   // Update User model fields if provided
   // Update User model fields if provided
-  if (data.name || data.firstName || data.lastName || data.phone || data.birthDate || data.avatar) {
+  if (
+    data.name !== undefined ||
+    data.firstName !== undefined ||
+    data.lastName !== undefined ||
+    data.phone !== undefined ||
+    data.birthDate !== undefined ||
+    data.avatar !== undefined ||
+    data.location !== undefined ||
+    data.bio !== undefined
+  ) {
     let firstName = data.firstName;
     let lastName = data.lastName;
 
     // Fallback to splitting name if firstName/lastName not provided but name is
-    if (!firstName && !lastName && data.name) {
-      const nameParts = data.name.split(' ');
+    if (firstName === undefined && lastName === undefined && data.name) {
+      const nameParts = data.name.split(" ");
       firstName = nameParts.length > 0 ? nameParts[0] : undefined;
-      lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined;
+      lastName =
+        nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined;
     }
 
     await dbClient.user.update({
       where: { id: userId },
       data: {
-        ...(firstName && { first_name: firstName }),
-        ...(lastName && { last_name: lastName }),
-        ...(data.phone && { phone: data.phone }),
-        ...(data.birthDate && { birthDate: data.birthDate }),
-        ...(data.avatar && { avatar: data.avatar }),
-        ...(data.location && { location: data.location }),
-        ...(data.bio && { bio: data.bio })
-      }
+        ...(firstName !== undefined && { first_name: firstName }),
+        ...(lastName !== undefined && { last_name: lastName }),
+        ...(data.phone !== undefined && { phone: data.phone }),
+        ...(data.birthDate !== undefined && { birthDate: data.birthDate }),
+        ...(data.avatar !== undefined && { avatar: data.avatar }),
+        ...(data.location !== undefined && { location: data.location }),
+        ...(data.bio !== undefined && { bio: data.bio }),
+      },
     });
   }
 
@@ -198,16 +208,19 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
   // Map locationGeo to location_geo
   if (data.locationGeo) {
     updateData.location_geo = {
-      type: 'Point',
-      coordinates: [data.locationGeo.lng, data.locationGeo.lat]
+      type: "Point",
+      coordinates: [data.locationGeo.lng, data.locationGeo.lat],
     };
+  } else if (data.location === "" || data.location === null) {
+    // Clear coordinates if location is cleared
+    updateData.location_geo = null as unknown as UserProfileUpdateData['location_geo'];
   }
 
   if (existingProfile) {
     // Update existing profile
     return await dbClient.userProfile.update({
       where: { id: existingProfile.id },
-      data: updateData
+      data: updateData,
     });
   } else {
     // Create new profile
@@ -225,11 +238,14 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
         website: data.website,
         cv_url: data.cvUrl,
         location: data.location,
-        location_geo: data.locationGeo ? {
-          type: 'Point',
-          coordinates: [data.locationGeo.lng, data.locationGeo.lat]
-        } : undefined
-      }
+        location_geo:
+          data.locationGeo && data.locationGeo.lng && data.locationGeo.lat
+            ? {
+              type: "Point",
+              coordinates: [data.locationGeo.lng, data.locationGeo.lat],
+            }
+            : undefined,
+      },
     });
   }
 };

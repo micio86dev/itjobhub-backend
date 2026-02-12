@@ -12,6 +12,7 @@ import {
 } from "../services/jobs/job.service";
 import { calculateMatchScore, calculateBatchMatchScores } from "../services/jobs/match.service";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
+import { getUserProfile } from "../services/users/user.service";
 import { authMiddleware } from "../middleware/auth";
 
 export const jobRoutes = new Elysia({ prefix: "/jobs" })
@@ -279,6 +280,12 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           filters.languages = Array.isArray(query.languages)
             ? query.languages
             : query.languages.split(",");
+        } else if (user) {
+          // If user is logged in and no language filter is set, use profile languages
+          const profile = await getUserProfile(user.id);
+          if (profile?.languages && profile.languages.length > 0) {
+            filters.languages = profile.languages;
+          }
         }
         if (query.lat) filters.lat = query.lat;
         if (query.lng) filters.lng = query.lng;

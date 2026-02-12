@@ -215,6 +215,7 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
           return formatError("Unauthorized", 401);
         }
 
+        logger.info({ commentId: params.id, userId: user.id }, "Deleting comment");
         await deleteComment(params.id, user.id, user.role);
 
         return formatResponse(null, "Comment deleted successfully");
