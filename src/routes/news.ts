@@ -172,11 +172,13 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
                 const limit = parseInt(query.limit || "10");
                 const category = query.category;
                 const language = query.language;
+                const q = query.q;
 
                 const result = await getNews(page, limit, {
                     category,
                     language,
-                    is_published: true
+                    is_published: true,
+                    q
                 }, user?.id);
 
                 return formatResponse(result, "News retrieved successfully");
@@ -190,7 +192,8 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
                 page: t.Optional(t.String()),
                 limit: t.Optional(t.String()),
                 category: t.Optional(t.String()),
-                language: t.Optional(t.String())
+                language: t.Optional(t.String()),
+                q: t.Optional(t.String())
             }),
             response: {
                 200: t.Object({

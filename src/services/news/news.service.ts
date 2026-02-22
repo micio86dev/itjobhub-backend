@@ -1,4 +1,5 @@
 import { prisma } from "../../config/database";
+import type { Prisma } from "@prisma/client";
 
 export interface NewsTranslationInput {
     language: string;
@@ -76,16 +77,30 @@ export const importNews = async (data: NewsCreateInput) => {
 export const getNews = async (
     page: number = 1,
     limit: number = 10,
-    filters: { category?: string; language?: string; is_published?: boolean } = {},
+    filters: { category?: string; language?: string; is_published?: boolean; q?: string } = {},
     userId?: string
 ) => {
     const skip = (page - 1) * limit;
 
+    const where: Prisma.NewsWhereInput = {
+        category: filters.category,
+        language: filters.language,
+        is_published: filters.is_published
+    };
+
+    if (filters.q) {
+        where.OR = [
+            { title: { contains: filters.q, mode: "insensitive" } },
+            { summary: { contains: filters.q, mode: "insensitive" } }
+        ];
+    }
+
+    // Rimuoviamo eventuali undefined per pulizia
+    Object.keys(where).forEach(key => where[key] === undefined && delete where[key]);
+
     const [newsRaw, total] = await Promise.all([
         prisma.news.findMany({
-            where: {
-                ...filters,
-            },
+            where,
             skip,
             take: limit,
             orderBy: {
@@ -93,9 +108,7 @@ export const getNews = async (
             }
         }),
         prisma.news.count({
-            where: {
-                ...filters,
-            }
+            where
         })
     ]);
 

@@ -9,7 +9,7 @@ HOST=localhost
 NODE_ENV=development
 
 # Database
-DATABASE_URL="mongodb+srv://itjobhub_dev:<db_password>@cluster0.vnuq4zl.mongodb.net/?appName=Cluster0"
+DATABASE_URL="mongodb://localhost:27017/itjobhub?replicaSet=rs0&w=1&journal=true"
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-here
@@ -39,7 +39,7 @@ HOST=0.0.0.0
 NODE_ENV=production
 
 # Database
-DATABASE_URL="mongodb+srv://itjobhub_dev:<db_password>@cluster0.vnuq4zl.mongodb.net/?appName=Cluster0"
+DATABASE_URL="mongodb://localhost:27017/itjobhub?replicaSet=rs0&w=1&journal=true"
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-here
@@ -53,7 +53,7 @@ MAILGUN_DOMAIN=your-domain.mailgun.org
 MAILGUN_FROM_EMAIL=noreply@your-domain.mailgun.org
 
 # CORS
-CLIENT_URL=https://staging.itjobhub.com
+CLIENT_URL=https://staging.devboards.io
 
 # Feature Flags
 FEATURE_USER_REGISTRATION=true
@@ -83,7 +83,7 @@ MAILGUN_DOMAIN=your-domain.mailgun.org
 MAILGUN_FROM_EMAIL=noreply@your-domain.mailgun.org
 
 # CORS
-CLIENT_URL=https://itjobhub.com
+CLIENT_URL=https://devboards.io
 
 # Feature Flags
 FEATURE_USER_REGISTRATION=true

@@ -11,6 +11,7 @@
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
     "lint": "eslint 'src/**/*.ts' --fix",
+    "type-check": "tsc --noEmit",
     "prepare": "husky"
   },
   "dependencies": {

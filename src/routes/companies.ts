@@ -98,8 +98,11 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
       try {
         const page = parseInt(query.page || "1");
         const limit = parseInt(query.limit || "10");
+        const filters = {
+          q: query.q
+        };
 
-        const result = await getCompanies(page, limit);
+        const result = await getCompanies(page, limit, filters);
 
         return formatResponse(result, "Companies retrieved successfully");
       } catch (error) {
@@ -110,7 +113,8 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
     {
       query: t.Object({
         page: t.Optional(t.String()),
-        limit: t.Optional(t.String())
+        limit: t.Optional(t.String()),
+        q: t.Optional(t.String())
       }),
       response: {
         200: t.Object({

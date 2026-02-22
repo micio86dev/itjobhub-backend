@@ -169,7 +169,7 @@ export const renderEmailLayout = ({
 
 export const sendEmail = async ({ to, subject, html }: EmailOptions) => {
   const mg = getMgClient();
-  const from = process.env.MAILGUN_FROM_EMAIL || "DevBoards.io <noreply@itjobhub.com>";
+  const from = process.env.MAILGUN_FROM_EMAIL || "DevBoards.io <noreply@devboards.io>";
   const domain = process.env.MAILGUN_DOMAIN || "";
 
   if (!mg) {

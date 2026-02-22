@@ -31,4 +31,49 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
             month: t.Optional(t.Numeric()),
             year: t.Optional(t.Numeric())
         })
+    })
+    .get("/stats/registrations-timeline", async ({ query }) => {
+        try {
+            const days = parseInt(query.days || "30");
+            const { getRegistrationsTimeline } = await import("../services/admin/admin.service");
+            const data = await getRegistrationsTimeline(days);
+            return data;
+        } catch {
+            return formatError("Failed to retrieve registrations timeline", 500);
+        }
+    }, {
+        query: t.Object({ days: t.Optional(t.String()) })
+    })
+    .get("/stats/jobs-timeline", async ({ query }) => {
+        try {
+            const weeks = parseInt(query.weeks || "8");
+            const { getJobsTimeline } = await import("../services/admin/admin.service");
+            const data = await getJobsTimeline(weeks);
+            return data;
+        } catch {
+            return formatError("Failed to retrieve jobs timeline", 500);
+        }
+    }, {
+        query: t.Object({ weeks: t.Optional(t.String()) })
+    })
+    .get("/stats/login-methods", async () => {
+        try {
+            const { getLoginMethodsDistribution } = await import("../services/admin/admin.service");
+            const data = await getLoginMethodsDistribution();
+            return data;
+        } catch {
+            return formatError("Failed to retrieve login methods distribution", 500);
+        }
+    })
+    .get("/stats/top-languages", async ({ query }) => {
+        try {
+            const limit = parseInt(query.limit || "10");
+            const { getTopLanguages } = await import("../services/admin/admin.service");
+            const data = await getTopLanguages(limit);
+            return data;
+        } catch {
+            return formatError("Failed to retrieve top languages", 500);
+        }
+    }, {
+        query: t.Object({ limit: t.Optional(t.String()) })
     });

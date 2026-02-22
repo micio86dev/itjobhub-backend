@@ -1,10 +1,113 @@
 import { Elysia, t } from "elysia";
-import { getUserById, getUserProfile, upsertUserProfile, addUserSkill } from "../services/users/user.service";
+import { getUserById, getUserProfile, upsertUserProfile, addUserSkill, getUsers } from "../services/users/user.service";
 import { authMiddleware } from "../middleware/auth";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
 
 export const userRoutes = new Elysia({ prefix: "/users" })
   .use(authMiddleware)
+  /**
+   * Get all users (Admin only)
+   * @method GET
+   * @path /users
+   */
+  .get(
+    "/",
+    async ({ query, user, set }) => {
+      try {
+        if (!user) {
+          set.status = 401;
+          return formatError("Unauthorized", 401);
+        }
+
+        if (user.role !== "admin") {
+          set.status = 403;
+          return formatError("Forbidden: Admin access required", 403);
+        }
+
+        const page = parseInt(query.page || "1");
+        const limit = parseInt(query.limit || "50");
+        const filters = {
+          q: query.q,
+          role: query.role
+        };
+
+        const result = await getUsers(page, limit, filters);
+
+        // Formattiamo gli utenti per rimuovere eventuali dati sensibili ma mantenere le info base del profilo
+        const safeResult = {
+          ...result,
+          users: result.users.map(u => ({
+            id: u.id,
+            email: u.email,
+            firstName: u.first_name,
+            lastName: u.last_name,
+            role: u.role,
+            phone: u.phone,
+            location: u.location,
+            createdAt: u.created_at,
+            profileCompleted: !!u.profile && (u.profile.skills?.length > 0) && !!u.profile.seniority
+          }))
+        };
+
+        return formatResponse(safeResult, "Users retrieved successfully");
+      } catch (error) {
+        set.status = 500;
+        return formatError(`Failed to retrieve users: ${getErrorMessage(error)}`, 500);
+      }
+    },
+    {
+      query: t.Object({
+        page: t.Optional(t.String()),
+        limit: t.Optional(t.String()),
+        q: t.Optional(t.String()),
+        role: t.Optional(t.String())
+      }),
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String(),
+          data: t.Object({
+            users: t.Array(t.Object({
+              id: t.String(),
+              email: t.String(),
+              firstName: t.Optional(t.Union([t.String(), t.Null()])),
+              lastName: t.Optional(t.Union([t.String(), t.Null()])),
+              role: t.String(),
+              phone: t.Optional(t.Union([t.String(), t.Null()])),
+              location: t.Optional(t.Union([t.String(), t.Null()])),
+              createdAt: t.Any(),
+              profileCompleted: t.Boolean()
+            })),
+            pagination: t.Object({
+              page: t.Number(),
+              limit: t.Number(),
+              total: t.Number(),
+              pages: t.Number()
+            })
+          })
+        }),
+        401: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
+        }),
+        403: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
+        }),
+        500: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
+        })
+      },
+      detail: {
+        tags: ["users"]
+      }
+    }
+  )
   /**
    * Get current user profile
    * @method GET

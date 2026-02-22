@@ -1,4 +1,5 @@
 import { prisma } from "../../config/database";
+import type { Prisma } from "@prisma/client";
 
 export interface CompanyCreateInput {
   name: string;
@@ -29,19 +30,31 @@ export const createCompany = async (data: CompanyCreateInput) => {
  * Get all companies with pagination
  * @param page - Page number
  * @param limit - Number of items per page
+ * @param filters - Optional filters
  * @returns Companies with pagination info
  */
-export const getCompanies = async (page = 1, limit = 10) => {
+export const getCompanies = async (
+  page = 1,
+  limit = 10,
+  filters?: { q?: string }
+) => {
   const skip = (page - 1) * limit;
+  const where: Prisma.CompanyWhereInput = {};
+
+  if (filters?.q) {
+    where.name = { contains: filters.q, mode: "insensitive" };
+  }
+
   const [companies, total] = await Promise.all([
     prisma.company.findMany({
+      where,
       skip,
       take: limit,
       orderBy: {
         created_at: "desc",
       },
     }),
-    prisma.company.count(),
+    prisma.company.count({ where }),
   ]);
 
   return {

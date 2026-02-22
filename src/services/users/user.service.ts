@@ -1,4 +1,5 @@
 import { dbClient } from "../../config/database";
+import type { Prisma } from "@prisma/client";
 
 export interface UserUpdateInput {
   email?: string;
@@ -109,14 +110,55 @@ export const deleteUser = async (userId: string) => {
 };
 
 /**
- * Get all users with pagination
- * @param limit - Number of users to return
- * @returns List of users
+ * Get all users with pagination and filters
+ * @param page - Page number
+ * @param limit - Number of users per page
+ * @param filters - Optional filters
+ * @returns Paginated list of users
  */
-export const getUsers = async (limit = 50) => {
-  return await dbClient.user.findMany({
-    take: limit
-  });
+export const getUsers = async (
+  page = 1,
+  limit = 50,
+  filters?: {
+    q?: string;
+    role?: string;
+  }
+) => {
+  const skip = (page - 1) * limit;
+  const where: Prisma.UserWhereInput = {};
+
+  if (filters?.role) {
+    where.role = filters.role;
+  }
+
+  if (filters?.q) {
+    where.OR = [
+      { first_name: { contains: filters.q, mode: "insensitive" } },
+      { last_name: { contains: filters.q, mode: "insensitive" } },
+      { email: { contains: filters.q, mode: "insensitive" } }
+    ];
+  }
+
+  const [users, total] = await Promise.all([
+    dbClient.user.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { created_at: "desc" },
+      include: { profile: true }
+    }),
+    dbClient.user.count({ where })
+  ]);
+
+  return {
+    users,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit)
+    }
+  };
 };
 
 /**
