@@ -13,5 +13,5 @@ RUN bun install --frozen-lockfile
 # Generate Prisma client (dummy DATABASE_URL for generation only)
 RUN DATABASE_URL="mongodb://dummy:27017/dummy" bunx prisma generate
 
-# Default command - executes migrations
-CMD ["bunx", "prisma", "migrate", "deploy"]
+# Default command - for MongoDB use db push instead of migrate deploy
+CMD ["bunx", "prisma", "db", "push", "--accept-data-loss"]
