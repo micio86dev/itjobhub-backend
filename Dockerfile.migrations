@@ -10,8 +10,8 @@ COPY prisma.config.ts ./
 # Install dependencies
 RUN bun install --frozen-lockfile
 
-# Generate Prisma client
-RUN bun run prisma generate
+# Generate Prisma client (dummy DATABASE_URL for generation only)
+RUN DATABASE_URL="mongodb://dummy:27017/dummy" bunx prisma generate
 
 # Default command - executes migrations
-CMD ["bun", "run", "prisma", "migrate", "deploy"]
+CMD ["bunx", "prisma", "migrate", "deploy"]
