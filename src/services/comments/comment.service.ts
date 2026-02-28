@@ -1,4 +1,5 @@
 import { prisma } from "../../config/database";
+import logger from "../../utils/logger";
 
 export interface CommentCreateInput {
   content: string;
@@ -283,6 +284,15 @@ export const deleteComment = async (id: string, userId: string, userRole: string
   if (!comment) {
     throw new Error("Comment not found");
   }
+
+  logger.info({
+    commentUserId: comment.user_id,
+    requestUserId: userId,
+    userRole,
+    areEqual: comment.user_id === userId,
+    commentUserIdType: typeof comment.user_id,
+    requestUserIdType: typeof userId
+  }, '[DELETE COMMENT DEBUG]');
 
   if (comment.user_id !== userId && userRole !== 'admin') {
     throw new Error("Not authorized to delete this comment");
