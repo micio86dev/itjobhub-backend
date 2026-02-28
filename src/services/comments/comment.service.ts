@@ -276,6 +276,8 @@ export const updateComment = async (id: string, content: string, userId: string,
  * @returns Deletion result
  */
 export const deleteComment = async (id: string, userId: string, userRole: string = 'user') => {
+  logger.warn({ commentId: id, userId, userRole }, "deleteComment called");
+
   // Check if user is the author
   const comment = await prisma.comment.findUnique({
     where: { id }
@@ -285,7 +287,7 @@ export const deleteComment = async (id: string, userId: string, userRole: string
     throw new Error("Comment not found");
   }
 
-  logger.info({
+  logger.warn({
     commentUserId: comment.user_id,
     requestUserId: userId,
     userRole,

@@ -210,17 +210,21 @@ export const commentRoutes = new Elysia({ prefix: "/comments" })
     "/:id",
     async ({ user, params, set }) => {
       try {
+        logger.warn({ user, params: params.id }, "DELETE /comments/:id called");
+
         if (!user) {
           set.status = 401;
           return formatError("Unauthorized", 401);
         }
 
-        logger.info({ commentId: params.id, userId: user.id }, "Deleting comment");
+        logger.warn({ commentId: params.id, userId: user.id, userRole: user.role }, "User attempting to delete comment");
         await deleteComment(params.id, user.id, user.role);
 
         return formatResponse(null, "Comment deleted successfully");
       } catch (error) {
         const message = getErrorMessage(error);
+        logger.warn({ error: message, commentId: params.id, userId: user?.id }, "Delete comment failed");
+
         if (message === "Comment not found") {
           set.status = 404;
           return formatError("Comment not found", 404);

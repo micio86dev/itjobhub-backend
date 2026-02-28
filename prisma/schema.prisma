@@ -34,12 +34,14 @@ model User {
   reset_password_expires DateTime?
 
   // Relations
-  comments       Comment[]
-  likes          Like[]
-  profile        UserProfile?
-  refresh_tokens RefreshToken[]
-  favorites      Favorite[]
-  interactions   Interaction[]
+  comments        Comment[]
+  likes           Like[]
+  profile         UserProfile?
+  refresh_tokens  RefreshToken[]
+  favorites       Favorite[]
+  interactions    Interaction[]
+  contact_replies ContactReply[] @relation("ContactReplies")
+  contacts        Contact[]
 
   @@index([reset_password_token])
   @@map("users")
@@ -267,4 +269,43 @@ model Interaction {
 
   @@unique([trackable_id, trackable_type, user_id, fingerprint, type])
   @@map("interactions")
+}
+
+model Contact {
+  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
+  sender_id           String?   @db.ObjectId // Optional if not logged in
+  sender_name         String
+  sender_email        String
+  subject             String
+  message             String
+  is_sender_logged_in Boolean   @default(false)
+  created_at          DateTime  @default(now())
+  updated_at          DateTime? @updatedAt
+
+  // Relations
+  user    User?          @relation(fields: [sender_id], references: [id], onDelete: SetNull)
+  replies ContactReply[]
+
+  @@index([sender_id])
+  @@index([created_at])
+  @@map("contacts")
+}
+
+model ContactReply {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  contact_id     String    @db.ObjectId
+  replier_id     String    @db.ObjectId // Always admin
+  message        String
+  created_at     DateTime  @default(now())
+  updated_at     DateTime? @updatedAt
+  read_by_sender Boolean   @default(false)
+  read_at        DateTime?
+
+  // Relations
+  contact Contact @relation(fields: [contact_id], references: [id], onDelete: Cascade)
+  replier User    @relation("ContactReplies", fields: [replier_id], references: [id], onDelete: Cascade)
+
+  @@index([contact_id])
+  @@index([created_at])
+  @@map("contact_replies")
 }

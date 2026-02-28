@@ -12,7 +12,7 @@ import { likeRoutes } from "./routes/likes";
 import { adminRoutes } from "./routes/admin";
 import { favoritesRoutes } from "./routes/favorites";
 import { newsRoutes } from "./routes/news";
-import { contactRoutes } from "./routes/contact";
+import { messagesRoutes } from "./routes/messages";
 import { imageProxyController } from "./routes/image-proxy";
 import { authMiddleware } from "./middleware/auth";
 import { deriveLang, translate } from "./i18n";
@@ -116,7 +116,7 @@ export const app = new Elysia()
     .use(adminRoutes)
     .use(favoritesRoutes)
     .use(newsRoutes)
-    .use(contactRoutes)
+    .use(messagesRoutes)
     .use(imageProxyController)
     .onError(({ code, error, set, request }) => {
         if (code === 'VALIDATION') {
