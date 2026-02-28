@@ -30,7 +30,7 @@ model User {
   avatar    String?
 
   // Reset Password
-  reset_password_token   String?   @unique
+  reset_password_token   String? // Removed @unique due to MongoDB null duplicate key error
   reset_password_expires DateTime?
 
   // Relations
@@ -41,6 +41,7 @@ model User {
   favorites      Favorite[]
   interactions   Interaction[]
 
+  @@index([reset_password_token])
   @@map("users")
 }
 
