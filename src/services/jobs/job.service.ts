@@ -210,20 +210,27 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
 
     if (filters.dateRange) {
       const now = new Date();
-      const fromDate = new Date(now.getTime());
+      let fromDate: Date | null = null;
 
       switch (filters.dateRange) {
         case 'today':
-          // Start of today in local server time - better to use UTC if DB is UTC
-          fromDate.setHours(0, 0, 0, 0);
+          // Start of today in UTC (00:00:00 UTC)
+          fromDate = new Date();
+          fromDate.setUTCHours(0, 0, 0, 0);
           break;
         case 'week':
+          // 7 days ago
+          fromDate = new Date();
           fromDate.setDate(now.getDate() - 7);
           break;
         case 'month':
+          // 1 month ago
+          fromDate = new Date();
           fromDate.setMonth(now.getMonth() - 1);
           break;
         case '3months':
+          // 3 months ago
+          fromDate = new Date();
           fromDate.setMonth(now.getMonth() - 3);
           break;
       }
@@ -284,7 +291,10 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
           { description: { contains: filters.q, mode: 'insensitive' } },
           { location: { contains: filters.q, mode: 'insensitive' } },
           { skills: { hasSome: qVariations } },
-          { technical_skills: { hasSome: qVariations } }
+          { technical_skills: { hasSome: qVariations } },
+          { company: { name: { contains: filters.q, mode: 'insensitive' } } },
+          { requirements: { hasSome: qVariations } },
+          { benefits: { hasSome: qVariations } }
         ]
       });
     }
@@ -308,10 +318,11 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
     }
 
     // Salary range filtering
-    // If salaryMin is set, filter jobs where salary_max >= salaryMin (job's max is at least user's min)
+    // If salaryMin is set, filter jobs where salary_min >= salaryMin
+    // so the minimum offered salary meets the requested minimum salary.
     if (filters.salaryMin !== undefined) {
       andConditions.push({
-        salary_max: { gte: filters.salaryMin }
+        salary_min: { gte: filters.salaryMin }
       });
     }
     // If salaryMax is set, filter jobs where salary_min <= salaryMax (job's min is at most user's max)

@@ -7,6 +7,7 @@ interface MatchFactors {
     locationMatch: number;
     trustScore: number;
     timeliness: number;
+    salaryMatch: number;
     competition: number;
     applicationRate: number;
 }
@@ -31,14 +32,15 @@ export interface BatchMatchResult {
 
 export const calculateMatchScore = async (userId: string, jobId: string): Promise<MatchBreakdown> => {
     // 1. Fetch Data
-    const [profile, job] = await Promise.all([
+    const [profile, job, user] = await Promise.all([
         dbClient.userProfile.findUnique({ where: { user_id: userId } }),
         dbClient.job.findUnique({
             where: { id: jobId },
             include: {
                 company: true
             }
-        })
+        }),
+        dbClient.user.findUnique({ where: { id: userId } })
     ]);
 
     if (!profile || !job) {
@@ -198,6 +200,26 @@ export const calculateMatchScore = async (userId: string, jobId: string): Promis
     else if (ratio < 50) factors.applicationRate = 30;
     else factors.applicationRate = 0;
 
+    // --- 8. Salary Match (7%) ---
+    if (user?.salaryMin && user.salaryMin > 0) {
+        // If job has salary info
+        if (job.salary_max && job.salary_max >= user.salaryMin) {
+            // Job meets minimum salary requirement
+            factors.salaryMatch = 100;
+        } else if (job.salary_max && job.salary_max > 0) {
+            // Job has salary but below minimum - penalize proportionally
+            const salaryRatio = job.salary_max / user.salaryMin;
+            factors.salaryMatch = Math.round(salaryRatio * 100);
+            if (factors.salaryMatch > 100) factors.salaryMatch = 100;
+        } else {
+            // No salary info in job, keep neutral
+            factors.salaryMatch = 50;
+        }
+    } else {
+        // If user has no salary requirement, full credit
+        factors.salaryMatch = 100;
+    }
+
     // --- Final Weighted Score ---
     // User requested changes (Jan 2026):
     // Skills: 42% (was 33%)
@@ -205,8 +227,9 @@ export const calculateMatchScore = async (userId: string, jobId: string): Promis
     // Location: 14% (was 14%)
     // Trust: 9% (was 10%)
     // Timeliness: 8% (was 10%)
-    // Competition: 4% (was 5%)
-    // AppRatio: 3% (was 5%)
+    // Salary: 7% (new)
+    // Competition: 0% (was 5%)
+    // AppRatio: 0% (was 5%)
 
     const weightedScore =
         (factors.skillsMatch * 0.42) +
@@ -214,8 +237,7 @@ export const calculateMatchScore = async (userId: string, jobId: string): Promis
         (factors.locationMatch * 0.14) +
         (factors.trustScore * 0.09) +
         (factors.timeliness * 0.08) +
-        (factors.competition * 0.04) +
-        (factors.applicationRate * 0.03);
+        (factors.salaryMatch * 0.07);
 
     return {
         score: Math.round(weightedScore),
@@ -239,6 +261,9 @@ export const calculateBatchMatchScores = async (userId: string, jobIds: string[]
     // Fetch profile once
     const profile = await dbClient.userProfile.findUnique({ where: { user_id: userId } });
     if (!profile) return {};
+
+    // Fetch user to get salaryMin
+    const user = await dbClient.user.findUnique({ where: { id: userId } });
 
     // Batch fetch all jobs
     const jobs = await dbClient.job.findMany({
@@ -335,20 +360,25 @@ export const calculateBatchMatchScores = async (userId: string, jobIds: string[]
         else if (hoursSince <= 168) timeliness = 40;
         else if (hoursSince <= 336) timeliness = 20;
 
-        // Competition (4%)
-        const views = job.views_count || 0;
-        let competition = 0;
-        if (views < 30) competition = 100;
-        else if (views < 100) competition = 60;
-        else if (views < 300) competition = 30;
-
-        // Application Rate (3%)
-        const applyCount = 0; // TODO: Fetch from interaction table separately if needed
-        const ratio = views > 0 ? (applyCount / views) * 100 : 0;
-        let applicationRate = 0;
-        if (ratio < 15) applicationRate = 100;
-        else if (ratio < 30) applicationRate = 60;
-        else if (ratio < 50) applicationRate = 30;
+        // Salary Match (7%)
+        let salaryMatch = 50;
+        if (user?.salaryMin && user.salaryMin > 0) {
+            // If job has salary info
+            if (job.salary_max && job.salary_max >= user.salaryMin) {
+                // Job meets minimum salary requirement
+                salaryMatch = 100;
+            } else if (job.salary_max && job.salary_max > 0) {
+                // Job has salary but below minimum - penalize proportionally
+                const ratio = job.salary_max / user.salaryMin;
+                salaryMatch = Math.round(ratio * 100);
+                if (salaryMatch > 100) salaryMatch = 100;
+            }
+            // else: no salary info in job, keep neutral at 50
+        }
+        // If user has no salary requirement, full credit
+        else {
+            salaryMatch = 100;
+        }
 
         // Final weighted score
         const score = Math.round(
@@ -357,8 +387,7 @@ export const calculateBatchMatchScores = async (userId: string, jobIds: string[]
             (locationMatch * 0.14) +
             (trustScore * 0.09) +
             (timeliness * 0.08) +
-            (competition * 0.04) +
-            (applicationRate * 0.03)
+            (salaryMatch * 0.07)
         );
 
         const label = score >= 75 ? 'excellent' : score >= 50 ? 'good' : score >= 30 ? 'fair' : 'low';

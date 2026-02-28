@@ -26,6 +26,7 @@ model User {
   location  String?
   bio       String?
   birthDate String?
+  salaryMin Int?
   avatar    String?
 
   // Reset Password

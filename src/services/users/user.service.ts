@@ -187,7 +187,8 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
     data.birthDate !== undefined ||
     data.avatar !== undefined ||
     data.location !== undefined ||
-    data.bio !== undefined
+    data.bio !== undefined ||
+    data.salaryMin !== undefined
   ) {
     let firstName = data.firstName;
     let lastName = data.lastName;
@@ -210,6 +211,7 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
         ...(data.avatar !== undefined && { avatar: data.avatar }),
         ...(data.location !== undefined && { location: data.location }),
         ...(data.bio !== undefined && { bio: data.bio }),
+        ...(data.salaryMin !== undefined && { salaryMin: data.salaryMin }),
       },
     });
   }

@@ -272,14 +272,26 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         if (query.employment_type) filters.employment_type = query.employment_type;
         if (query.remote !== undefined) filters.remote = query.remote === "true";
         if (query.skills) {
-          filters.skills = Array.isArray(query.skills)
+          const rawSkills = Array.isArray(query.skills)
             ? query.skills
             : query.skills.split(",");
+          const normalizedSkills = rawSkills
+            .map((skill) => skill.trim())
+            .filter(Boolean);
+          if (normalizedSkills.length > 0) {
+            filters.skills = normalizedSkills;
+          }
         }
         if (query.languages) {
-          filters.languages = Array.isArray(query.languages)
+          const rawLanguages = Array.isArray(query.languages)
             ? query.languages
             : query.languages.split(",");
+          const normalizedLanguages = rawLanguages
+            .map((language) => language.trim())
+            .filter(Boolean);
+          if (normalizedLanguages.length > 0) {
+            filters.languages = normalizedLanguages;
+          }
         } else if (user) {
           // If user is logged in and no language filter is set, use profile languages
           const profile = await getUserProfile(user.id);
