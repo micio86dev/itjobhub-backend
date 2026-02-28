@@ -18,7 +18,7 @@ COPY prisma.config.ts ./
 RUN bun install --frozen-lockfile
 
 # Generate prisma client (dummy DATABASE_URL for generation only - runtime uses real value)
-RUN DATABASE_URL="mongodb://dummy:27017/dummy" bun run prisma generate
+RUN DATABASE_URL="mongodb://dummy:27017/dummy" bunx prisma generate
 
 # Copy source code
 COPY src ./src
