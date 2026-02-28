@@ -53,6 +53,7 @@ export const calculateMatchScore = async (userId: string, jobId: string): Promis
         locationMatch: 0,
         trustScore: 0,
         timeliness: 0,
+        salaryMatch: 0,
         competition: 0,
         applicationRate: 0
     };
