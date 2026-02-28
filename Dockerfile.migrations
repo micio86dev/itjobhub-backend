@@ -5,7 +5,6 @@ WORKDIR /app
 # Copy only what's needed for migrations
 COPY package.json bun.lock ./
 COPY prisma ./prisma/
-COPY prisma.config.ts ./
 
 # Install dependencies
 RUN bun install --frozen-lockfile

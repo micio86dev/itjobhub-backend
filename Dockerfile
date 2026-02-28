@@ -10,9 +10,8 @@ WORKDIR /app
 
 # Copy dependency manifests
 COPY package.json bun.lock tsconfig.json ./
-# Copy prisma schema and config file
+# Copy prisma schema
 COPY prisma ./prisma/
-COPY prisma.config.ts ./
 
 # Install dependencies (dev included for build)
 RUN bun install --frozen-lockfile
