@@ -55,6 +55,7 @@ export const app = new Elysia()
                 "http://localhost:5174",
                 "http://127.0.0.1:5174",
                 "https://stage.devboards.io",
+                "https://dashboard-stage.devboards.io",
                 "https://devboards.io",
                 "https://www.devboards.io"
             ],
