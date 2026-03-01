@@ -32,6 +32,7 @@ export const getStatistics = async (month?: number, year?: number) => {
         newJobs,
         totalCompanies,
         newCompanies,
+        totalNews,
         totalComments,
         totalLikes,
         jobsBySeniority,
@@ -46,6 +47,7 @@ export const getStatistics = async (month?: number, year?: number) => {
         dbClient.job.count({ where: { created_at: { gte: startDate, lt: endDate } } }),
         dbClient.company.count(isFiltered ? { where: { created_at: { lt: endDate } } } : undefined),
         dbClient.company.count({ where: { created_at: { gte: startDate, lt: endDate } } }),
+        dbClient.news.count(isFiltered ? { where: { created_at: { lt: endDate } } } : undefined),
         dbClient.comment.count({
             where: {
                 ...(isFiltered ? { created_at: { lt: endDate } } : {}),
@@ -201,6 +203,7 @@ export const getStatistics = async (month?: number, year?: number) => {
             users: { total: totalUsers, new: newUsers },
             jobs: { total: totalJobs, new: newJobs },
             companies: { total: totalCompanies, new: newCompanies },
+            news: { total: totalNews },
             engagement: { comments: totalComments, likes: totalLikes },
         },
         charts: {

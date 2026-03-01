@@ -37,7 +37,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
             const days = parseInt(query.days || "30");
             const { getRegistrationsTimeline } = await import("../services/admin/admin.service");
             const data = await getRegistrationsTimeline(days);
-            return data;
+            return formatResponse(data, "Registrations timeline retrieved successfully");
         } catch {
             return formatError("Failed to retrieve registrations timeline", 500);
         }
@@ -49,7 +49,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
             const weeks = parseInt(query.weeks || "8");
             const { getJobsTimeline } = await import("../services/admin/admin.service");
             const data = await getJobsTimeline(weeks);
-            return data;
+            return formatResponse(data, "Jobs timeline retrieved successfully");
         } catch {
             return formatError("Failed to retrieve jobs timeline", 500);
         }
@@ -60,7 +60,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         try {
             const { getLoginMethodsDistribution } = await import("../services/admin/admin.service");
             const data = await getLoginMethodsDistribution();
-            return data;
+            return formatResponse(data, "Login methods retrieved successfully");
         } catch {
             return formatError("Failed to retrieve login methods distribution", 500);
         }
@@ -70,7 +70,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
             const limit = parseInt(query.limit || "10");
             const { getTopLanguages } = await import("../services/admin/admin.service");
             const data = await getTopLanguages(limit);
-            return data;
+            return formatResponse(data, "Top languages retrieved successfully");
         } catch {
             return formatError("Failed to retrieve top languages", 500);
         }
