@@ -8,7 +8,10 @@ import {
   getContactsByUserId,
   replyToContact,
   markAllRepliesAsRead,
-  deleteContact
+  deleteContact,
+  getUnreadRepliesCount,
+  updateReply,
+  deleteReply
 } from "../services/contact/contact.service";
 import logger from "../utils/logger";
 import { translate } from "../i18n";
@@ -17,7 +20,7 @@ const isAdmin = (role?: string) => role === "admin";
 
 export const messagesRoutes = new Elysia({ prefix: "/messages" })
   .use(authMiddleware)
-  
+
   // POST /messages/contact - Create new contact message
   .post(
     "/contact",
@@ -59,12 +62,15 @@ export const messagesRoutes = new Elysia({ prefix: "/messages" })
           };
         }
 
+        // Save the type key (not the translation) in subject for dynamic translation
+        const typeKey = type || "general";
+
         // Create contact in database
         const contact = await createContact({
           sender_id: user?.id,
           sender_name: name,
           sender_email: email,
-          subject: subject || type || "general",
+          subject: subject || typeKey,
           message: message,
           is_sender_logged_in: !!user
         });
@@ -319,6 +325,128 @@ export const messagesRoutes = new Elysia({ prefix: "/messages" })
         page: t.Optional(t.String()),
         limit: t.Optional(t.String())
       })
+    }
+  )
+
+  // GET /messages/admin/unread-count - Get count of unread replies (admin only)
+  .get(
+    "/admin/unread-count",
+    async ({ user, set, request }) => {
+      try {
+        if (!user || !isAdmin(user.role)) {
+          set.status = 403;
+          const acceptLanguage = request.headers.get("accept-language");
+          const lang = acceptLanguage ? acceptLanguage.split(",")[0].split("-")[0] : "it";
+          return { success: false, message: translate("auth.unauthorized", lang) };
+        }
+
+        const count = await getUnreadRepliesCount();
+
+        return {
+          success: true,
+          data: { count }
+        };
+      } catch (error) {
+        logger.error({ error }, "Failed to get unread count");
+        set.status = 500;
+        const acceptLanguage = request.headers.get("accept-language");
+        const lang = acceptLanguage ? acceptLanguage.split(",")[0].split("-")[0] : "it";
+        return { success: false, message: translate("error.server_error", lang) };
+      }
+    }
+  )
+
+  // PUT /messages/contacts/:id/replies/:replyId - Update reply (admin only)
+  .put(
+    "/contacts/:id/replies/:replyId",
+    async ({ params, body, user, set, request }) => {
+      try {
+        if (!user || !isAdmin(user.role)) {
+          set.status = 403;
+          const acceptLanguage = request.headers.get("accept-language");
+          const lang = acceptLanguage ? acceptLanguage.split(",")[0].split("-")[0] : "it";
+          return { success: false, message: translate("auth.unauthorized", lang) };
+        }
+
+        if (!body.message || body.message.trim().length < 1) {
+          set.status = 400;
+          const acceptLanguage = request.headers.get("accept-language");
+          const lang = acceptLanguage ? acceptLanguage.split(",")[0].split("-")[0] : "it";
+          return { success: false, message: translate("validation.error", lang) };
+        }
+
+        const reply = await updateReply(params.replyId, body.message);
+
+        logger.info(
+          { contactId: params.id, replyId: params.replyId },
+          "Contact reply updated"
+        );
+
+        return {
+          success: true,
+          message: translate("contact.reply_updated", "it"),
+          data: reply
+        };
+      } catch (error) {
+        logger.error({ error }, "Failed to update reply");
+        set.status = 500;
+        const acceptLanguage = request.headers.get("accept-language");
+        const lang = acceptLanguage ? acceptLanguage.split(",")[0].split("-")[0] : "it";
+        return { success: false, message: translate("error.server_error", lang) };
+      }
+    },
+    {
+      body: t.Object({
+        message: t.String()
+      })
+    }
+  )
+
+  // DELETE /messages/contacts/:id/replies/:replyId - Delete reply (admin only)
+  .delete(
+    "/contacts/:id/replies/:replyId",
+    async ({ params, user, set, request }) => {
+      try {
+        if (!user || !isAdmin(user.role)) {
+          set.status = 403;
+          const acceptLanguage = request.headers.get("accept-language");
+          const lang = acceptLanguage ? acceptLanguage.split(",")[0].split("-")[0] : "it";
+          return { success: false, message: translate("auth.unauthorized", lang) };
+        }
+
+        logger.info(
+          { contactId: params.id, replyId: params.replyId, userId: user.id },
+          "Attempting to delete reply"
+        );
+
+        const deletedReply = await deleteReply(params.replyId);
+
+        logger.info(
+          { contactId: params.id, replyId: params.replyId, deletedReply },
+          "Contact reply deleted successfully"
+        );
+
+        return {
+          success: true,
+          message: translate("contact.reply_deleted", "it")
+        };
+      } catch (error) {
+        logger.error({
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined,
+          params,
+          userId: user?.id
+        }, "Failed to delete reply");
+        set.status = 500;
+        const acceptLanguage = request.headers.get("accept-language");
+        const lang = acceptLanguage ? acceptLanguage.split(",")[0].split("-")[0] : "it";
+        return {
+          success: false,
+          message: translate("error.server_error", lang),
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
     }
   )
 

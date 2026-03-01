@@ -84,10 +84,19 @@ export const getAllContacts = async (skip: number = 0, take: number = 10) => {
           }
         },
         replies: {
-          select: {
-            id: true,
-            created_at: true,
-            read_by_sender: true
+          include: {
+            replier: {
+              select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                email: true,
+                avatar: true
+              }
+            }
+          },
+          orderBy: {
+            created_at: "asc"
           }
         }
       },
@@ -168,7 +177,9 @@ export const replyToContact = async (data: CreateContactReplyInput) => {
     data: {
       contact_id: data.contact_id,
       replier_id: data.replier_id,
-      message: data.message
+      message: data.message,
+      read_by_sender: true,
+      read_at: new Date()
     },
     include: {
       replier: {
@@ -238,6 +249,58 @@ export const getUnreadContactsCount = async () => {
   });
 
   return contacts.length;
+};
+
+/**
+ * Get unread replies count (admin)
+ * @returns Count of contacts without any reply (pending messages)
+ */
+export const getUnreadRepliesCount = async () => {
+  // Count contacts that have no replies yet (awaiting admin response)
+  return await dbClient.contact.count({
+    where: {
+      replies: {
+        none: {}
+      }
+    }
+  });
+};
+
+/**
+ * Update a reply (admin only)
+ * @param replyId - Reply ID
+ * @param message - New message text
+ * @returns Updated reply
+ */
+export const updateReply = async (replyId: string, message: string) => {
+  return await dbClient.contactReply.update({
+    where: { id: replyId },
+    data: {
+      message
+    },
+    include: {
+      replier: {
+        select: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          email: true,
+          avatar: true
+        }
+      }
+    }
+  });
+};
+
+/**
+ * Delete a reply (admin only)
+ * @param replyId - Reply ID
+ * @returns Deleted reply
+ */
+export const deleteReply = async (replyId: string) => {
+  return await dbClient.contactReply.delete({
+    where: { id: replyId }
+  });
 };
 
 /**
