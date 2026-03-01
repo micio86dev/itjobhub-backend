@@ -259,6 +259,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           lng?: number;
           radius_km?: number;
           dateRange?: string;
+          minMatchScore?: number;
           looseSeniority?: boolean;
           salaryMin?: number;
           salaryMax?: number;
@@ -306,6 +307,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         if (query.looseSeniority) filters.looseSeniority = query.looseSeniority === "true";
         if (query.salary_min) filters.salaryMin = query.salary_min;
         if (query.salary_max) filters.salaryMax = query.salary_max;
+        if (query.minMatchScore) filters.minMatchScore = query.minMatchScore;
         if (query.workModes) {
           filters.workModes = Array.isArray(query.workModes)
             ? query.workModes
@@ -338,6 +340,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         lng: t.Optional(t.Numeric()),
         radius_km: t.Optional(t.Numeric()),
         dateRange: t.Optional(t.String()),
+        minMatchScore: t.Optional(t.Numeric()),
         looseSeniority: t.Optional(t.String()),
         workModes: t.Optional(t.Union([t.String(), t.Array(t.String())])),
         salary_min: t.Optional(t.Numeric()),

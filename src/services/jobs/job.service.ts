@@ -115,7 +115,8 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   lat?: number;
   lng?: number;
   radius_km?: number;
-  dateRange?: string; // Add this
+  dateRange?: string;
+  minMatchScore?: number;
   looseSeniority?: boolean;
   workModes?: string[];
   salaryMin?: number;
@@ -336,9 +337,6 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
       where.AND = andConditions;
     }
   }
-
-
-
 
   // Haversine formula to calculate distance between two points in km
   const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
