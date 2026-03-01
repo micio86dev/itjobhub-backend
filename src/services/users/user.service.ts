@@ -14,6 +14,7 @@ export interface UserProfileInput {
   seniority?: string;
   availability?: string;
   workModes?: string[];
+  salaryMin?: number;
   bio?: string;
   github?: string;
   linkedin?: string;
@@ -187,8 +188,7 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
     data.birthDate !== undefined ||
     data.avatar !== undefined ||
     data.location !== undefined ||
-    data.bio !== undefined ||
-    data.salaryMin !== undefined
+    data.bio !== undefined
   ) {
     let firstName = data.firstName;
     let lastName = data.lastName;
@@ -211,7 +211,6 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
         ...(data.avatar !== undefined && { avatar: data.avatar }),
         ...(data.location !== undefined && { location: data.location }),
         ...(data.bio !== undefined && { bio: data.bio }),
-        ...(data.salaryMin !== undefined && { salaryMin: data.salaryMin }),
       },
     });
   }
@@ -223,6 +222,7 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
     seniority?: string;
     availability?: string;
     workModes?: string[];
+    salaryMin?: number;
     bio?: string;
     github?: string;
     linkedin?: string;
@@ -241,6 +241,7 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
     seniority: data.seniority,
     availability: data.availability,
     workModes: data.workModes,
+    salaryMin: data.salaryMin,
     bio: data.bio,
     github: data.github,
     linkedin: data.linkedin,
@@ -276,6 +277,7 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
         seniority: data.seniority,
         availability: data.availability,
         workModes: data.workModes || [],
+        salaryMin: data.salaryMin,
         bio: data.bio,
         github: data.github,
         linkedin: data.linkedin,

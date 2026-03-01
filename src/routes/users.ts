@@ -144,9 +144,9 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           location: userData.location || undefined,
           location_geo: userData.profile?.location_geo || undefined,
           birthDate: userData.birthDate || undefined,
-          salaryMin: userData.salaryMin || undefined,
           bio: userData.bio || undefined,
           avatar: userData.avatar || undefined,
+          salaryMin: userData.profile?.salaryMin || 0,
           profileCompleted: isProfileCompleted,
           createdAt: userData.created_at?.toISOString() || new Date().toISOString(),
           profile: userData.profile ? {
@@ -157,6 +157,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
             seniority: userData.profile.seniority || undefined,
             availability: userData.profile.availability || undefined,
             workModes: userData.profile.workModes || [],
+            salaryMin: userData.profile.salaryMin || 0,
             cvUrl: userData.profile.cv_url || undefined,
             bio: userData.profile.bio || undefined,
             github: userData.profile.github || undefined,
@@ -341,6 +342,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           seniority: profile.seniority || undefined,
           availability: profile.availability || undefined,
           workModes: profile.workModes || [],
+          salaryMin: profile.salaryMin || 0,
           cvUrl: profile.cv_url || undefined,
           bio: profile.bio || undefined,
           github: profile.github || undefined,
@@ -399,6 +401,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
             linkedin: t.Optional(t.String()),
             website: t.Optional(t.String()),
             workModes: t.Array(t.String()),
+            salaryMin: t.Optional(t.Number()),
             createdAt: t.String(),
             updatedAt: t.String()
           })

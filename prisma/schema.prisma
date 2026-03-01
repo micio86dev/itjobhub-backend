@@ -26,7 +26,6 @@ model User {
   location  String?
   bio       String?
   birthDate String?
-  salaryMin Int?
   avatar    String?
 
   // Reset Password
@@ -212,6 +211,7 @@ model UserProfile {
   seniority    String?
   availability String?
   workModes    String[]
+  salaryMin    Int?         @default(0)
   cv_url       String?
   bio          String?
   location     String?
