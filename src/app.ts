@@ -57,7 +57,8 @@ export const app = new Elysia()
                 "https://stage.devboards.io",
                 "https://dashboard-stage.devboards.io",
                 "https://devboards.io",
-                "https://www.devboards.io"
+                "https://www.devboards.io",
+                "https://dashboard.devboards.io"
             ],
             allowedHeaders: ["Content-Type", "Authorization", "Accept-Language"],
             methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
