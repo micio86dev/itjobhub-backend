@@ -6,11 +6,14 @@ WORKDIR /app
 COPY package.json bun.lock ./
 COPY prisma ./prisma/
 
+# Copy data fix scripts
+COPY fix_requirements.ts ./
+
 # Install dependencies
 RUN bun install --frozen-lockfile
 
 # Generate Prisma client (dummy DATABASE_URL for generation only)
 RUN DATABASE_URL="mongodb://dummy:27017/dummy" bunx prisma generate
 
-# Default command - for MongoDB use db push instead of migrate deploy
-CMD ["bunx", "prisma", "db", "push", "--accept-data-loss"]
+# Run prisma db push then data fix scripts
+CMD ["sh", "-c", "bunx prisma db push --accept-data-loss && bun run fix_requirements.ts"]
