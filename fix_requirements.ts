@@ -26,7 +26,7 @@ async function fix() {
     try {
         await client.connect();
         const db = client.db();
-        const jobs = db.collection('Job');
+        const jobs = db.collection('jobs');
 
         // Find all documents where requirements is NOT an array (object, null stored as object, etc.)
         const cursor = jobs.find({
