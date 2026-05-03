@@ -133,6 +133,13 @@ model Job {
   seniority_ref Seniority? @relation(fields: [seniority_id], references: [id])
   favorites     Favorite[]
 
+  @@index([status])
+  @@index([published_at])
+  @@index([language])
+  @@index([city])
+  @@index([remote])
+  @@index([company_id])
+  @@index([status, published_at])
   @@map("jobs")
 }
 
@@ -200,6 +207,7 @@ model Like {
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, likeable_type, likeable_id])
+  @@index([likeable_type, likeable_id])
   @@map("likes")
 }
 
@@ -268,6 +276,8 @@ model Interaction {
   user User? @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([trackable_id, trackable_type, user_id, fingerprint, type])
+  @@index([created_at])
+  @@index([trackable_id, trackable_type])
   @@map("interactions")
 }
 

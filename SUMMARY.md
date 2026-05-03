@@ -1,47 +1,54 @@
-# Backend - DevBoards.io
+# DevBoards.io — Backend Summary
 
-This repository contains the core API for the DevBoards.io platform. It is designed for high performance, type safety, and scalability.
+REST API for the DevBoards.io platform. See [README.md](./README.md) for setup.
+See root [MEMORY.md](../../MEMORY.md) for system-wide context.
+See [specs/backend/](../../specs/backend/) for full feature specs.
 
-## Architecture
+## Modules
 
-- **Runtime**: [Bun](https://bun.sh/)
-- **Framework**: [ElysiaJS](https://elysiajs.com/)
-- **Database**: [MongoDB Atlas](https://www.mongodb.com/) via [Prisma](https://www.prisma.io/)
-- **Documentation**: [Swagger](https://swagger.io/) (available at `/swagger`)
+| Module | Routes | Description |
+|--------|--------|-------------|
+| Auth | `POST /auth/*` | Email/password + OAuth (GitHub/LinkedIn/Google), JWT + refresh tokens |
+| Jobs | `GET|POST|PUT|DELETE /jobs/*` | CRUD, search/filter, match scoring, bulk import |
+| News | `GET|POST|DELETE /news/*` | Multi-language articles, category filtering |
+| Comments | `POST|GET|PUT|DELETE /comments/*` | Polymorphic (jobs + news), threaded replies |
+| Likes | `POST|DELETE|GET /likes/*` | Polymorphic reactions (LIKE/DISLIKE) |
+| Companies | `GET|POST|PUT|DELETE /companies/*` | Company profiles with trust scores |
+| Users | `GET|PUT /users/*` | Profile management, skills |
+| Favorites | `POST|DELETE|GET /favorites/*` | Saved jobs |
+| Messages | `POST|GET|PUT|DELETE /messages/*` | Contact system with admin replies |
+| Admin | `GET /admin/stats/*` | Dashboard analytics (requires admin role) |
+| Tracking | (internal) | Interaction recording (VIEW/APPLY/CLICK) |
+| Image Proxy | `GET /image-proxy` | Proxied external images with 1-year cache |
 
-## Core Modules
+## Auth Flow
 
-1.  **Auth**: Secure JWT-based authentication with cookie support.
-2.  **Jobs**: Comprehensive job listing management, including searching and filtering (with robust case-insensitive skill matching).
-3.  **Companies**: Management of company profiles and trust metrics.
-4.  **Community**: Real-time commenting and liking system with robust transaction management (automatic retries for write conflicts).
-5.  **Users**: Profile management and personalization data.
-6.  **News**: High-performance news article management with multi-language translation support and engagement tracking.
+```
+POST /auth/login
+  → password check (bcrypt 12 rounds)
+  → JWT (1h) in response body
+  → refresh token (7d) in HttpOnly cookie
+  → user fetched from DB (not JWT payload) on each request
+```
 
-## Quality Standards
+## Database (MongoDB, Prisma)
 
-- **TypeScript**: 100% type safety with strict schema validation. Verified via comprehensive `tsc` checks.
-- **Testing**: Automated unit and integration tests via `bun test`.
-- **Security**: Built-in protection with CSRF headers, rate limiting, and input sanitization.
+12 models: `User`, `UserProfile`, `Job`, `Company`, `Seniority`, `News`,
+`Comment`, `Like`, `RefreshToken`, `Favorite`, `Interaction`, `Contact`, `ContactReply`
 
-## Recent Changes
+Shared with `job_scraper` and `news_scraper` (direct MongoDB writes).
 
-### 2026-01-30: Maintenance Scripts Logging Enhancement
+## Security
 
-- **Improved Logging**: Replaced `console.log` with structured `logger` in maintenance scripts (`check_db.ts`, `check_seeker.ts`) to ensure consistent log formatting and better debugging capabilities.
+- Rate limiting: 1000 req/60s per IP (in-memory — not suitable for horizontal scaling)
+- Helmet: standard HTTP security headers
+- CORS: explicit origin whitelist (devboards.io + stage + localhost)
+- Auth middleware: re-fetches user from DB on every authenticated request
+- Input validation: Elysia schema validation on all routes
 
+## Known Issues
 
-### 2026-01-23: Tech News Engine Implementation
-
-- Developed **News Service** with support for pagination, category filtering, and polymorphic interactions.
-- Implemented **Multi-language Translations** at the schema level using Prisma types for MongoDB.
-- Exposed **Management Endpoints** for creating, updating, and deleting news articles (Admin only).
-- Integrated **Interaction System** allowing users to like, dislike, and comment on articles with optimized aggregation.
-- Added **Engagement Tracking** (views and clicks) with support for authenticated and anonymous metrics.
-- Verified system stability with 100% passing build and lint checks.
-
-### 2026-02-08: Prisma & Docker Build Optimization
-
-- **Docker Build Fix**: Resolved an issue where `prisma generate` failed during Docker builds by providing a dummy `DATABASE_URL` and ensuring `prisma.config.ts` is copied into the container.
-- **Prisma 6.x Compatibility**: Added `@prisma-ignore` annotations to the schema as required by current Prisma versions for MongoDB environments.
-- **Skill Updates**: Enhanced the `prisma-esperto` skill documentation to include these best practices for future development.
+- Redis deployed but backend has no cache integration
+- `Interaction` collection: no TTL index → unbounded growth
+- N+1 potential on job listings (company fetch per job)
+- In-memory rate limiter not suitable for multi-instance deployments
