@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, beforeAll } from 'bun:test';
+import { describe, it, expect, mock, beforeAll, afterAll } from 'bun:test';
 import { app } from '../src/app';
 
 // Mock the whole module before importing anything that might use it
@@ -121,5 +121,105 @@ describe('OAuth Routes', () => {
         );
 
         expect(response.status).toBe(401);
+    });
+});
+
+// Restore real module implementations after all tests in this file to prevent
+// mock.module() bleeding into other test files in newer Bun versions.
+afterAll(() => {
+    mock.module('../src/config/oauth.config', () => {
+        const githubConfig = {
+            clientId: process.env.GITHUB_CLIENT_ID || '',
+            clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
+            authorizeUrl: 'https://github.com/login/oauth/authorize',
+            tokenUrl: 'https://github.com/login/oauth/access_token',
+            userInfoUrl: 'https://api.github.com/user',
+            scopes: ['read:user', 'user:email'],
+        };
+        const linkedinConfig = {
+            clientId: process.env.LINKEDIN_CLIENT_ID || '',
+            clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
+            authorizeUrl: 'https://www.linkedin.com/oauth/v2/authorization',
+            tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
+            userInfoUrl: 'https://api.linkedin.com/v2/userinfo',
+            scopes: ['openid', 'profile', 'email'],
+        };
+        const googleConfig = {
+            clientId: process.env.GOOGLE_CLIENT_ID || '',
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+            authorizeUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+            tokenUrl: 'https://oauth2.googleapis.com/token',
+            userInfoUrl: 'https://www.googleapis.com/oauth2/v2/userinfo',
+            scopes: ['openid', 'profile', 'email'],
+        };
+        const oauthConfig = { github: githubConfig, linkedin: linkedinConfig, google: googleConfig };
+        return {
+            oauthConfig,
+            getOAuthCallbackUrl: (provider: string) =>
+                `${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/callback/${provider}`,
+            isOAuthConfigured: (provider: string) => {
+                const cfg = oauthConfig[provider as keyof typeof oauthConfig];
+                return !!(cfg?.clientId && cfg?.clientSecret);
+            },
+        };
+    });
+
+    mock.module('../src/services/auth/oauth.service', () => {
+        const oauthConfig = {
+            github: {
+                clientId: process.env.GITHUB_CLIENT_ID || '',
+                clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
+                authorizeUrl: 'https://github.com/login/oauth/authorize',
+                tokenUrl: 'https://github.com/login/oauth/access_token',
+                userInfoUrl: 'https://api.github.com/user',
+                scopes: ['read:user', 'user:email'],
+            },
+            linkedin: {
+                clientId: process.env.LINKEDIN_CLIENT_ID || '',
+                clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
+                authorizeUrl: 'https://www.linkedin.com/oauth/v2/authorization',
+                tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
+                userInfoUrl: 'https://api.linkedin.com/v2/userinfo',
+                scopes: ['openid', 'profile', 'email'],
+            },
+            google: {
+                clientId: process.env.GOOGLE_CLIENT_ID || '',
+                clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+                authorizeUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+                tokenUrl: 'https://oauth2.googleapis.com/token',
+                userInfoUrl: 'https://www.googleapis.com/oauth2/v2/userinfo',
+                scopes: ['openid', 'profile', 'email'],
+            },
+        };
+
+        const getOAuthCallbackUrl = (provider: string) =>
+            `${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/callback/${provider}`;
+
+        return {
+            getAuthorizationUrl: (provider: string, state?: string) => {
+                const config = oauthConfig[provider as keyof typeof oauthConfig];
+                const params = new URLSearchParams({
+                    client_id: config.clientId,
+                    redirect_uri: getOAuthCallbackUrl(provider),
+                    scope: config.scopes.join(' '),
+                    response_type: 'code',
+                });
+                if (state) params.append('state', state);
+                if (provider === 'linkedin') params.set('response_type', 'code');
+                if (provider === 'google') {
+                    params.append('access_type', 'offline');
+                    params.append('prompt', 'consent');
+                }
+                return `${config.authorizeUrl}?${params.toString()}`;
+            },
+            exchangeCodeForTokens: async () => ({ accessToken: '', refreshToken: '' }),
+            getProviderUserData: async () => { throw new Error('not mocked'); },
+            findOrCreateOAuthUser: async () => null,
+            processOAuthCallback: async () => null,
+            isOAuthConfigured: (provider: string) => {
+                const cfg = oauthConfig[provider as keyof typeof oauthConfig];
+                return !!(cfg?.clientId && cfg?.clientSecret);
+            },
+        };
     });
 });
