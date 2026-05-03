@@ -128,6 +128,15 @@ model Job {
   updated_at   DateTime? @updatedAt
   expires_at   DateTime?
 
+  // Import pipeline fields (nullable — backwards compatible)
+  category        String?
+  source_provider String?
+  source_id       String?
+  enriched_by_ai  Boolean?  @default(false)
+  salary_period   String?
+  imported_at     DateTime? @default(now())
+  quality_score   Int?
+
   // Relations
   company       Company?   @relation(fields: [company_id], references: [id])
   seniority_ref Seniority? @relation(fields: [seniority_id], references: [id])
@@ -140,6 +149,8 @@ model Job {
   @@index([remote])
   @@index([company_id])
   @@index([status, published_at])
+  @@index([category, seniority, remote])
+  @@index([country, city])
   @@map("jobs")
 }
 
