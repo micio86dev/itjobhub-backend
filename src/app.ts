@@ -3,6 +3,7 @@ import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
 import { helmet } from "elysia-helmet";
 import { rateLimit } from "elysia-rate-limit";
+import { staticPlugin } from "@elysiajs/static";
 import { authRoutes } from "./routes/auth";
 import { userRoutes } from "./routes/users";
 import { jobRoutes } from "./routes/jobs";
@@ -14,9 +15,11 @@ import { favoritesRoutes } from "./routes/favorites";
 import { newsRoutes } from "./routes/news";
 import { messagesRoutes } from "./routes/messages";
 import { imageProxyController } from "./routes/image-proxy";
+import { cvRoutes } from "./routes/cv";
 import { authMiddleware } from "./middleware/auth";
 import { deriveLang, translate } from "./i18n";
 import { healthCheckHandler } from "./healthcheck";
+import { config } from "./config";
 
 // Custom key generator to extract IP from request
 const ipKeyGenerator = (req: Request): string => {
@@ -101,6 +104,7 @@ export const app = new Elysia()
                     { name: "likes", description: "Like endpoints" },
                     { name: "favorites", description: "Favorites endpoints" },
                     { name: "news", description: "News endpoints" },
+                    { name: "cv", description: "CV upload and GROQ parsing endpoints" },
                 ],
             },
             path: "/docs",
@@ -119,6 +123,8 @@ export const app = new Elysia()
     .use(newsRoutes)
     .use(messagesRoutes)
     .use(imageProxyController)
+    .use(cvRoutes)
+    .use(staticPlugin({ assets: config.upload.uploadPath, prefix: '/uploads' }))
     .onError(({ code, error, set, request }) => {
         if (code === 'VALIDATION') {
             const { lang } = deriveLang({ request });
