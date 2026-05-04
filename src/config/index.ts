@@ -29,5 +29,10 @@ export const config = {
   features: {
     userRegistration: process.env.FEATURE_USER_REGISTRATION === "true",
     jobPosting: process.env.FEATURE_JOB_POSTING === "true"
+  },
+  groq: {
+    apiKey: process.env.GROQ_API_KEY || "",
+    model: "llama-3.1-8b-instant",
+    maxTokens: 2048
   }
 };
