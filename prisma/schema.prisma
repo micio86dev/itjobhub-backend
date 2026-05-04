@@ -41,6 +41,7 @@ model User {
   interactions    Interaction[]
   contact_replies ContactReply[] @relation("ContactReplies")
   contacts        Contact[]
+  cvs             UserCV[]
 
   @@index([reset_password_token])
   @@map("users")
@@ -231,13 +232,14 @@ model UserProfile {
   availability String?
   workModes    String[]
   salaryMin    Int?         @default(0)
-  cv_url       String?
-  bio          String?
-  location     String?
-  location_geo LocationGeo?
-  github       String?
-  linkedin     String?
-  website      String?
+  cv_url        String?
+  portfolio_url String?
+  bio           String?
+  location      String?
+  location_geo  LocationGeo?
+  github        String?
+  linkedin      String?
+  website       String?
   created_at   DateTime?    @default(now())
   updated_at   DateTime?    @updatedAt
 
@@ -245,6 +247,23 @@ model UserProfile {
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
+}
+
+model UserCV {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id     String   @db.ObjectId
+  language    String
+  filename    String
+  url         String
+  size        Int
+  uploaded_at DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, language])
+  @@index([user_id])
+  @@map("user_cvs")
 }
 
 model RefreshToken {
