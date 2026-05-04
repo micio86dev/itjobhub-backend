@@ -20,6 +20,7 @@ export interface UserProfileInput {
   linkedin?: string;
   website?: string;
   cvUrl?: string;
+  portfolioUrl?: string;
   location?: string;
   locationGeo?: {
     lat: number;
@@ -229,6 +230,7 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
     website?: string;
     location?: string;
     cv_url?: string;
+    portfolio_url?: string;
     location_geo?: {
       type: 'Point';
       coordinates: [number, number];
@@ -247,7 +249,8 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
     linkedin: data.linkedin,
     website: data.website,
     location: data.location,
-    cv_url: data.cvUrl
+    cv_url: data.cvUrl,
+    portfolio_url: data.portfolioUrl
   };
 
   // Map locationGeo to location_geo
@@ -283,6 +286,7 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
         linkedin: data.linkedin,
         website: data.website,
         cv_url: data.cvUrl,
+        portfolio_url: data.portfolioUrl,
         location: data.location,
         location_geo:
           data.locationGeo && data.locationGeo.lng && data.locationGeo.lat
