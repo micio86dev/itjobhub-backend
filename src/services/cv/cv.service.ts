@@ -1,12 +1,18 @@
+import '../../polyfills';
 import { mkdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-// pdf-parse v2 uses a class-based API: new PDFParse({ buffer }).getText()
-import { PDFParse } from 'pdf-parse';
+import * as pdfjsLib from 'pdfjs-dist';
+// @ts-expect-error — no type declarations for the worker build entry
+import { WorkerMessageHandler } from 'pdfjs-dist/build/pdf.worker.mjs';
 import { config } from '../../config';
 import { prisma } from '../../config/database';
 import { extractProfileFromText, type ExtractedProfile } from '../groq/groq.service';
 import logger from '../../utils/logger';
+
+// Inject worker into globalThis so pdfjs fake-worker mode skips the dynamic import
+// (dynamic import of ./pdf.worker.mjs fails inside a Bun compiled binary)
+(globalThis as Record<string, unknown>).pdfjsWorker = { WorkerMessageHandler };
 
 export interface CvRecord {
   id: string;
@@ -104,14 +110,24 @@ export const deleteCV = async (userId: string, cvId: string): Promise<void> => {
 };
 
 export const extractTextFromPDF = async (diskPath: string): Promise<string> => {
-  const buffer = await Bun.file(diskPath).arrayBuffer();
-  const parser = new PDFParse({ data: Buffer.from(buffer) });
-  const result = await parser.getText();
-  await parser.destroy();
-  if (result.text.trim().length < 10) {
+  const data = new Uint8Array(await Bun.file(diskPath).arrayBuffer());
+  const doc = await pdfjsLib.getDocument({ data }).promise;
+  const pages: string[] = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    pages.push(
+      content.items
+        .map((item) => ('str' in item ? (item as { str: string }).str : ''))
+        .join(' ')
+    );
+  }
+  await doc.destroy();
+  const text = pages.join('\n');
+  if (text.trim().length < 10) {
     throw Object.assign(new Error('PDF appears to be image-based and cannot be parsed as text'), { code: 'IMAGE_BASED_PDF' });
   }
-  return result.text;
+  return text;
 };
 
 export const parseCVWithGroq = async (userId: string, cvId: string): Promise<ExtractedProfile> => {
