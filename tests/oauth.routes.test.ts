@@ -2,12 +2,30 @@ import { describe, it, expect, mock, beforeAll, afterAll } from 'bun:test';
 import { app } from '../src/app';
 import { dbClient } from '../src/config/database';
 
-// Mock the whole module before importing anything that might use it
+// Mock the whole module before importing anything that might use it.
+// IMPORTANT: getAuthorizationUrl must return real-looking URLs so the mock is
+// safe if it bleeds into oauth.service.test.ts (same Bun process, shared module cache).
 mock.module('../src/services/auth/oauth.service', () => {
+    const AUTHORIZE_URLS: Record<string, string> = {
+        google: 'https://accounts.google.com/o/oauth2/v2/auth',
+        github: 'https://github.com/login/oauth/authorize',
+        linkedin: 'https://www.linkedin.com/oauth/v2/authorization',
+    };
     return {
-        getAuthorizationUrl: (provider: string, state?: string) => {
-            if (provider === 'google') return `https://accounts.google.com/o/oauth2/v2/auth?state=${state}`;
-            return `https://${provider}.com/auth`;
+        getAuthorizationUrl: (provider: string, state?: string): string => {
+            const base = AUTHORIZE_URLS[provider] ?? AUTHORIZE_URLS.google;
+            const params = new URLSearchParams({
+                client_id: 'mock',
+                redirect_uri: 'http://localhost:5173/auth/callback/mock',
+                scope: 'openid profile email',
+                response_type: 'code',
+            });
+            if (state) params.append('state', state);
+            if (provider === 'google') {
+                params.append('access_type', 'offline');
+                params.append('prompt', 'consent');
+            }
+            return `${base}?${params.toString()}`;
         },
         processOAuthCallback: async (provider: string, code: string) => {
             if (code === 'invalid') throw new Error('Invalid code');
