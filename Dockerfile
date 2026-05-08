@@ -56,6 +56,9 @@ LABEL org.opencontainers.image.version=${APP_VERSION}
 LABEL org.opencontainers.image.title="Backend API"
 LABEL org.opencontainers.image.vendor="DevBoards"
 
+# Writable upload dir for CV files (volume-mounted in production)
+RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
+
 # User context
 USER nextjs
 

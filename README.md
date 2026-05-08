@@ -1,118 +1,123 @@
-# DevBoards.io Backend
+# DevBoards.io — Backend API
 
-Backend API for the DevBoards.io platform built with ElysiaJS, BunJS, Prisma, and MongoDB Atlas.
-
-## Features
-
-- Authentication with JWT and HttpOnly cookies
-- User profiles with languages, skills, seniority, availability, and CV upload
-- Job listings with CRUD operations
-- Company management with trust scores
-- Comment system with replies
-- Like/dislike functionality for jobs and comments
+REST API for the DevBoards.io platform. Built with ElysiaJS on Bun runtime, Prisma ORM, and MongoDB.
 
 ## Tech Stack
 
-- **Framework**: ElysiaJS + BunJS
-- **Database**: MongoDB Atlas with Prisma ORM
-- **Authentication**: JWT with HttpOnly cookies
-- **File Upload**: (To be implemented)
-- **Notifications**: Mailgun (To be implemented)
+- **Runtime**: [Bun](https://bun.sh/) v1.2+
+- **Framework**: [ElysiaJS](https://elysiajs.com/) 1.0.15
+- **ORM**: [Prisma](https://www.prisma.io/) 6.19 (MongoDB driver)
+- **Database**: MongoDB 7 with replica set
+- **Auth**: JWT + HttpOnly refresh tokens + OAuth (GitHub/LinkedIn/Google)
+- **Email**: Mailgun
+- **Docs**: Swagger at `/docs`
 
 ## Prerequisites
 
-- [Bun](https://bun.sh/) v1.0+
-- [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) account
-- [Mailgun](https://www.mailgun.com/) account (for email notifications)
+- Bun v1.2+
+- MongoDB 7 running as replica set (`rs0`)
+- (Optional) Mailgun account for email features
+- (Optional) OAuth app credentials for social login
 
-## Getting Started
+## Setup
 
-1. Clone the repository
-2. Navigate to the backend directory:
-   ```bash
-   cd it-job-hub/backend
-   ```
-3. Install dependencies:
-   ```bash
-   bun install
-   ```
-4. Set up environment variables:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-7. Start the development server:
-   ```bash
-   bun run dev
-   ```
+```bash
+cd apps/backend
+bun install
+cp .env.example .env
+# Edit .env — see env.md for all variables
+bunx prisma generate
+bun run dev         # port 3001
+```
 
 ## Environment Variables
 
-See `.env.example` for all required environment variables.
+See [env.md](./env.md) for full documentation. Required:
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | MongoDB URI with `replicaSet=rs0` |
+| `JWT_SECRET` | JWT signing secret (min 32 chars in prod) |
+| `REFRESH_TOKEN_SECRET` | Refresh token signing secret |
+| `MAILGUN_API_KEY` | Mailgun API key |
+| `MAILGUN_DOMAIN` | Mailgun sending domain |
+| `CLIENT_URL` | Frontend URL (CORS) |
 
 ## Project Structure
 
 ```
 src/
-├── config/          # Configuration files
-├── controllers/     # Request handlers
-├── middleware/      # Custom middleware
-├── models/          # Data models (Prisma)
-├── routes/          # API route definitions
-├── services/        # Business logic
-├── utils/           # Utility functions
-├── types/           # TypeScript types
-└── index.ts         # Entry point
+├── index.ts        # Entry point
+├── app.ts          # Elysia app config (CORS, Helmet, rate limit, routes)
+├── i18n.ts         # 5-language translation (55 keys)
+├── config/         # Environment + OAuth config
+├── middleware/      # Auth middleware (JWT verification)
+├── routes/          # Route definitions (11 files)
+├── services/        # Business logic (13 service dirs)
+├── db/              # Prisma client
+└── utils/           # Logger, JWT, password, response helpers
+prisma/
+└── schema.prisma    # MongoDB schema (12 models)
+tests/
+└── *.test.ts        # 10 test files
+```
+
+## Scripts
+
+```bash
+bun run dev          # Development with watch
+bun run start        # Production
+bun run build        # Compile to dist/
+bun test             # Run test suite
+bun test --coverage  # Coverage report
+bun run lint         # ESLint
+bun run type-check   # TypeScript strict check
 ```
 
 ## API Documentation
 
-Once the server is running, visit `http://localhost:3001/swagger` for API documentation.
+Start the server and visit `http://localhost:3001/docs` for Swagger UI.
 
-## Quality Assurance
+## API Summary
 
-### Linting & Type Checking
-We use TypeScript for strict type checking. To verify the codebase:
+~50 REST endpoints across:
+- `POST|GET /auth/*` — registration, login, OAuth, refresh, password reset
+- `GET|POST|PUT|DELETE /jobs/*` — job CRUD, search, import, match scoring
+- `GET|POST|PUT|DELETE /news/*` — news CRUD, import
+- `POST|GET|PUT|DELETE /comments/*` — polymorphic comments
+- `POST|DELETE|GET /likes/*` — polymorphic reactions
+- `POST|GET|PUT|DELETE /companies/*`
+- `POST|GET|PUT|DELETE /messages/*` — contact system
+- `GET /admin/stats/*` — dashboard analytics
+- `GET|POST|PUT|DELETE /users/*`
+- `GET /favorites/*`
+- `GET /image-proxy` — external image proxy with caching
+
+## Testing
+
 ```bash
-bun x tsc --noEmit
+bun test                    # All tests
+bun test tests/api.test.ts  # Integration tests (requires MongoDB)
+bun test --watch            # Watch mode
 ```
 
-### Testing
-We use the native Bun test runner.
-- **Run all tests**: `bun test`
-- **Watch mode**: `bun test --watch`
-- **Coverage**: `bun test --coverage`
+Pre-commit hook (Husky) runs `bun test` automatically. Tests fail → commit blocked.
 
-> [!NOTE]
-> Integration tests (located in `tests/api.test.ts`) require a running MongoDB instance or a valid `DATABASE_URL` in your `.env`.
+## Docker
 
-## Deployment
+```bash
+# Multi-stage build
+docker build -t devboards-backend .
 
-1. Set `NODE_ENV=production` in your environment
-2. Ensure all environment variables are set
-3. Run `bun run build` to build the project
-4. Run `bun run start` to start the server
-## Git Hooks (Husky)
-
-This project uses [Husky](https://typicode.github.io/husky/) to enforce code quality with pre-commit hooks.
-
-### Installation
-To install Husky and its hooks (if not automatically installed):
-
-```shell
-bun run prepare
-# or explicitly
-bun husky init
+# Runs as non-root user (uid 1001)
+# Healthcheck: GET /health
 ```
 
-### Pre-commit Hook
-Husky is configured to run automatically before you commit.
-- **Action**: Runs `bun test`.
-- **Behavior**: If tests fail, the commit is **blocked**. You must fix the tests before committing.
+## MongoDB Replica Set (Local)
 
-### Testing the Hook
-To verify the hook works:
-1. Introduce a failure (e.g. modify a test to fail).
-2. Try to commit: `git commit -m "test"`.
-3. The commit should fail.
-4. Revert changes and commit again.
+```bash
+mongod --replSet rs0 --dbpath /data/db
+mongosh --eval "rs.initiate()"
+```
+
+Prisma requires a replica set for transaction support.

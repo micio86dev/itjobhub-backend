@@ -38,6 +38,9 @@ export const formatError = <T>(
   };
 };
 
+export const getErrorCode = (error: object): string | undefined =>
+  (error as { code?: string })?.code;
+
 export const getErrorMessage = <T>(error: T): string => {
   if (error instanceof Error) return error.message;
   if (typeof error === 'string') return error;

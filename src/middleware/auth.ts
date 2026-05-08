@@ -38,7 +38,11 @@ export const authMiddleware = new Elysia({ name: "authMiddleware" })
 
         if (!user) return { user: null };
 
-        return { user: userPayload };
+        // Return the DB-fetched user (not the JWT payload) so that user.id
+        // is always the canonical Prisma ObjectId string — the same format
+        // stored in comment.user_id, job.user_id, etc. Using the JWT payload
+        // directly can produce a mismatch when comparing IDs (e.g. 403 on delete).
+        return { user: { id: user.id, email: user.email, role: user.role } };
       } catch {
         return { user: null };
       }

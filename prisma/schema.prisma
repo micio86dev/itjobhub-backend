@@ -41,6 +41,7 @@ model User {
   interactions    Interaction[]
   contact_replies ContactReply[] @relation("ContactReplies")
   contacts        Contact[]
+  cvs             UserCV[]
 
   @@index([reset_password_token])
   @@map("users")
@@ -128,11 +129,29 @@ model Job {
   updated_at   DateTime? @updatedAt
   expires_at   DateTime?
 
+  // Import pipeline fields (nullable — backwards compatible)
+  category        String?
+  source_provider String?
+  source_id       String?
+  enriched_by_ai  Boolean?  @default(false)
+  salary_period   String?
+  imported_at     DateTime? @default(now())
+  quality_score   Int?
+
   // Relations
   company       Company?   @relation(fields: [company_id], references: [id])
   seniority_ref Seniority? @relation(fields: [seniority_id], references: [id])
   favorites     Favorite[]
 
+  @@index([status])
+  @@index([published_at])
+  @@index([language])
+  @@index([city])
+  @@index([remote])
+  @@index([company_id])
+  @@index([status, published_at])
+  @@index([category, seniority, remote])
+  @@index([country, city])
   @@map("jobs")
 }
 
@@ -200,6 +219,7 @@ model Like {
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, likeable_type, likeable_id])
+  @@index([likeable_type, likeable_id])
   @@map("likes")
 }
 
@@ -212,13 +232,14 @@ model UserProfile {
   availability String?
   workModes    String[]
   salaryMin    Int?         @default(0)
-  cv_url       String?
-  bio          String?
-  location     String?
-  location_geo LocationGeo?
-  github       String?
-  linkedin     String?
-  website      String?
+  cv_url        String?
+  portfolio_url String?
+  bio           String?
+  location      String?
+  location_geo  LocationGeo?
+  github        String?
+  linkedin      String?
+  website       String?
   created_at   DateTime?    @default(now())
   updated_at   DateTime?    @updatedAt
 
@@ -226,6 +247,23 @@ model UserProfile {
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
+}
+
+model UserCV {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id     String   @db.ObjectId
+  language    String
+  filename    String
+  url         String
+  size        Int
+  uploaded_at DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, language])
+  @@index([user_id])
+  @@map("user_cvs")
 }
 
 model RefreshToken {
@@ -268,6 +306,8 @@ model Interaction {
   user User? @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([trackable_id, trackable_type, user_id, fingerprint, type])
+  @@index([created_at])
+  @@index([trackable_id, trackable_type])
   @@map("interactions")
 }
 

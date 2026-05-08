@@ -4,6 +4,8 @@ import { oauthConfig, getOAuthCallbackUrl } from '../src/config/oauth.config';
 import { dbClient } from '../src/config/database';
 import { app } from '../src/app';
 
+const _originalFetch = globalThis.fetch;
+
 // Mock logger to prevent expected errors from polluting the test output
 mock.module('../src/utils/logger', () => {
     return {
@@ -17,6 +19,10 @@ mock.module('../src/utils/logger', () => {
 });
 
 describe('OAuth Service', () => {
+    afterEach(() => {
+        // Restore fetch after any test that may have mocked it
+        globalThis.fetch = _originalFetch;
+    });
     describe('getAuthorizationUrl', () => {
         it('should generate a valid Google authorization URL', () => {
             const url = oauthService.getAuthorizationUrl('google', 'test-state');

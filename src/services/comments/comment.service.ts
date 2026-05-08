@@ -239,7 +239,7 @@ export const getCommentsByEntity = async (
  * @returns Updated comment
  */
 export const updateComment = async (id: string, content: string, userId: string, userRole: string = 'user') => {
-  // Check if user is the author
+  // Check if the comment exists
   const comment = await prisma.comment.findUnique({
     where: { id }
   });
@@ -248,8 +248,15 @@ export const updateComment = async (id: string, content: string, userId: string,
     throw new Error("Comment not found");
   }
 
-  if (comment.user_id !== userId && userRole !== 'admin') {
-    throw new Error("Not authorized to update this comment");
+  if (userRole !== 'admin') {
+    // Use a Prisma query for ownership check (same approach as deleteComment)
+    const owned = await prisma.comment.findFirst({
+      where: { id, user_id: userId },
+      select: { id: true }
+    });
+    if (!owned) {
+      throw new Error("Not authorized to update this comment");
+    }
   }
 
   return await prisma.comment.update({
@@ -278,7 +285,7 @@ export const updateComment = async (id: string, content: string, userId: string,
 export const deleteComment = async (id: string, userId: string, userRole: string = 'user') => {
   logger.warn({ commentId: id, userId, userRole }, "deleteComment called");
 
-  // Check if user is the author
+  // Verify the comment exists
   const comment = await prisma.comment.findUnique({
     where: { id }
   });
@@ -291,13 +298,31 @@ export const deleteComment = async (id: string, userId: string, userRole: string
     commentUserId: comment.user_id,
     requestUserId: userId,
     userRole,
-    areEqual: comment.user_id === userId,
+    jsEqual: comment.user_id === userId,
+    normalizedEqual: String(comment.user_id).trim() === String(userId).trim(),
     commentUserIdType: typeof comment.user_id,
-    requestUserIdType: typeof userId
+    requestUserIdType: typeof userId,
+    commentUserIdLen: String(comment.user_id).length,
+    requestUserIdLen: String(userId).length,
   }, '[DELETE COMMENT DEBUG]');
 
-  if (comment.user_id !== userId && userRole !== 'admin') {
-    throw new Error("Not authorized to delete this comment");
+  if (userRole !== 'admin') {
+    // Use a Prisma query for ownership check instead of a JavaScript string
+    // comparison. This delegates the ObjectId comparison to the database layer,
+    // avoiding potential BSON-type vs plain-string mismatches on the staging DB.
+    const owned = await prisma.comment.findFirst({
+      where: { id, user_id: userId },
+      select: { id: true }
+    });
+
+    if (!owned) {
+      logger.warn({
+        commentUserId: comment.user_id,
+        requestUserId: userId,
+        userRole,
+      }, '[DELETE COMMENT] Unauthorized — DB ownership check failed');
+      throw new Error("Not authorized to delete this comment");
+    }
   }
 
   /**

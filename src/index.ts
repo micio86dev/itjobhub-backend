@@ -1,3 +1,4 @@
+import "./polyfills";
 import logger from "./utils/logger";
 import { config } from "./config";
 import { setupDatabase } from "./config/database";
