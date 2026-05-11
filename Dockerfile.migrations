@@ -6,8 +6,9 @@ WORKDIR /app
 COPY package.json bun.lock ./
 COPY prisma ./prisma/
 
-# Copy data fix scripts
+# Copy data fix + seed scripts
 COPY fix_requirements.ts ./
+COPY seed_admin.ts ./
 
 # Install dependencies
 RUN bun install --frozen-lockfile
@@ -15,5 +16,5 @@ RUN bun install --frozen-lockfile
 # Generate Prisma client (dummy DATABASE_URL for generation only)
 RUN DATABASE_URL="mongodb://dummy:27017/dummy" bunx prisma generate
 
-# Run prisma db push then data fix scripts
-CMD ["sh", "-c", "bunx prisma db push --accept-data-loss && bun run fix_requirements.ts"]
+# Run prisma db push, data fixes, then ensure the admin account
+CMD ["sh", "-c", "bunx prisma db push --accept-data-loss && bun run fix_requirements.ts && bun run seed_admin.ts"]
