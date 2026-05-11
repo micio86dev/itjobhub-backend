@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 async function checkUserProfile() {
   try {
-    const email = "micio86dev@gmail.com";
+    const email = "admin@devboards.io";
     
     console.log(`\n🔍 Searching for user with email: ${email}\n`);
     
