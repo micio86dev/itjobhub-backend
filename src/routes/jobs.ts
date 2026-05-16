@@ -253,6 +253,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           seniority?: string;
           employment_type?: string;
           remote?: boolean;
+          status?: string;
+          includeExpired?: boolean;
           skills?: string[];
           languages?: string[];
           lat?: number;
@@ -265,6 +267,14 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           salaryMax?: number;
           workModes?: string[];
         } = {};
+
+        // Status / include_expired are gated to admins so that non-admin
+        // callers cannot manually surface expired postings (§G.6 security
+        // recommendation in the SDD plan).
+        if (user?.role === "admin") {
+          if (query.status) filters.status = query.status;
+          if (query.include_expired === "true") filters.includeExpired = true;
+        }
 
         if (query.q) filters.q = query.q;
         if (query.company_id) filters.company_id = query.company_id;
@@ -344,7 +354,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         looseSeniority: t.Optional(t.String()),
         workModes: t.Optional(t.Union([t.String(), t.Array(t.String())])),
         salary_min: t.Optional(t.Numeric()),
-        salary_max: t.Optional(t.Numeric())
+        salary_max: t.Optional(t.Numeric()),
+        status: t.Optional(t.String()),
+        include_expired: t.Optional(t.String())
       }),
       response: {
         200: t.Object({
@@ -536,8 +548,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           return formatError("Unauthorized", 401);
         }
 
-        // Check if user is authorized to update this job
-        const job = await getJobById(params.id);
+        // Check if user is authorized to update this job. Bypass the public
+        // status filter so owners/admins can still update an expired posting.
+        const job = await getJobById(params.id, undefined, { includeExpired: true });
         if (!job) {
           set.status = 404;
           return formatError("Job not found", 404);
@@ -652,8 +665,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           return formatError("Unauthorized", 401);
         }
 
-        // Check if job exists
-        const job = await getJobById(params.id);
+        // Check if job exists. Bypass the public status filter so owners/admins
+        // can delete an expired posting.
+        const job = await getJobById(params.id, undefined, { includeExpired: true });
         if (!job) {
           set.status = 404;
           return formatError("Job not found", 404);
