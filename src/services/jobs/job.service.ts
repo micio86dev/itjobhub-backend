@@ -1,6 +1,25 @@
 import { prisma as dbClient } from "../../config/database";
 import { Prisma } from '@prisma/client';
 import logger from "../../utils/logger";
+import { HIDDEN_PUBLIC_STATUSES } from "../../types/job-status";
+
+/**
+ * Build the default `status` filter for public job reads.
+ * - When `includeExpired` is true → no filter (admin path).
+ * - When an explicit `status` value is requested → narrow to that exact value.
+ * - Otherwise → exclude every status listed in {@link HIDDEN_PUBLIC_STATUSES}
+ *   (`expired`, `rejected_quality`, `rejected_prefilter`).
+ *
+ * Returns `undefined` when no filter should be applied so callers can spread
+ * the result into a `where` clause without inserting noise.
+ */
+export const buildPublicStatusFilter = (
+  options: { status?: string; includeExpired?: boolean } = {}
+): Prisma.JobWhereInput["status"] | undefined => {
+  if (options.includeExpired) return undefined;
+  if (options.status) return options.status;
+  return { notIn: [...HIDDEN_PUBLIC_STATUSES] };
+};
 
 export interface JobCreateInput {
   title: string;
@@ -108,6 +127,7 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   employment_type?: string;
   remote?: boolean;
   status?: string;
+  includeExpired?: boolean;
   q?: string;
   skills?: string[];
   seniority?: string;
@@ -126,10 +146,17 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   const where: Prisma.JobWhereInput = {};
   const andConditions: Prisma.JobWhereInput[] = [];
 
+  // Apply status filter first so public listings never leak `expired` or
+  // `rejected_*` jobs unless the caller explicitly opts in (§I.4 contract).
+  const statusFilter = buildPublicStatusFilter({
+    status: filters?.status,
+    includeExpired: filters?.includeExpired
+  });
+  if (statusFilter !== undefined) {
+    andConditions.push({ status: statusFilter });
+  }
+
   if (filters) {
-    if (filters.status) {
-      andConditions.push({ status: filters.status });
-    }
 
     if (filters.company_id) {
       andConditions.push({ company_id: filters.company_id });
@@ -558,9 +585,17 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
 /**
  * Get job by ID
  * @param id - Job ID
+ * @param userId - Optional auth user id (controls personalized fields)
+ * @param options.includeExpired - Set to true to bypass the default
+ *   public-status filter (admin-only callers). Defaults to false so a public
+ *   reader cannot dereference an expired/rejected posting.
  * @returns Job details
  */
-export const getJobById = async (id: string, userId?: string) => {
+export const getJobById = async (
+  id: string,
+  userId?: string,
+  options: { includeExpired?: boolean } = {}
+) => {
   if (!id || id === 'undefined') return null;
 
   try {
@@ -572,6 +607,16 @@ export const getJobById = async (id: string, userId?: string) => {
     });
 
     if (!job) return null;
+
+    // Hide expired / rejected jobs from public reads unless the caller
+    // explicitly opted in (admin path).
+    if (
+      !options.includeExpired &&
+      job.status &&
+      (HIDDEN_PUBLIC_STATUSES as readonly string[]).includes(job.status)
+    ) {
+      return null;
+    }
 
     // Get interaction counts for the job
     const [reactionCounts, interactionCounts, commentCount] = await Promise.all([
