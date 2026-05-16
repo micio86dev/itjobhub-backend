@@ -349,3 +349,59 @@ model ContactReply {
   @@index([created_at])
   @@map("contact_replies")
 }
+
+/// Import analytics — parent document per CLI `import` invocation.
+/// Writer: `apps/job_scraper` (`pipeline/report.py:ImportReportTracker`).
+/// Readers: scraper + backend (read-only); see §I.1 of the SDD plan.
+/// Indexes are managed scraper-side via `ensure_indexes()`.
+model ImportReport {
+  id                       String    @id @default(auto()) @map("_id") @db.ObjectId
+  run_id                   String    @unique
+  started_at               DateTime
+  finished_at              DateTime?
+  ai_model                 String
+  triggered_by             String
+  language_targets         String[]
+  total_sources            Int       @default(0)
+  total_fetched            Int       @default(0)
+  total_passed_quality     Int       @default(0)
+  total_failed_quality     Int       @default(0)
+  total_upserted           Int       @default(0)
+  total_skipped_duplicate  Int       @default(0)
+  total_url_invalid        Int       @default(0)
+  total_expired_detected   Int       @default(0)
+  failure_reasons          Json?
+  avg_enrichment_ms        Float     @default(0)
+  errors                   String[]
+
+  @@index([started_at(sort: Desc)])
+  @@index([ai_model, started_at(sort: Desc)])
+  @@map("import_reports")
+}
+
+/// Per-source child of an `ImportReport`.
+/// Writer: `apps/job_scraper` (`pipeline/import_run.py:ImportRunTracker`).
+/// FK link: `report_id` → `ImportReport.run_id` (string, not ObjectId).
+model ImportRun {
+  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
+  report_id           String?
+  provider_name       String
+  started_at          DateTime
+  completed_at        DateTime?
+  language_target     String?
+  jobs_fetched        Int       @default(0)
+  jobs_stored         Int       @default(0)
+  passed_quality_gate Int       @default(0)
+  soft_404_count      Int       @default(0)
+  url_invalid_count   Int       @default(0)
+  avg_enrichment_ms   Float     @default(0)
+  quality_score       Float     @default(0)
+  connector_crashed   Boolean   @default(false)
+  crash_reason        String?
+  failure_reasons     Json?
+  errors              String[]
+
+  @@index([report_id])
+  @@index([provider_name, started_at(sort: Desc)])
+  @@map("import_runs")
+}
