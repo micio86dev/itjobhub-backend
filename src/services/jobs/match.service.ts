@@ -1,4 +1,5 @@
 import { prisma as dbClient } from "../../config/database";
+import { HIDDEN_PUBLIC_STATUSES } from "../../types/job-status";
 
 
 interface MatchFactors {
@@ -44,6 +45,12 @@ export const calculateMatchScore = async (userId: string, jobId: string): Promis
     ]);
 
     if (!profile || !job) {
+        throw new Error("Profile or Job not found");
+    }
+
+    // Refuse to score expired / rejected postings — keeps the public surface
+    // consistent with `GET /jobs` (§I.4).
+    if (job.status && (HIDDEN_PUBLIC_STATUSES as readonly string[]).includes(job.status)) {
         throw new Error("Profile or Job not found");
     }
 
@@ -266,9 +273,13 @@ export const calculateBatchMatchScores = async (userId: string, jobIds: string[]
     // Fetch user to get salaryMin
     const user = await dbClient.user.findUnique({ where: { id: userId } });
 
-    // Batch fetch all jobs
+    // Batch fetch all jobs, excluding expired / rejected postings so callers
+    // never receive a match score for a job that the public listing has hidden.
     const jobs = await dbClient.job.findMany({
-        where: { id: { in: jobIds } },
+        where: {
+            id: { in: jobIds },
+            status: { notIn: [...HIDDEN_PUBLIC_STATUSES] }
+        },
         include: {
             company: true
         }

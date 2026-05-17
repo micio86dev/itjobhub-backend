@@ -2,6 +2,7 @@ import { Elysia, t } from "elysia";
 import { prisma } from "../config/database";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
 import { authMiddleware } from "../middleware/auth";
+import { HIDDEN_PUBLIC_STATUSES } from "../types/job-status";
 
 export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
     .use(authMiddleware)
@@ -164,10 +165,12 @@ export const favoritesRoutes = new Elysia({ prefix: "/favorites" })
                 // Extract job IDs
                 const jobIds = favoritesRaw.map(f => f.job_id);
 
-                // Step 2: Fetch only jobs that actually exist
+                // Step 2: Fetch only jobs that actually exist and are still
+                // public (hide expired / rejected from favorite listings).
                 const jobs = await prisma.job.findMany({
                     where: {
-                        id: { in: jobIds }
+                        id: { in: jobIds },
+                        status: { notIn: [...HIDDEN_PUBLIC_STATUSES] }
                     },
                     include: {
                         company: true
