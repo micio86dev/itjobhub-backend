@@ -2,6 +2,7 @@ import { prisma as dbClient } from "../../config/database";
 import { Prisma } from '@prisma/client';
 import logger from "../../utils/logger";
 import { HIDDEN_PUBLIC_STATUSES } from "../../types/job-status";
+import { rerankJobs } from "./search.service";
 
 /**
  * Build the default `status` filter for public job reads.
@@ -569,6 +570,13 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
     total = jobs.length;
     // Apply limit after distance filtering
     jobs = jobs.slice(0, limit);
+  }
+
+  // SPEC 05 §4.7 — optional AI relevance rerank of the retrieved page. No-op
+  // unless config.ai.enableRerank and a text query are present; degrades to
+  // lexical order on any failure.
+  if (filters?.q) {
+    jobs = await rerankJobs(filters.q, jobs);
   }
 
   return {

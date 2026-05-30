@@ -138,6 +138,16 @@ model Job {
   imported_at     DateTime? @default(now())
   quality_score   Int?
 
+  // AI per-field confidence (SPEC 05 §4.3) — written by the scraper, nullable.
+  ai_field_confidence Json?
+
+  // Embedding-ready, DEFERRED (SPEC 05 §4.7). No embedder/vector index is wired
+  // yet (Groq has no embeddings; Mongo is self-hosted). search_text is the
+  // canonical lexical/embeddings input; embedding holds a future vector.
+  search_text     String?
+  embedding       Float[]
+  embedding_model String?
+
   // Relations
   company       Company?   @relation(fields: [company_id], references: [id])
   seniority_ref Seniority? @relation(fields: [seniority_id], references: [id])
