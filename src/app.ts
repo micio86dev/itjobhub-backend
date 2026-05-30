@@ -13,6 +13,7 @@ import { likeRoutes } from "./routes/likes";
 import { adminRoutes } from "./routes/admin";
 import { adminReportsRoutes } from "./routes/admin-reports";
 import { adminProvidersRoutes } from "./routes/admin-providers";
+import { adminUsersRoutes } from "./routes/admin-users";
 import { favoritesRoutes } from "./routes/favorites";
 import { newsRoutes } from "./routes/news";
 import { messagesRoutes } from "./routes/messages";
@@ -123,6 +124,7 @@ export const app = new Elysia()
     .use(adminRoutes)
     .use(adminReportsRoutes)
     .use(adminProvidersRoutes)
+    .use(adminUsersRoutes)
     .use(favoritesRoutes)
     .use(newsRoutes)
     .use(messagesRoutes)
