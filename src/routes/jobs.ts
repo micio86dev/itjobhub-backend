@@ -378,11 +378,18 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
 
         const result = await getJobs(page, limit, filters, user?.id);
 
-        // Record what skills users search for (fire-and-forget). Admin traffic
-        // is excluded so the dashboard's own job browsing does not pollute the
-        // "top searched skills" analytics.
-        if (filters.skills && filters.skills.length > 0 && user?.role !== "admin") {
-          void recordSkillSearches(filters.skills, user?.id);
+        // Record what users search for (fire-and-forget). Both the free-text
+        // keyword (`q`, the primary search box) and the explicit skills filter
+        // count — previously only `skills` was recorded, so keyword searches
+        // never reached the "top searched skills" analytics. Admin traffic is
+        // excluded so the dashboard's own job browsing doesn't pollute it.
+        if (user?.role !== "admin") {
+          const searchedTerms: string[] = [];
+          if (filters.skills && filters.skills.length > 0) searchedTerms.push(...filters.skills);
+          if (query.q && query.q.trim()) searchedTerms.push(query.q.trim());
+          if (searchedTerms.length > 0) {
+            void recordSkillSearches(searchedTerms, user?.id);
+          }
         }
 
         return formatResponse(result, "Jobs retrieved successfully");
