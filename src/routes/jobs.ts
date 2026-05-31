@@ -315,6 +315,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           salaryMin?: number;
           salaryMax?: number;
           workModes?: string[];
+          hasLocation?: boolean;
+          personalized?: boolean;
         } = {};
 
         // Status / include_expired are gated to admins so that non-admin
@@ -378,6 +380,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             : query.workModes.split(",");
         }
         if (query.hasLocation === "true") filters.hasLocation = true;
+        if (query.personalized === "true") filters.personalized = true;
 
         const result = await getJobs(page, limit, filters, user?.id);
 
@@ -427,7 +430,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         salary_max: t.Optional(t.Numeric()),
         status: t.Optional(t.String()),
         include_expired: t.Optional(t.String()),
-        hasLocation: t.Optional(t.String())
+        hasLocation: t.Optional(t.String()),
+        personalized: t.Optional(t.String())
       }),
       response: {
         200: t.Object({

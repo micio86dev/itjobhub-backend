@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import logger from "../../utils/logger";
 import { HIDDEN_PUBLIC_STATUSES } from "../../types/job-status";
 import { rerankJobs } from "./search.service";
+import { calculateBatchMatchScores } from "./match.service";
 
 /**
  * Build the default `status` filter for public job reads.
@@ -146,8 +147,14 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   salaryMin?: number;
   salaryMax?: number;
   hasLocation?: boolean;
+  // Personalized feed: rank candidates by compatibility and keep only strong
+  // matches (>=50% of the job's required skills owned AND overall score >=60%).
+  personalized?: boolean;
 }, userId?: string) => {
   const skip = (page - 1) * limit;
+  // Personalized mode ranks a broad candidate pool by match score in-memory,
+  // so over-fetch (ignore DB pagination) and paginate after filtering.
+  const PERSONALIZED_POOL = 300;
   const where: Prisma.JobWhereInput = {};
   const andConditions: Prisma.JobWhereInput[] = [];
 
@@ -414,8 +421,12 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   const results = await Promise.all([
     dbClient.job.findMany({
       where,
-      skip: filters?.lat && filters?.lng ? undefined : skip,
-      take: filters?.lat && filters?.lng ? undefined : limit,
+      skip: (filters?.lat && filters?.lng) || filters?.personalized ? undefined : skip,
+      take: filters?.personalized
+        ? PERSONALIZED_POOL
+        : filters?.lat && filters?.lng
+          ? undefined
+          : limit,
       include: {
         company: true
       },
@@ -606,6 +617,35 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
     total = jobs.length;
     // Apply limit after distance filtering
     jobs = jobs.slice(0, limit);
+  }
+
+  // Personalized feed: rank the candidate pool by compatibility and keep only
+  // strong matches — >=50% of the job's required skills owned AND overall match
+  // score >=60% — sorted by score desc, then paginate in-memory.
+  if (filters?.personalized && userId) {
+    const profile = await dbClient.userProfile.findUnique({ where: { user_id: userId } });
+    const userSkills = new Set((profile?.skills || []).map((s) => s.toLowerCase()));
+    const scoreMap = await calculateBatchMatchScores(userId, jobs.map((j) => j.id));
+
+    const ranked = jobs
+      .map((job) => {
+        const jobSkills = Array.from(
+          new Set(
+            [...(job.skills || []), ...(job.technical_skills || [])].map((s) =>
+              String(s).toLowerCase(),
+            ),
+          ),
+        );
+        const matched = jobSkills.filter((s) => userSkills.has(s)).length;
+        const coverage = jobSkills.length ? matched / jobSkills.length : 1;
+        const score = scoreMap[job.id]?.score ?? 0;
+        return { job, coverage, score };
+      })
+      .filter((r) => r.coverage >= 0.5 && r.score >= 60)
+      .sort((a, b) => b.score - a.score);
+
+    total = ranked.length;
+    jobs = ranked.slice(skip, skip + limit).map((r) => r.job);
   }
 
   // SPEC 05 §4.7 — optional AI relevance rerank of the retrieved page. No-op
