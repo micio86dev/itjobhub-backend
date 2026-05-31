@@ -321,6 +321,18 @@ model Interaction {
   @@map("interactions")
 }
 
+model SkillSearch {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  skill       String // normalized (lowercased) skill term searched for
+  user_id     String?  @db.ObjectId
+  fingerprint String?
+  created_at  DateTime @default(now())
+
+  @@index([skill])
+  @@index([created_at])
+  @@map("skill_searches")
+}
+
 model Contact {
   id                  String    @id @default(auto()) @map("_id") @db.ObjectId
   sender_id           String?   @db.ObjectId // Optional if not logged in

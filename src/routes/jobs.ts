@@ -8,6 +8,8 @@ import {
   importJob,
   batchImportJobs,
   getTopSkills,
+  getTopSearchedSkills,
+  recordSkillSearches,
   trackJobInteraction
 } from "../services/jobs/job.service";
 import { calculateMatchScore, calculateBatchMatchScores } from "../services/jobs/match.service";
@@ -235,6 +237,50 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
     }
   )
   /**
+   * Get top searched skills (what users actually search for)
+   * @method GET
+   * @path /jobs/stats/searched-skills
+   */
+  .get(
+    "/stats/searched-skills",
+    async ({ query, set }) => {
+      try {
+        const limit = query.limit || 20;
+        const year = query.year;
+        const skills = await getTopSearchedSkills(limit, year);
+        return formatResponse(skills, "Top searched skills retrieved successfully");
+      } catch (error) {
+        set.status = 500;
+        return formatError(`Failed to retrieve top searched skills: ${getErrorMessage(error)}`, 500);
+      }
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.Numeric()),
+        year: t.Optional(t.Numeric())
+      }),
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String(),
+          data: t.Array(t.Object({
+            skill: t.String(),
+            count: t.Number()
+          }))
+        }),
+        500: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
+        })
+      },
+      detail: {
+        tags: ["jobs"]
+      }
+    }
+  )
+  /**
    * Get all jobs with pagination and filters
    * @method GET
    * @path /jobs
@@ -325,6 +371,13 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         }
 
         const result = await getJobs(page, limit, filters, user?.id);
+
+        // Record what skills users search for (fire-and-forget). Admin traffic
+        // is excluded so the dashboard's own job browsing does not pollute the
+        // "top searched skills" analytics.
+        if (filters.skills && filters.skills.length > 0 && user?.role !== "admin") {
+          void recordSkillSearches(filters.skills, user?.id);
+        }
 
         return formatResponse(result, "Jobs retrieved successfully");
       } catch (error) {
