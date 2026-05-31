@@ -3,9 +3,12 @@ import { authMiddleware } from "../middleware/auth";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
 import {
     getUserById,
+    getUserByEmail,
+    createUser,
     upsertUserProfile
 } from "../services/users/user.service";
 import { getUserCVs } from "../services/cv/cv.service";
+import { hashPassword, generatePassword } from "../utils/password";
 
 /**
  * Admin-only user info cards. Lets an admin view and edit a single user's full
@@ -92,6 +95,65 @@ export const adminUsersRoutes = new Elysia({ prefix: "/admin/users" })
             }
         }
     })
+    /**
+     * Create a new account (user or admin) from the dashboard.
+     *
+     * The admin supplies only email, name and role; the password is generated
+     * server-side and returned in plaintext exactly once (`generatedPassword`),
+     * to be communicated to the user. The user then changes it and fills in
+     * personal data from their own profile.
+     */
+    .post(
+        "/",
+        async ({ body, set }) => {
+            try {
+                const email = body.email.trim().toLowerCase();
+
+                const existing = await getUserByEmail(email);
+                if (existing) {
+                    set.status = 409;
+                    return formatError("A user with this email already exists", 409);
+                }
+
+                const generatedPassword = generatePassword();
+                const hashed = await hashPassword(generatedPassword);
+
+                const created = await createUser({
+                    email,
+                    password: hashed,
+                    first_name: body.firstName,
+                    last_name: body.lastName,
+                    role: body.role
+                });
+
+                set.status = 201;
+                return formatResponse(
+                    {
+                        id: created.id,
+                        email: created.email,
+                        firstName: created.first_name,
+                        lastName: created.last_name,
+                        role: created.role,
+                        createdAt: created.created_at?.toISOString() ?? null,
+                        generatedPassword
+                    },
+                    "User created successfully"
+                );
+            } catch (error) {
+                set.status = 500;
+                return formatError(`Failed to create user: ${getErrorMessage(error)}`, 500);
+            }
+        },
+        {
+            body: t.Object({
+                email: t.String({ format: "email" }),
+                firstName: t.String({ minLength: 1 }),
+                lastName: t.String({ minLength: 1 }),
+                role: t.Union([t.Literal("user"), t.Literal("admin")])
+            }),
+            detail: { tags: ["admin"] }
+        }
+    )
     /**
      * Full user info card: user fields + profile + uploaded CVs.
      */
