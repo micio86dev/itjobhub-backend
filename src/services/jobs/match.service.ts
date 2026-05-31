@@ -9,9 +9,71 @@ interface MatchFactors {
     trustScore: number;
     timeliness: number;
     salaryMatch: number;
+    employmentMatch: number;
     competition: number;
     applicationRate: number;
 }
+
+/**
+ * Canonicalise an employment/contract type token so the job's `employment_type`
+ * and the user's profile preference (`availability`) can be compared across
+ * locales and spellings. Returns null for values that aren't a contract type
+ * (e.g. the legacy "busy" availability status).
+ */
+const normalizeEmploymentType = (value?: string | null): string | null => {
+    if (!value) return null;
+    const v = value.toLowerCase();
+    if (v.includes("full") || v.includes("tempo pieno")) return "full_time";
+    if (v.includes("part") || v.includes("part-time")) return "part_time";
+    if (v.includes("contract") || v.includes("contratto")) return "contract";
+    if (v.includes("freelance") || v.includes("partita iva")) return "freelance";
+    if (v.includes("intern") || v.includes("tirocinio") || v.includes("stage")) return "internship";
+    if (v.includes("busy")) return null; // availability status, not a contract type
+    return null;
+};
+
+/**
+ * The profile employment-type preference (`availability`) is migrating from a
+ * single string to a string[]. Read it defensively so the match works before
+ * and after that change.
+ */
+const employmentPrefs = (availability: string | string[] | null | undefined): string[] => {
+    const raw = Array.isArray(availability)
+        ? availability
+        : typeof availability === "string"
+            ? [availability]
+            : [];
+    return Array.from(
+        new Set(raw.map((v) => normalizeEmploymentType(String(v))).filter((v): v is string => v !== null)),
+    );
+};
+
+/**
+ * Inverse "demand" factor: the more candidates have already applied to a job,
+ * the lower the opportunity score. Driven by the real APPLY interaction count
+ * (robust: re-imports replace the job doc and reset its denormalised
+ * clicks_count, but the interactions collection survives).
+ */
+const demandScore = (applyCount: number): number => {
+    if (applyCount <= 2) return 100;
+    if (applyCount <= 5) return 70;
+    if (applyCount <= 10) return 40;
+    if (applyCount <= 20) return 20;
+    return 0;
+};
+
+/**
+ * Score how well the job's contract type matches the user's preferred types.
+ * 100 when no preference (neutral/full credit), match, or job type unknown;
+ * 0 only when the user has explicit preferences and the job's type is none of
+ * them.
+ */
+const employmentMatchScore = (prefs: string[], jobEmploymentType?: string | null): number => {
+    if (prefs.length === 0) return 100;
+    const jobType = normalizeEmploymentType(jobEmploymentType);
+    if (!jobType) return 100; // unknown job type — don't penalise
+    return prefs.includes(jobType) ? 100 : 0;
+};
 
 export interface MatchBreakdown {
     score: number;
@@ -33,13 +95,16 @@ export interface BatchMatchResult {
 
 export const calculateMatchScore = async (userId: string, jobId: string): Promise<MatchBreakdown> => {
     // 1. Fetch Data
-    const [profile, job] = await Promise.all([
+    const [profile, job, applyCount] = await Promise.all([
         dbClient.userProfile.findUnique({ where: { user_id: userId } }),
         dbClient.job.findUnique({
             where: { id: jobId },
             include: {
                 company: true
             }
+        }),
+        dbClient.interaction.count({
+            where: { trackable_type: "job", trackable_id: jobId, type: "APPLY" }
         })
     ]);
 
@@ -60,6 +125,7 @@ export const calculateMatchScore = async (userId: string, jobId: string): Promis
         trustScore: 0,
         timeliness: 0,
         salaryMatch: 0,
+        employmentMatch: 0,
         competition: 0,
         applicationRate: 0
     };
@@ -197,15 +263,10 @@ export const calculateMatchScore = async (userId: string, jobId: string): Promis
     else if (views < 300) factors.competition = 30;
     else factors.competition = 0;
 
-    // --- 7. Application Rate (5%) ---
-    const applyCount = 0; // TODO: Fetch from interaction table separately if needed
-    const ratio = views > 0 ? (applyCount / views) * 100 : 0;
-
-    // Logic inverse: Low ratio = good opportunity
-    if (ratio < 15) factors.applicationRate = 100;
-    else if (ratio < 30) factors.applicationRate = 60;
-    else if (ratio < 50) factors.applicationRate = 30;
-    else factors.applicationRate = 0;
+    // --- 7. Application demand (inverse, 6%) ---
+    // More applications already received => lower opportunity. Driven by the
+    // real APPLY interaction count (see demandScore).
+    factors.applicationRate = demandScore(applyCount);
 
     // --- 8. Salary Match (7%) ---
     if (profile.salaryMin && profile.salaryMin > 0) {
@@ -227,24 +288,23 @@ export const calculateMatchScore = async (userId: string, jobId: string): Promis
         factors.salaryMatch = 100;
     }
 
-    // --- Final Weighted Score ---
-    // User requested changes (Jan 2026):
-    // Skills: 42% (was 33%)
-    // Seniority: 20% (was 23%)
-    // Location: 14% (was 14%)
-    // Trust: 9% (was 10%)
-    // Timeliness: 8% (was 10%)
-    // Salary: 7% (new)
-    // Competition: 0% (was 5%)
-    // AppRatio: 0% (was 5%)
+    // --- 9. Employment type match (6%) ---
+    factors.employmentMatch = employmentMatchScore(employmentPrefs(profile.availability), job.employment_type);
 
+    // --- Final Weighted Score ---
+    // Weights (May 2026): added employment-type (work "type") and a moderate
+    // inverse application-demand factor per user request. Sum = 100%.
+    //   Skills 38 · Seniority 18 · Location/mode 12 · Trust 8 · Timeliness 6
+    //   · Salary 6 · EmploymentType 6 · ApplicationDemand 6
     const weightedScore =
-        (factors.skillsMatch * 0.42) +
-        (factors.seniorityMatch * 0.20) +
-        (factors.locationMatch * 0.14) +
-        (factors.trustScore * 0.09) +
-        (factors.timeliness * 0.08) +
-        (factors.salaryMatch * 0.07);
+        (factors.skillsMatch * 0.38) +
+        (factors.seniorityMatch * 0.18) +
+        (factors.locationMatch * 0.12) +
+        (factors.trustScore * 0.08) +
+        (factors.timeliness * 0.06) +
+        (factors.salaryMatch * 0.06) +
+        (factors.employmentMatch * 0.06) +
+        (factors.applicationRate * 0.06);
 
     return {
         score: Math.round(weightedScore),
@@ -281,7 +341,16 @@ export const calculateBatchMatchScores = async (userId: string, jobIds: string[]
         }
     });
 
+    // APPLY counts per job (inverse demand factor) — one grouped query.
+    const applyCounts = await dbClient.interaction.groupBy({
+        by: ["trackable_id"],
+        where: { trackable_type: "job", trackable_id: { in: jobIds }, type: "APPLY" },
+        _count: { _all: true }
+    });
+    const applyCountMap = new Map(applyCounts.map(a => [a.trackable_id, a._count._all]));
+
     const userSkills = (profile.skills || []).map(s => s.toLowerCase());
+    const userEmploymentPrefs = employmentPrefs(profile.availability);
 
     const normalizeSeniority = (s?: string | null) => {
         if (!s) return -1;
@@ -388,14 +457,20 @@ export const calculateBatchMatchScores = async (userId: string, jobIds: string[]
             salaryMatch = 100;
         }
 
-        // Final weighted score
+        // Employment type (6%) + inverse application demand (6%)
+        const employmentMatch = employmentMatchScore(userEmploymentPrefs, job.employment_type);
+        const applicationRate = demandScore(applyCountMap.get(job.id) || 0);
+
+        // Final weighted score — mirrors calculateMatchScore weights.
         const score = Math.round(
-            (skillsMatch * 0.42) +
-            (seniorityMatch * 0.20) +
-            (locationMatch * 0.14) +
-            (trustScore * 0.09) +
-            (timeliness * 0.08) +
-            (salaryMatch * 0.07)
+            (skillsMatch * 0.38) +
+            (seniorityMatch * 0.18) +
+            (locationMatch * 0.12) +
+            (trustScore * 0.08) +
+            (timeliness * 0.06) +
+            (salaryMatch * 0.06) +
+            (employmentMatch * 0.06) +
+            (applicationRate * 0.06)
         );
 
         const label = score >= 75 ? 'excellent' : score >= 50 ? 'good' : score >= 30 ? 'fair' : 'low';

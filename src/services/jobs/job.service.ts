@@ -297,7 +297,12 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
     }
 
     if (filters.hasLocation) {
-      andConditions.push({ location_geo: { isSet: true } });
+      // Composite field: `isSet: true` also matches docs where location_geo is
+      // present-but-null (the scraper writes location_geo: null pre-geocode), so
+      // it does NOT filter to real coordinates. `isNot: null` returns only jobs
+      // with an actual Point — and since it excludes the nulls before the limit,
+      // the geocoded jobs (a minority) all fit in the page window.
+      andConditions.push({ location_geo: { isNot: null } });
     }
 
     if (filters.languages && filters.languages.length > 0) {

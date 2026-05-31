@@ -1105,6 +1105,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               locationMatch: t.Number(),
               trustScore: t.Number(),
               timeliness: t.Number(),
+              salaryMatch: t.Number(),
+              employmentMatch: t.Number(),
               competition: t.Number(),
               applicationRate: t.Number()
             }),
