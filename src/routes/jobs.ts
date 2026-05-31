@@ -283,7 +283,11 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         if (query.location) filters.location = query.location;
         if (query.seniority) filters.seniority = query.seniority;
         if (query.employment_type) filters.employment_type = query.employment_type;
-        if (query.remote !== undefined) filters.remote = query.remote === "true";
+        if (query.remote === "hybrid") {
+          filters.employment_type = "hybrid";
+        } else if (query.remote !== undefined) {
+          filters.remote = query.remote === "true";
+        }
         if (query.skills) {
           const rawSkills = Array.isArray(query.skills)
             ? query.skills
