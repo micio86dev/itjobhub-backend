@@ -1068,6 +1068,54 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
     }
   )
   /**
+   * Current user's daily application quota (for the frontend to disable the
+   * Apply button preventively once the limit is reached).
+   * @method GET
+   * @path /jobs/me/apply-quota
+   */
+  .get(
+    "/me/apply-quota",
+    async ({ user, set }) => {
+      try {
+        if (!user) {
+          set.status = 401;
+          return formatError("Unauthorized", 401);
+        }
+        const since = new Date(Date.now() - 86400000);
+        const todayCount = await prisma.interaction.count({
+          where: { user_id: user.id, type: "APPLY", created_at: { gte: since } }
+        });
+        const limit = config.dailyApplyLimit;
+        return formatResponse(
+          { todayCount, limit, remaining: Math.max(0, limit - todayCount) },
+          "Apply quota retrieved"
+        );
+      } catch (error) {
+        set.status = 500;
+        return formatError(`Failed to retrieve apply quota: ${getErrorMessage(error)}`, 500);
+      }
+    },
+    {
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String(),
+          data: t.Object({
+            todayCount: t.Number(),
+            limit: t.Number(),
+            remaining: t.Number()
+          })
+        }),
+        401: t.Object({ success: t.Boolean(), status: t.Number(), message: t.String() }),
+        500: t.Object({ success: t.Boolean(), status: t.Number(), message: t.String() })
+      },
+      detail: {
+        tags: ["jobs"]
+      }
+    }
+  )
+  /**
    * Get job match score for user
    * @method GET
    * @path /jobs/:id/match
