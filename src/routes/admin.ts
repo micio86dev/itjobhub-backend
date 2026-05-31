@@ -56,6 +56,30 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
     }, {
         query: t.Object({ weeks: t.Optional(t.String()) })
     })
+    .get("/stats/applications-timeline", async ({ query }) => {
+        try {
+            const days = parseInt(query.days || "30");
+            const { getApplicationsTimeline } = await import("../services/admin/admin.service");
+            const data = await getApplicationsTimeline(days);
+            return formatResponse(data, "Applications timeline retrieved successfully");
+        } catch {
+            return formatError("Failed to retrieve applications timeline", 500);
+        }
+    }, {
+        query: t.Object({ days: t.Optional(t.String()) })
+    })
+    .get("/stats/activity-heatmap", async ({ query }) => {
+        try {
+            const days = parseInt(query.days || "30");
+            const { getActivityHeatmap } = await import("../services/admin/admin.service");
+            const data = await getActivityHeatmap(days);
+            return formatResponse(data, "Activity heatmap retrieved successfully");
+        } catch {
+            return formatError("Failed to retrieve activity heatmap", 500);
+        }
+    }, {
+        query: t.Object({ days: t.Optional(t.String()) })
+    })
     .get("/stats/login-methods", async () => {
         try {
             const { getLoginMethodsDistribution } = await import("../services/admin/admin.service");

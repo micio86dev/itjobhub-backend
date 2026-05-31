@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { config } from '../src/config';
 import { GroqProvider, LLMError, type LLMProvider, type LLMResponse } from '../src/services/ai/provider';
 import { ModelRouter } from '../src/services/ai/router';
-import { InMemoryTTLCache, NullCache, makeCacheKey } from '../src/services/ai/cache';
+import { InMemoryTTLCache, NullCache, makeCacheKey, type AICache } from '../src/services/ai/cache';
 
 const originalFetch = globalThis.fetch;
 const originalApiKey = config.ai.apiKey;
@@ -104,7 +104,7 @@ describe('AI cache', () => {
   });
 
   it('NullCache never stores', () => {
-    const cache = new NullCache();
+    const cache: AICache = new NullCache();
     cache.put('a', 'x');
     expect(cache.get('a')).toBeNull();
   });

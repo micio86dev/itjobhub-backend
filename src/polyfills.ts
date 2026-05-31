@@ -31,5 +31,5 @@ if (typeof globalThis.DOMMatrix === 'undefined') {
     static fromFloat64Array() { return new DOMMatrixPolyfill(); }
   }
 
-  (globalThis as Record<string, object>).DOMMatrix = DOMMatrixPolyfill;
+  (globalThis as unknown as Record<string, object>).DOMMatrix = DOMMatrixPolyfill;
 }
