@@ -63,7 +63,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         refresh_token.set({
           value: refreshToken,
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
+          secure: config.nodeEnv === "production",
           maxAge: 7 * 24 * 60 * 60, // 7 days
           path: "/",
         });
@@ -161,7 +161,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         refresh_token.set({
           value: refreshToken,
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
+          secure: config.nodeEnv === "production",
           maxAge: 7 * 24 * 60 * 60, // 7 days
           path: "/",
         });
@@ -260,7 +260,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         refresh_token.set({
           value: result.refreshToken,
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
+          secure: config.nodeEnv === "production",
           maxAge: 7 * 24 * 60 * 60, // 7 days
           path: "/",
         });
@@ -580,7 +580,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         refresh_token.set({
           value: refreshToken,
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
+          secure: config.nodeEnv === "production",
           maxAge: 7 * 24 * 60 * 60, // 7 days
           path: "/",
         });

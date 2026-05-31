@@ -6,7 +6,13 @@ dotenv.config();
 export const config = {
   port: parseInt(process.env.PORT || "3001"),
   host: process.env.HOST || "localhost",
-  nodeEnv: process.env.NODE_ENV || "development",
+  // `bun build --compile` statically INLINES `process.env.NODE_ENV` at build
+  // time (the Docker builder stage leaves it unset → inlined as "development"),
+  // so the container's runtime NODE_ENV is ignored. `APP_ENV` is NOT special-
+  // cased by the bundler and IS read at runtime, so it is the source of truth
+  // for the deployed environment (set per-env in docker-compose). NODE_ENV
+  // remains as a fallback for local `bun run dev` (non-compiled).
+  nodeEnv: process.env.APP_ENV || process.env.NODE_ENV || "development",
   clientUrl: process.env.CLIENT_URL || "http://localhost:3000",
   database: {
     url: process.env.DATABASE_URL || ""
