@@ -408,6 +408,7 @@ model ImportRun {
   id                  String    @id @default(auto()) @map("_id") @db.ObjectId
   report_id           String?
   provider_name       String
+  provider_slug       String? // canonical join key (connector REGISTRY slug); provider_name stays the display label
   started_at          DateTime
   completed_at        DateTime?
   language_target     String?
