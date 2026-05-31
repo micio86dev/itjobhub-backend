@@ -34,5 +34,6 @@ export const config = {
     apiKey: process.env.GROQ_API_KEY || "",
     model: "llama-3.1-8b-instant",
     maxTokens: 2048
-  }
+  },
+  dailyApplyLimit: parseInt(process.env.DAILY_APPLY_LIMIT || "3")
 };

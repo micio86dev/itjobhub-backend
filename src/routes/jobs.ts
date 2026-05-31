@@ -13,6 +13,7 @@ import {
 import { calculateMatchScore, calculateBatchMatchScores } from "../services/jobs/match.service";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
 import { prisma } from "../config/database";
+import { config } from "../config";
 import { getUserProfile } from "../services/users/user.service";
 import { authMiddleware } from "../middleware/auth";
 
@@ -947,9 +948,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               created_at: { gte: since }
             }
           });
-          if (todayCount >= 3) {
+          if (todayCount >= config.dailyApplyLimit) {
             set.status = 429;
-            return formatError('Max 3 applications per day reached', 429);
+            return formatError(`Max ${config.dailyApplyLimit} applications per day reached`, 429);
           }
         }
 
