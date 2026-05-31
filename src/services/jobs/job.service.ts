@@ -297,7 +297,7 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
     }
 
     if (filters.hasLocation) {
-      andConditions.push({ location_geo: { not: null } });
+      andConditions.push({ location_geo: { isSet: true } });
     }
 
     if (filters.languages && filters.languages.length > 0) {
