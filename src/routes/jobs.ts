@@ -329,6 +329,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             ? query.workModes
             : query.workModes.split(",");
         }
+        if (query.hasLocation === "true") filters.hasLocation = true;
 
         const result = await getJobs(page, limit, filters, user?.id);
 
@@ -362,7 +363,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         salary_min: t.Optional(t.Numeric()),
         salary_max: t.Optional(t.Numeric()),
         status: t.Optional(t.String()),
-        include_expired: t.Optional(t.String())
+        include_expired: t.Optional(t.String()),
+        hasLocation: t.Optional(t.String())
       }),
       response: {
         200: t.Object({

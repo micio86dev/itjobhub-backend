@@ -141,6 +141,7 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   workModes?: string[];
   salaryMin?: number;
   salaryMax?: number;
+  hasLocation?: boolean;
 }, userId?: string) => {
   const skip = (page - 1) * limit;
   const where: Prisma.JobWhereInput = {};
@@ -271,6 +272,10 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
           ]
         });
       }
+    }
+
+    if (filters.hasLocation) {
+      andConditions.push({ location_geo: { not: null } });
     }
 
     if (filters.languages && filters.languages.length > 0) {
