@@ -96,7 +96,8 @@ export const getNews = async (
     }
 
     // Rimuoviamo eventuali undefined per pulizia
-    Object.keys(where).forEach(key => where[key] === undefined && delete where[key]);
+    const whereRecord = where as Record<string, unknown>;
+    Object.keys(whereRecord).forEach(key => whereRecord[key] === undefined && delete whereRecord[key]);
 
     const [newsRaw, total] = await Promise.all([
         prisma.news.findMany({

@@ -33,15 +33,14 @@ export interface BatchMatchResult {
 
 export const calculateMatchScore = async (userId: string, jobId: string): Promise<MatchBreakdown> => {
     // 1. Fetch Data
-    const [profile, job, user] = await Promise.all([
+    const [profile, job] = await Promise.all([
         dbClient.userProfile.findUnique({ where: { user_id: userId } }),
         dbClient.job.findUnique({
             where: { id: jobId },
             include: {
                 company: true
             }
-        }),
-        dbClient.user.findUnique({ where: { id: userId } })
+        })
     ]);
 
     if (!profile || !job) {
@@ -209,14 +208,14 @@ export const calculateMatchScore = async (userId: string, jobId: string): Promis
     else factors.applicationRate = 0;
 
     // --- 8. Salary Match (7%) ---
-    if (user?.salaryMin && user.salaryMin > 0) {
+    if (profile.salaryMin && profile.salaryMin > 0) {
         // If job has salary info
-        if (job.salary_max && job.salary_max >= user.salaryMin) {
+        if (job.salary_max && job.salary_max >= profile.salaryMin) {
             // Job meets minimum salary requirement
             factors.salaryMatch = 100;
         } else if (job.salary_max && job.salary_max > 0) {
             // Job has salary but below minimum - penalize proportionally
-            const salaryRatio = job.salary_max / user.salaryMin;
+            const salaryRatio = job.salary_max / profile.salaryMin;
             factors.salaryMatch = Math.round(salaryRatio * 100);
             if (factors.salaryMatch > 100) factors.salaryMatch = 100;
         } else {
@@ -266,12 +265,9 @@ export const calculateMatchScore = async (userId: string, jobId: string): Promis
 export const calculateBatchMatchScores = async (userId: string, jobIds: string[]): Promise<BatchMatchResult> => {
     if (!jobIds.length) return {};
 
-    // Fetch profile once
+    // Fetch profile once (carries salaryMin, skills, seniority, etc.)
     const profile = await dbClient.userProfile.findUnique({ where: { user_id: userId } });
     if (!profile) return {};
-
-    // Fetch user to get salaryMin
-    const user = await dbClient.user.findUnique({ where: { id: userId } });
 
     // Batch fetch all jobs, excluding expired / rejected postings so callers
     // never receive a match score for a job that the public listing has hidden.
@@ -374,14 +370,14 @@ export const calculateBatchMatchScores = async (userId: string, jobIds: string[]
 
         // Salary Match (7%)
         let salaryMatch = 50;
-        if (user?.salaryMin && user.salaryMin > 0) {
+        if (profile.salaryMin && profile.salaryMin > 0) {
             // If job has salary info
-            if (job.salary_max && job.salary_max >= user.salaryMin) {
+            if (job.salary_max && job.salary_max >= profile.salaryMin) {
                 // Job meets minimum salary requirement
                 salaryMatch = 100;
             } else if (job.salary_max && job.salary_max > 0) {
                 // Job has salary but below minimum - penalize proportionally
-                const ratio = job.salary_max / user.salaryMin;
+                const ratio = job.salary_max / profile.salaryMin;
                 salaryMatch = Math.round(ratio * 100);
                 if (salaryMatch > 100) salaryMatch = 100;
             }

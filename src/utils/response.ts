@@ -38,7 +38,7 @@ export const formatError = <T>(
   };
 };
 
-export const getErrorCode = (error: object): string | undefined =>
+export const getErrorCode = <T>(error: T): string | undefined =>
   (error as { code?: string })?.code;
 
 export const getErrorMessage = <T>(error: T): string => {

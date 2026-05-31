@@ -30,6 +30,9 @@ export const config = {
     userRegistration: process.env.FEATURE_USER_REGISTRATION === "true",
     jobPosting: process.env.FEATURE_JOB_POSTING === "true"
   },
+  // Max number of APPLY interactions a single user may record per rolling 24h
+  // (enforced in routes/jobs.ts). Configurable via DAILY_APPLY_LIMIT.
+  dailyApplyLimit: parseInt(process.env.DAILY_APPLY_LIMIT || "3", 10),
   groq: {
     apiKey: process.env.GROQ_API_KEY || "",
     model: "llama-3.1-8b-instant",
