@@ -304,6 +304,32 @@ export const listReports = async (opts: {
     };
 };
 
+/**
+ * Newest import report with live counters — backs the dashboard's live
+ * progress panel after a manual trigger. A report whose status is "partial"
+ * with no `finished_at` is the in-flight run; the scraper updates its counters
+ * via `$inc` as it goes, so polling this surfaces real-time progress.
+ */
+export const getActiveReport = async (): Promise<ImportReportListItem | null> => {
+    const db = await getMongoDb();
+    const collection = db.collection<RawImportReport>("import_reports");
+    const runsCollection = db.collection<RawImportRun>("import_runs");
+
+    const report = await collection.find({}).sort({ started_at: -1 }).limit(1).next();
+    if (!report) return null;
+
+    const sources = report.run_id
+        ? await runsCollection
+              .find(
+                  { report_id: report.run_id },
+                  { projection: { report_id: 1, connector_crashed: 1 } }
+              )
+              .toArray()
+        : [];
+
+    return mapReportRowBase(report, sources);
+};
+
 export const getReportWithSources = async (
     id: string
 ): Promise<ReportWithSources | null> => {

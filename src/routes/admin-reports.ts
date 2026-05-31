@@ -3,12 +3,19 @@ import { authMiddleware } from "../middleware/auth";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
 import {
     listReports,
+    getActiveReport,
     getReportWithSources,
     sourceLeaderboard,
     failureBreakdown,
     listExpiredJobs,
     recheckJobUrl
 } from "../services/admin/reports.service";
+import {
+    dispatchImport,
+    getLatestRun,
+    currentEnvironment,
+    ScraperDispatchError
+} from "../services/admin/scraper-dispatch.service";
 
 /**
  * Admin-only import analytics endpoints — see §I.5 of the SDD plan for the
@@ -185,4 +192,61 @@ export const adminReportsRoutes = new Elysia({ prefix: "/admin/reports" })
             params: t.Object({ jobId: t.String() }),
             detail: { tags: ["admin"] }
         }
+    )
+    /**
+     * Manually trigger an import. Dispatches the scrapers GitHub Actions
+     * workflow for the requested scraper. The target environment is derived
+     * from this backend's own NODE_ENV — a staging API can only trigger
+     * staging, prod only prod — so the dashboard always hits its own env.
+     */
+    .post(
+        "/import",
+        async ({ body, set }) => {
+            try {
+                const result = await dispatchImport(body.scraper);
+                set.status = 202;
+                return formatResponse(result, "Import dispatched");
+            } catch (error) {
+                if (error instanceof ScraperDispatchError) {
+                    set.status = error.statusCode;
+                    return formatError(error.message, error.statusCode);
+                }
+                set.status = 500;
+                return formatError(`Failed to dispatch import: ${getErrorMessage(error)}`, 500);
+            }
+        },
+        {
+            body: t.Object({
+                scraper: t.Union([t.Literal("job"), t.Literal("news"), t.Literal("both")])
+            }),
+            detail: { tags: ["admin"] }
+        }
+    )
+    /**
+     * Live import status: the latest GitHub workflow run (covers news, which
+     * has no per-source counters) plus the newest import report with live
+     * counters (jobs). The dashboard polls this while a run is in flight.
+     */
+    .get(
+        "/import/status",
+        async ({ set }) => {
+            try {
+                const [run, activeReport] = await Promise.all([
+                    getLatestRun().catch(() => null),
+                    getActiveReport()
+                ]);
+                return formatResponse(
+                    { environment: currentEnvironment(), run, activeReport },
+                    "Import status retrieved"
+                );
+            } catch (error) {
+                if (error instanceof ScraperDispatchError) {
+                    set.status = error.statusCode;
+                    return formatError(error.message, error.statusCode);
+                }
+                set.status = 500;
+                return formatError(`Failed to retrieve import status: ${getErrorMessage(error)}`, 500);
+            }
+        },
+        { detail: { tags: ["admin"] } }
     );

@@ -35,6 +35,14 @@ export const config = {
     model: "llama-3.1-8b-instant",
     maxTokens: 2048
   },
+  // Manual scraper trigger: the dashboard "Run import" button dispatches the
+  // scrapers GitHub Actions workflow. Token/repo/workflow are injected from
+  // GitHub Secrets at deploy time (see backend-ci-cd.yml), never hand-edited.
+  scraperDispatch: {
+    token: process.env.GH_DISPATCH_TOKEN || "",
+    repo: process.env.GH_DISPATCH_REPO || "micio86dev/itjobhub-antigravity-config",
+    workflow: process.env.GH_DISPATCH_WORKFLOW || "scrapers-ci-cd.yml"
+  },
   // Unified multi-model AI config (SPEC 05). The router maps a task to a tier
   // to a model; callers never reference a model literal.
   ai: {
