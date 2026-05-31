@@ -2,6 +2,7 @@ import { Elysia, t } from "elysia";
 import {
     getNews,
     getNewsBySlug,
+    getNewsCategories,
     deleteNews,
     createNews
 } from "../services/news/news.service";
@@ -178,7 +179,9 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
                     category,
                     language,
                     is_published: true,
-                    q
+                    q,
+                    dateFrom: query.dateFrom,
+                    dateTo: query.dateTo
                 }, user?.id);
 
                 return formatResponse(result, "News retrieved successfully");
@@ -193,7 +196,9 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
                 limit: t.Optional(t.String()),
                 category: t.Optional(t.String()),
                 language: t.Optional(t.String()),
-                q: t.Optional(t.String())
+                q: t.Optional(t.String()),
+                dateFrom: t.Optional(t.String()),
+                dateTo: t.Optional(t.String())
             }),
             response: {
                 200: t.Object({
@@ -238,6 +243,24 @@ export const newsRoutes = new Elysia({ prefix: "/news" })
                 tags: ["news"]
             }
         }
+    )
+    /**
+     * Distinct news categories for filter dropdowns.
+     * @method GET
+     * @path /news/categories
+     */
+    .get(
+        "/categories",
+        async ({ set }) => {
+            try {
+                const categories = await getNewsCategories();
+                return formatResponse(categories, "Categories retrieved successfully");
+            } catch (error) {
+                set.status = 500;
+                return formatError(`Failed to retrieve categories: ${getErrorMessage(error)}`, 500);
+            }
+        },
+        { detail: { tags: ["news"] } }
     )
     /**
      * Get a single news article by slug

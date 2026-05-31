@@ -77,7 +77,7 @@ export const importNews = async (data: NewsCreateInput) => {
 export const getNews = async (
     page: number = 1,
     limit: number = 10,
-    filters: { category?: string; language?: string; is_published?: boolean; q?: string } = {},
+    filters: { category?: string; language?: string; is_published?: boolean; q?: string; dateFrom?: string; dateTo?: string } = {},
     userId?: string
 ) => {
     const skip = (page - 1) * limit;
@@ -93,6 +93,21 @@ export const getNews = async (
             { title: { contains: filters.q, mode: "insensitive" } },
             { summary: { contains: filters.q, mode: "insensitive" } }
         ];
+    }
+
+    // Publication date range. `dateTo` is inclusive of the whole day, so the
+    // upper bound is an exclusive comparison against the following midnight.
+    if (filters.dateFrom || filters.dateTo) {
+        const publishedAt: Prisma.DateTimeFilter = {};
+        if (filters.dateFrom) {
+            publishedAt.gte = new Date(`${filters.dateFrom}T00:00:00.000Z`);
+        }
+        if (filters.dateTo) {
+            const end = new Date(`${filters.dateTo}T00:00:00.000Z`);
+            end.setUTCDate(end.getUTCDate() + 1);
+            publishedAt.lt = end;
+        }
+        where.published_at = publishedAt;
     }
 
     // Rimuoviamo eventuali undefined per pulizia
@@ -199,6 +214,20 @@ export const getNews = async (
  * @param slug - Article slug
  * @returns News article
  */
+/**
+ * Distinct, non-empty published news categories.
+ * Powers the dashboard category filter dropdown.
+ */
+export const getNewsCategories = async (): Promise<string[]> => {
+    const rows = await prisma.news.findMany({
+        where: { is_published: true, category: { not: null } },
+        distinct: ["category"],
+        select: { category: true },
+        orderBy: { category: "asc" }
+    });
+    return rows.map(r => r.category).filter((c): c is string => !!c);
+};
+
 export const getNewsBySlug = async (slug: string, userId?: string) => {
     const newsItem = await prisma.news.findUnique({
         where: { slug }

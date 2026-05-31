@@ -137,6 +137,9 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
   lng?: number;
   radius_km?: number;
   dateRange?: string;
+  // Client UTC offset in minutes (Date.getTimezoneOffset()) so "today" can be
+  // bounded by the user's local day rather than the server's UTC day.
+  tzOffsetMin?: number;
   minMatchScore?: number;
   looseSeniority?: boolean;
   workModes?: string[];
@@ -164,25 +167,37 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
     }
 
     if (filters.location && (!filters.lat || !filters.lng)) {
-      // Improved location fallback: Job contains Filter OR Filter contains Job
-      // to handle "Munich" vs "Munich, Germany" bidirectional matching.
+      // Google Places autocomplete yields full strings like "Roma RM, Italia",
+      // but jobs store just the city ("Roma"). Match on the primary locality
+      // token (the part before the first comma) so the long formatted address
+      // still hits the stored city.
+      const locality = filters.location.split(',')[0].trim() || filters.location;
       andConditions.push({
         OR: [
-          { location: { contains: filters.location, mode: 'insensitive' } },
-          { location_raw: { contains: filters.location, mode: 'insensitive' } },
-          { formatted_address_verified: { contains: filters.location, mode: 'insensitive' } }
+          { location: { contains: locality, mode: 'insensitive' } },
+          { location_raw: { contains: locality, mode: 'insensitive' } },
+          { formatted_address_verified: { contains: locality, mode: 'insensitive' } },
+          { city: { contains: locality, mode: 'insensitive' } }
         ]
       });
     }
 
     if (filters.employment_type) {
-      // Map common frontend availability values to backend employment_type values if needed, 
-      // or just rely on the frontend sending correct values.
-      // The availability mapping in the frontend seems to be: 
-      // full-time, part-time, contract, freelance, internship
-      // Backend text is usually: Full-time, Part-time, Contract, etc.
-      // Let's use a flexible contains or case-insensitive match
-      andConditions.push({ employment_type: { contains: filters.employment_type, mode: 'insensitive' } });
+      // Scrapers store employment_type with inconsistent separators
+      // ("Full-time" / "Full Time" / "full_time" / "fulltime"). The frontend
+      // sends a hyphenated value (e.g. "full-time"), so match every separator
+      // variant case-insensitively instead of a single literal contains.
+      const et = filters.employment_type.trim().toLowerCase();
+      const variants = Array.from(new Set([
+        et,
+        et.replace(/[-_\s]+/g, ' '),
+        et.replace(/[-_\s]+/g, '-'),
+        et.replace(/[-_\s]+/g, '_'),
+        et.replace(/[-_\s]+/g, '')
+      ]));
+      andConditions.push({
+        OR: variants.map(v => ({ employment_type: { contains: v, mode: 'insensitive' as const } }))
+      });
     }
 
     if (filters.experience_level) {
@@ -242,11 +257,17 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
       let fromDate: Date | null = null;
 
       switch (filters.dateRange) {
-        case 'today':
-          // Start of today in UTC (00:00:00 UTC)
-          fromDate = new Date();
-          fromDate.setUTCHours(0, 0, 0, 0);
+        case 'today': {
+          // Start of *the user's local* today, expressed as a UTC instant, so
+          // the filter agrees with the locally-displayed date. tzOffsetMin is
+          // Date.getTimezoneOffset() (minutes to add to local to reach UTC,
+          // e.g. -120 for UTC+2). Falls back to UTC midnight when absent.
+          const offsetMin = filters.tzOffsetMin ?? 0;
+          const localNowMs = now.getTime() - offsetMin * 60000;
+          const localMidnightMs = Math.floor(localNowMs / 86400000) * 86400000;
+          fromDate = new Date(localMidnightMs + offsetMin * 60000);
           break;
+        }
         case 'week':
           // 7 days ago
           fromDate = new Date();
@@ -555,11 +576,16 @@ export const getJobs = async (page: number = 1, limit: number = 50, filters?: {
         return false;
       }
 
-      // Fallback: Job has NO coordinates.
-      // If we have a text location filter, check if it matches.
+      // Fallback: Job has NO coordinates (geocoding is deferred, so most jobs
+      // land here). Match on the primary locality token rather than the full
+      // Google Places string, so "Roma RM, Italia" still matches a "Roma" job.
       if (filters.location) {
-        // Simple case-insensitive inclusion check
-        return job.location && job.location.toLowerCase().includes(filters.location.toLowerCase());
+        const locality = (filters.location.split(',')[0].trim() || filters.location).toLowerCase();
+        if (!locality) return false;
+        const haystacks = [job.location, job.location_raw, job.formatted_address_verified, job.city]
+          .filter(Boolean)
+          .map((s) => String(s).toLowerCase());
+        return haystacks.some((h) => h.includes(locality) || (locality.includes(h) && h.length > 2));
       }
 
       // If no text filter and no coords, we can't verify location relevance, so we drop it

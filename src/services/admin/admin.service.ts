@@ -305,6 +305,69 @@ export const getJobsTimeline = async (weeks: number = 8) => {
 };
 
 /**
+ * Daily APPLY interactions for the last N days (job applications timeline).
+ */
+export const getApplicationsTimeline = async (days: number = 30) => {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const rows = await dbClient.interaction.findMany({
+        where: { type: "APPLY", created_at: { gte: startDate } },
+        select: { created_at: true }
+    });
+
+    const dailyCounts: Record<string, number> = {};
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        dailyCounts[d.toISOString().split("T")[0]] = 0;
+    }
+
+    rows.forEach(row => {
+        if (row.created_at) {
+            const key = row.created_at.toISOString().split("T")[0];
+            if (dailyCounts[key] !== undefined) dailyCounts[key]++;
+        }
+    });
+
+    return Object.entries(dailyCounts).map(([date, count]) => ({ date, count }));
+};
+
+/**
+ * Activity heatmap: interaction counts bucketed by weekday (0=Sun..6=Sat) and
+ * hour of day (0-23), UTC, over the last N days. Returns flat cells plus the
+ * max so the dashboard can scale the colour ramp.
+ */
+export const getActivityHeatmap = async (days: number = 30) => {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const rows = await dbClient.interaction.findMany({
+        where: { created_at: { gte: startDate } },
+        select: { created_at: true }
+    });
+
+    const grid: number[][] = Array.from({ length: 7 }, () => new Array<number>(24).fill(0));
+    rows.forEach(row => {
+        if (row.created_at) {
+            grid[row.created_at.getUTCDay()][row.created_at.getUTCHours()]++;
+        }
+    });
+
+    const cells: { day: number; hour: number; count: number }[] = [];
+    let max = 0;
+    for (let day = 0; day < 7; day++) {
+        for (let hour = 0; hour < 24; hour++) {
+            const count = grid[day][hour];
+            if (count > max) max = count;
+            cells.push({ day, hour, count });
+        }
+    }
+
+    return { cells, max };
+};
+
+/**
  * Get login methods distribution
  */
 export const getLoginMethodsDistribution = async () => {

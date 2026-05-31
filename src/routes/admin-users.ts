@@ -5,6 +5,7 @@ import {
     getUserById,
     getUserByEmail,
     createUser,
+    updateUser,
     upsertUserProfile
 } from "../services/users/user.service";
 import { getUserCVs } from "../services/cv/cv.service";
@@ -190,6 +191,11 @@ export const adminUsersRoutes = new Elysia({ prefix: "/admin/users" })
                     set.status = 404;
                     return formatError("User not found", 404);
                 }
+                // Role lives on the User record, not the profile — update it
+                // separately when supplied.
+                if (body.role) {
+                    await updateUser(params.id, { role: body.role });
+                }
                 await upsertUserProfile(params.id, body);
                 const updated = await getUserById(params.id);
                 const result = await toAdminUser(updated as unknown as UserRecord);
@@ -202,6 +208,7 @@ export const adminUsersRoutes = new Elysia({ prefix: "/admin/users" })
         {
             params: t.Object({ id: t.String() }),
             body: t.Object({
+                role: t.Optional(t.Union([t.Literal("user"), t.Literal("admin")])),
                 firstName: t.Optional(t.String()),
                 lastName: t.Optional(t.String()),
                 phone: t.Optional(t.String()),
