@@ -8,10 +8,14 @@ import {
   importJob,
   batchImportJobs,
   getTopSkills,
+  getTopSearchedSkills,
+  recordSkillSearches,
   trackJobInteraction
 } from "../services/jobs/job.service";
 import { calculateMatchScore, calculateBatchMatchScores } from "../services/jobs/match.service";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
+import { prisma } from "../config/database";
+import { config } from "../config";
 import { getUserProfile } from "../services/users/user.service";
 import { authMiddleware } from "../middleware/auth";
 
@@ -235,6 +239,50 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
     }
   )
   /**
+   * Get top searched skills (what users actually search for)
+   * @method GET
+   * @path /jobs/stats/searched-skills
+   */
+  .get(
+    "/stats/searched-skills",
+    async ({ query, set }) => {
+      try {
+        const limit = query.limit || 20;
+        const year = query.year;
+        const skills = await getTopSearchedSkills(limit, year);
+        return formatResponse(skills, "Top searched skills retrieved successfully");
+      } catch (error) {
+        set.status = 500;
+        return formatError(`Failed to retrieve top searched skills: ${getErrorMessage(error)}`, 500);
+      }
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.Numeric()),
+        year: t.Optional(t.Numeric())
+      }),
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String(),
+          data: t.Array(t.Object({
+            skill: t.String(),
+            count: t.Number()
+          }))
+        }),
+        500: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
+        })
+      },
+      detail: {
+        tags: ["jobs"]
+      }
+    }
+  )
+  /**
    * Get all jobs with pagination and filters
    * @method GET
    * @path /jobs
@@ -281,7 +329,11 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         if (query.location) filters.location = query.location;
         if (query.seniority) filters.seniority = query.seniority;
         if (query.employment_type) filters.employment_type = query.employment_type;
-        if (query.remote !== undefined) filters.remote = query.remote === "true";
+        if (query.remote === "hybrid") {
+          filters.employment_type = "hybrid";
+        } else if (query.remote !== undefined) {
+          filters.remote = query.remote === "true";
+        }
         if (query.skills) {
           const rawSkills = Array.isArray(query.skills)
             ? query.skills
@@ -325,6 +377,13 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         }
 
         const result = await getJobs(page, limit, filters, user?.id);
+
+        // Record what skills users search for (fire-and-forget). Admin traffic
+        // is excluded so the dashboard's own job browsing does not pollute the
+        // "top searched skills" analytics.
+        if (filters.skills && filters.skills.length > 0 && user?.role !== "admin") {
+          void recordSkillSearches(filters.skills, user?.id);
+        }
 
         return formatResponse(result, "Jobs retrieved successfully");
       } catch (error) {
@@ -927,6 +986,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
   )
   /**
    * Track job interaction (view or apply)
+   * Max 3 APPLY per user per day.
    * @method POST
    * @path /jobs/:id/track
    */
@@ -935,6 +995,22 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
     async ({ params, body, user, set }) => {
       try {
         const { type, fingerprint } = body;
+
+        if (type === 'APPLY' && user) {
+          const since = new Date(Date.now() - 86400000);
+          const todayCount = await prisma.interaction.count({
+            where: {
+              user_id: user.id,
+              type: 'APPLY',
+              created_at: { gte: since }
+            }
+          });
+          if (todayCount >= config.dailyApplyLimit) {
+            set.status = 429;
+            return formatError(`Max ${config.dailyApplyLimit} applications per day reached`, 429);
+          }
+        }
+
         const result = await trackJobInteraction(
           params.id,
           type as 'VIEW' | 'APPLY',
@@ -962,6 +1038,11 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           status: t.Number(),
           message: t.String(),
           data: t.Unknown()
+        }),
+        429: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
         }),
         500: t.Object({
           success: t.Boolean(),

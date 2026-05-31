@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { getUserById, getUserProfile, upsertUserProfile, addUserSkill, getUsers } from "../services/users/user.service";
+import { getUserById, getUserProfile, upsertUserProfile, addUserSkill, getUsers, changeUserPassword, InvalidPasswordError } from "../services/users/user.service";
 import { authMiddleware } from "../middleware/auth";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
 
@@ -28,7 +28,9 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         const limit = parseInt(query.limit || "50");
         const filters = {
           q: query.q,
-          role: query.role
+          role: query.role,
+          dateFrom: query.dateFrom,
+          dateTo: query.dateTo
         };
 
         const result = await getUsers(page, limit, filters);
@@ -60,7 +62,9 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         page: t.Optional(t.String()),
         limit: t.Optional(t.String()),
         q: t.Optional(t.String()),
-        role: t.Optional(t.String())
+        role: t.Optional(t.String()),
+        dateFrom: t.Optional(t.String()),
+        dateTo: t.Optional(t.String())
       }),
       response: {
         200: t.Object({
@@ -422,6 +426,46 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           message: t.String()
         })
       },
+      detail: {
+        tags: ["users"]
+      }
+    }
+  )
+  /**
+   * Change own password
+   * @method PUT
+   * @path /users/me/password
+   */
+  .put(
+    "/me/password",
+    async ({ user, body, set }) => {
+      try {
+        if (!user) {
+          set.status = 401;
+          return formatError("Unauthorized", 401);
+        }
+
+        await changeUserPassword(user.id, body.currentPassword, body.newPassword);
+        return formatResponse({ ok: true }, "Password updated successfully");
+      } catch (error) {
+        if (error instanceof InvalidPasswordError) {
+          set.status = 400;
+          return formatError(error.message, 400);
+        }
+        const message = getErrorMessage(error);
+        if (message.includes("not available")) {
+          set.status = 400;
+          return formatError(message, 400);
+        }
+        set.status = 500;
+        return formatError(`Failed to update password: ${message}`, 500);
+      }
+    },
+    {
+      body: t.Object({
+        currentPassword: t.String({ minLength: 1 }),
+        newPassword: t.String({ minLength: 6 })
+      }),
       detail: {
         tags: ["users"]
       }

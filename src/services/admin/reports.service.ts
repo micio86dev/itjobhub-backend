@@ -36,6 +36,7 @@ export interface ImportReportDetail extends ImportReportListItem {
 export interface ImportRunSource {
     id: string;
     provider_name: string;
+    provider_slug: string | null;
     language_target: string | null;
     started_at: string;
     completed_at: string | null;
@@ -60,6 +61,7 @@ export type LeaderboardTrend = "improving" | "declining" | "stable";
 
 export interface LeaderboardRow {
     provider_name: string;
+    provider_slug: string | null;
     language_target: string | null;
     runs: number;
     total_stored: number;
@@ -136,6 +138,7 @@ interface RawImportRun {
     _id: RawObjectId;
     report_id?: string | null;
     provider_name?: string;
+    provider_slug?: string | null;
     language_target?: string | null;
     started_at?: Date | string | null;
     completed_at?: Date | string | null;
@@ -214,6 +217,7 @@ const mapReportRowBase = (
 const mapSourceRow = (run: RawImportRun): ImportRunSource => ({
     id: run._id.toString(),
     provider_name: run.provider_name ?? "",
+    provider_slug: run.provider_slug ?? null,
     language_target: run.language_target ?? null,
     started_at: toIso(run.started_at) ?? new Date(0).toISOString(),
     completed_at: toIso(run.completed_at),
@@ -304,6 +308,32 @@ export const listReports = async (opts: {
     };
 };
 
+/**
+ * Newest import report with live counters — backs the dashboard's live
+ * progress panel after a manual trigger. A report whose status is "partial"
+ * with no `finished_at` is the in-flight run; the scraper updates its counters
+ * via `$inc` as it goes, so polling this surfaces real-time progress.
+ */
+export const getActiveReport = async (): Promise<ImportReportListItem | null> => {
+    const db = await getMongoDb();
+    const collection = db.collection<RawImportReport>("import_reports");
+    const runsCollection = db.collection<RawImportRun>("import_runs");
+
+    const report = await collection.find({}).sort({ started_at: -1 }).limit(1).next();
+    if (!report) return null;
+
+    const sources = report.run_id
+        ? await runsCollection
+              .find(
+                  { report_id: report.run_id },
+                  { projection: { report_id: 1, connector_crashed: 1 } }
+              )
+              .toArray()
+        : [];
+
+    return mapReportRowBase(report, sources);
+};
+
 export const getReportWithSources = async (
     id: string
 ): Promise<ReportWithSources | null> => {
@@ -379,6 +409,7 @@ export const sourceLeaderboard = async (opts: {
         .find(match, {
             projection: {
                 provider_name: 1,
+                provider_slug: 1,
                 language_target: 1,
                 jobs_stored: 1,
                 quality_score: 1,
@@ -390,6 +421,7 @@ export const sourceLeaderboard = async (opts: {
 
     type Bucket = {
         provider_name: string;
+        provider_slug: string | null;
         language_target: string | null;
         runs: number;
         total_stored: number;
@@ -399,10 +431,15 @@ export const sourceLeaderboard = async (opts: {
     const buckets = new Map<string, Bucket>();
     for (const r of rows) {
         const provider = r.provider_name ?? "unknown";
+        const slug = r.provider_slug ?? null;
         const lang = r.language_target ?? null;
-        const key = `${provider}::${lang ?? "_"}`;
+        // Group by the canonical slug when present (so a display-name rename
+        // never splits a source); fall back to provider_name for legacy rows
+        // written before provider_slug existed.
+        const key = `${slug ?? provider}::${lang ?? "_"}`;
         const bucket = buckets.get(key) ?? {
             provider_name: provider,
+            provider_slug: slug,
             language_target: lang,
             runs: 0,
             total_stored: 0,
@@ -423,6 +460,7 @@ export const sourceLeaderboard = async (opts: {
                 : 0;
         return {
             provider_name: b.provider_name,
+            provider_slug: b.provider_slug,
             language_target: b.language_target,
             runs: b.runs,
             total_stored: b.total_stored,

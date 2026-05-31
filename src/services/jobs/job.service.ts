@@ -948,6 +948,68 @@ export const getTopSkills = async (limit: number = 10, year?: number) => {
     .slice(0, limit);
 };
 
+/**
+ * Record the skill terms a user searched for. Fire-and-forget: it must never
+ * block or break the job-listing response, so failures are only logged.
+ * Skills are normalized (trimmed + lowercased) so that aggregation is
+ * case-insensitive.
+ */
+export const recordSkillSearches = async (
+  skills: string[],
+  userId?: string,
+  fingerprint?: string
+): Promise<void> => {
+  try {
+    const normalized = Array.from(
+      new Set(
+        skills
+          .map((skill) => skill.trim().toLowerCase())
+          .filter(Boolean)
+      )
+    );
+    if (normalized.length === 0) return;
+
+    await dbClient.skillSearch.createMany({
+      data: normalized.map((skill) => ({
+        skill,
+        user_id: userId || null,
+        fingerprint: (!userId && fingerprint) ? fingerprint : null
+      }))
+    });
+  } catch (error) {
+    logger.error({ error, skills }, '[JobService] recordSkillSearches failed');
+  }
+};
+
+/**
+ * Aggregate the most frequently searched skills. Mirrors getTopSkills: the
+ * raw term is stored lowercased, so we capitalize the first letter for a
+ * consistent, display-friendly label.
+ */
+export const getTopSearchedSkills = async (limit: number = 20, year?: number) => {
+  const where: Prisma.SkillSearchWhereInput = {};
+
+  if (year) {
+    where.created_at = {
+      gte: new Date(year, 0, 1),
+      lt: new Date(year + 1, 0, 1)
+    };
+  }
+
+  const grouped = await dbClient.skillSearch.groupBy({
+    by: ['skill'],
+    where,
+    _count: { skill: true },
+    orderBy: { _count: { skill: 'desc' } },
+    take: limit
+  });
+
+  return grouped.map(({ skill, _count }) => ({
+    skill: skill.charAt(0).toUpperCase() + skill.slice(1),
+    count: _count.skill
+  }));
+};
+
 import { trackInteraction } from "../tracking/tracking.service";
 
 export const trackJobInteraction = async (

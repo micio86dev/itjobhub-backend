@@ -1,5 +1,14 @@
 import { dbClient } from "../../config/database";
 import type { Prisma } from "@prisma/client";
+import { hashPassword, comparePasswords } from "../../utils/password";
+
+/** Thrown when the supplied current password does not match. */
+export class InvalidPasswordError extends Error {
+  constructor() {
+    super("Current password is incorrect");
+    this.name = "InvalidPasswordError";
+  }
+}
 
 export interface UserUpdateInput {
   email?: string;
@@ -102,6 +111,39 @@ export const updateUser = async (userId: string, data: UserUpdateInput) => {
 };
 
 /**
+ * Change the password of an authenticated user.
+ *
+ * Verifies the current password before applying the new (hashed) one. Accounts
+ * created via OAuth (no password set) cannot use this flow.
+ *
+ * @throws InvalidPasswordError when the current password is wrong
+ */
+export const changeUserPassword = async (
+  userId: string,
+  currentPassword: string,
+  newPassword: string
+) => {
+  const user = await dbClient.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new Error("User not found");
+  }
+  if (!user.password) {
+    throw new Error("Password change is not available for this account");
+  }
+
+  const matches = await comparePasswords(currentPassword, user.password);
+  if (!matches) {
+    throw new InvalidPasswordError();
+  }
+
+  const hashed = await hashPassword(newPassword);
+  await dbClient.user.update({
+    where: { id: userId },
+    data: { password: hashed }
+  });
+};
+
+/**
  * Delete user
  * @param userId - User ID
  */
@@ -124,6 +166,8 @@ export const getUsers = async (
   filters?: {
     q?: string;
     role?: string;
+    dateFrom?: string;
+    dateTo?: string;
   }
 ) => {
   const skip = (page - 1) * limit;
@@ -139,6 +183,21 @@ export const getUsers = async (
       { last_name: { contains: filters.q, mode: "insensitive" } },
       { email: { contains: filters.q, mode: "insensitive" } }
     ];
+  }
+
+  // Registration date range (created_at). `dateTo` is inclusive of the whole
+  // day, so we use an exclusive upper bound on the following midnight.
+  if (filters?.dateFrom || filters?.dateTo) {
+    const createdAt: Prisma.DateTimeFilter = {};
+    if (filters.dateFrom) {
+      createdAt.gte = new Date(`${filters.dateFrom}T00:00:00.000Z`);
+    }
+    if (filters.dateTo) {
+      const end = new Date(`${filters.dateTo}T00:00:00.000Z`);
+      end.setUTCDate(end.getUTCDate() + 1);
+      createdAt.lt = end;
+    }
+    where.created_at = createdAt;
   }
 
   const [users, total] = await Promise.all([

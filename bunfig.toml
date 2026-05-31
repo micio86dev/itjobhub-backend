@@ -1,0 +1,4 @@
+[test]
+# preload.ts MUST come first: it forces an isolated *_test database into
+# process.env.DATABASE_URL before setup.ts imports the Prisma/Mongo clients.
+preload = ["./tests/preload.ts", "./tests/setup.ts"]
