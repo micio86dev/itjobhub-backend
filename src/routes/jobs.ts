@@ -12,6 +12,8 @@ import {
 } from "../services/jobs/job.service";
 import { calculateMatchScore, calculateBatchMatchScores } from "../services/jobs/match.service";
 import { formatResponse, formatError, getErrorMessage } from "../utils/response";
+import { prisma } from "../config/database";
+import { config } from "../config";
 import { getUserProfile } from "../services/users/user.service";
 import { authMiddleware } from "../middleware/auth";
 
@@ -281,7 +283,11 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         if (query.location) filters.location = query.location;
         if (query.seniority) filters.seniority = query.seniority;
         if (query.employment_type) filters.employment_type = query.employment_type;
-        if (query.remote !== undefined) filters.remote = query.remote === "true";
+        if (query.remote === "hybrid") {
+          filters.employment_type = "hybrid";
+        } else if (query.remote !== undefined) {
+          filters.remote = query.remote === "true";
+        }
         if (query.skills) {
           const rawSkills = Array.isArray(query.skills)
             ? query.skills
@@ -927,6 +933,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
   )
   /**
    * Track job interaction (view or apply)
+   * Max 3 APPLY per user per day.
    * @method POST
    * @path /jobs/:id/track
    */
@@ -935,6 +942,22 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
     async ({ params, body, user, set }) => {
       try {
         const { type, fingerprint } = body;
+
+        if (type === 'APPLY' && user) {
+          const since = new Date(Date.now() - 86400000);
+          const todayCount = await prisma.interaction.count({
+            where: {
+              user_id: user.id,
+              type: 'APPLY',
+              created_at: { gte: since }
+            }
+          });
+          if (todayCount >= config.dailyApplyLimit) {
+            set.status = 429;
+            return formatError(`Max ${config.dailyApplyLimit} applications per day reached`, 429);
+          }
+        }
+
         const result = await trackJobInteraction(
           params.id,
           type as 'VIEW' | 'APPLY',
@@ -962,6 +985,11 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           status: t.Number(),
           message: t.String(),
           data: t.Unknown()
+        }),
+        429: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String()
         }),
         500: t.Object({
           success: t.Boolean(),
