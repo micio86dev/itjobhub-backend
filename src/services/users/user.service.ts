@@ -21,7 +21,7 @@ export interface UserProfileInput {
   languages?: string[];
   skills?: string[];
   seniority?: string;
-  availability?: string;
+  availability?: string[];
   workModes?: string[];
   salaryMin?: number;
   bio?: string;
@@ -280,7 +280,7 @@ export const upsertUserProfile = async (userId: string, data: UserProfileInput &
     languages?: string[];
     skills?: string[];
     seniority?: string;
-    availability?: string;
+    availability?: string[];
     workModes?: string[];
     salaryMin?: number;
     bio?: string;

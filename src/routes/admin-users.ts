@@ -35,7 +35,7 @@ interface UserRecord {
         languages: string[];
         skills: string[];
         seniority: string | null;
-        availability: string | null;
+        availability: string[] | null;
         workModes: string[];
         salaryMin: number | null;
         cv_url: string | null;
@@ -218,7 +218,7 @@ export const adminUsersRoutes = new Elysia({ prefix: "/admin/users" })
                 languages: t.Optional(t.Array(t.String())),
                 skills: t.Optional(t.Array(t.String())),
                 seniority: t.Optional(t.String()),
-                availability: t.Optional(t.String()),
+                availability: t.Optional(t.Array(t.String())),
                 workModes: t.Optional(t.Array(t.String())),
                 salaryMin: t.Optional(t.Number()),
                 cvUrl: t.Optional(t.String()),

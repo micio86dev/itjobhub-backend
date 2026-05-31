@@ -239,7 +239,7 @@ model UserProfile {
   languages    String[]
   skills       String[]
   seniority    String?
-  availability String?
+  availability String[]
   workModes    String[]
   salaryMin    Int?         @default(0)
   cv_url        String?

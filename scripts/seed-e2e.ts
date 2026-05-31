@@ -62,7 +62,7 @@ async function seedE2E() {
                         languages: ["it", "en"],
                         skills: ["Leadership"],
                         seniority: "Senior",
-                        availability: "Immediate",
+                        availability: ["Immediate"],
                         bio: "Admin Bio"
                     }
                 });
@@ -74,7 +74,7 @@ async function seedE2E() {
                         languages: ["it", "en"],
                         skills: ["Leadership"],
                         seniority: "Senior",
-                        availability: "Immediate",
+                        availability: ["Immediate"],
                         bio: "Admin Bio"
                     }
                 });
@@ -92,7 +92,7 @@ async function seedE2E() {
                         languages: ["it", "en"],
                         skills: ["React", "Node.js"],
                         seniority: "Mid",
-                        availability: "Immediate",
+                        availability: ["Immediate"],
                         bio: "Seeker Bio"
                     }
                 });
@@ -104,7 +104,7 @@ async function seedE2E() {
                         languages: ["it", "en"],
                         skills: ["React", "Node.js"],
                         seniority: "Mid",
-                        availability: "Immediate",
+                        availability: ["Immediate"],
                         bio: "Seeker Bio"
                     }
                 });

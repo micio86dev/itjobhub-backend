@@ -40,7 +40,7 @@ mock.module('../src/services/auth/oauth.service', () => {
                     languages: ['italian'],
                     skills: ['Node.js'],
                     seniority: 'SENIOR',
-                    availability: 'FULL_TIME'
+                    availability: ['FULL_TIME']
                 }
             };
         },

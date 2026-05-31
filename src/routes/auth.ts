@@ -115,7 +115,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
               languages: t.Optional(t.Array(t.String())),
               skills: t.Optional(t.Array(t.String())),
               seniority: t.Optional(t.String()),
-              availability: t.Optional(t.String()),
+              availability: t.Optional(t.Array(t.String())),
               location_geo: t.Optional(t.Object({
                 type: t.String(),
                 coordinates: t.Array(t.Number())
@@ -209,7 +209,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
               languages: t.Optional(t.Array(t.String())),
               skills: t.Optional(t.Array(t.String())),
               seniority: t.Optional(t.String()),
-              availability: t.Optional(t.String()),
+              availability: t.Optional(t.Array(t.String())),
               location_geo: t.Optional(t.Object({
                 type: t.String(),
                 coordinates: t.Array(t.Number())
@@ -304,7 +304,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
               languages: t.Optional(t.Array(t.String())),
               skills: t.Optional(t.Array(t.String())),
               seniority: t.Optional(t.String()),
-              availability: t.Optional(t.String()),
+              availability: t.Optional(t.Array(t.String())),
               location_geo: t.Optional(t.Object({
                 type: t.String(),
                 coordinates: t.Array(t.Number())
@@ -550,7 +550,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
           Array.isArray(user.profile.languages) && user.profile.languages.length > 0 &&
           Array.isArray(user.profile.skills) && user.profile.skills.length > 0 &&
           !!user.profile.seniority &&
-          !!user.profile.availability;
+          Array.isArray(user.profile.availability) && user.profile.availability.length > 0;
 
         // Generate JWT token
         const payload: UserJwtPayload = {
@@ -651,7 +651,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
               languages: t.Optional(t.Array(t.String())),
               skills: t.Optional(t.Array(t.String())),
               seniority: t.Optional(t.String()),
-              availability: t.Optional(t.String()),
+              availability: t.Optional(t.Array(t.String())),
             }),
             token: t.String(),
           }),
