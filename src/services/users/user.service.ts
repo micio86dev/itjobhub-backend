@@ -48,7 +48,8 @@ export const getUserById = async (userId: string) => {
     where: { id: userId }
   });
 
-  if (!user) {
+  // Treat soft-deleted accounts as non-existent.
+  if (!user || user.deleted_at) {
     return null;
   }
 
@@ -69,9 +70,14 @@ export const getUserById = async (userId: string) => {
  * @returns User data
  */
 export const getUserByEmail = async (email: string) => {
-  return await dbClient.user.findUnique({
+  const user = await dbClient.user.findUnique({
     where: { email }
   });
+  // Soft-deleted accounts must not authenticate or be re-surfaced.
+  if (!user || user.deleted_at) {
+    return null;
+  }
+  return user;
 };
 
 /**
@@ -144,12 +150,25 @@ export const changeUserPassword = async (
 };
 
 /**
- * Delete user
+ * Hard delete user (permanent). Prefer `softDeleteUser` for admin-initiated
+ * removals so the record is preserved.
  * @param userId - User ID
  */
 export const deleteUser = async (userId: string) => {
   await dbClient.user.delete({
     where: { id: userId }
+  });
+};
+
+/**
+ * Soft delete user: flags the account as removed by stamping `deleted_at`.
+ * The document is preserved but excluded from listings, lookups and login.
+ * @param userId - User ID
+ */
+export const softDeleteUser = async (userId: string) => {
+  await dbClient.user.update({
+    where: { id: userId },
+    data: { deleted_at: new Date() }
   });
 };
 
@@ -171,7 +190,8 @@ export const getUsers = async (
   }
 ) => {
   const skip = (page - 1) * limit;
-  const where: Prisma.UserWhereInput = {};
+  // Exclude soft-deleted accounts from every admin listing.
+  const where: Prisma.UserWhereInput = { deleted_at: null };
 
   if (filters?.role) {
     where.role = filters.role;

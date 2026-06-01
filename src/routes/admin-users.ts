@@ -6,7 +6,8 @@ import {
     getUserByEmail,
     createUser,
     updateUser,
-    upsertUserProfile
+    upsertUserProfile,
+    softDeleteUser
 } from "../services/users/user.service";
 import { getUserCVs } from "../services/cv/cv.service";
 import { hashPassword, generatePassword } from "../utils/password";
@@ -227,6 +228,36 @@ export const adminUsersRoutes = new Elysia({ prefix: "/admin/users" })
                 linkedin: t.Optional(t.String()),
                 website: t.Optional(t.String())
             }),
+            detail: { tags: ["admin"] }
+        }
+    )
+    /**
+     * Soft delete a user. The account is flagged with `deleted_at` (preserved
+     * in the DB) and excluded from listings, lookups and login. Admins cannot
+     * delete their own account to avoid locking themselves out.
+     */
+    .delete(
+        "/:id",
+        async ({ params, set, user }) => {
+            try {
+                if (user?.id === params.id) {
+                    set.status = 400;
+                    return formatError("You cannot delete your own account", 400);
+                }
+                const existing = await getUserById(params.id);
+                if (!existing) {
+                    set.status = 404;
+                    return formatError("User not found", 404);
+                }
+                await softDeleteUser(params.id);
+                return formatResponse(null, "User deleted successfully");
+            } catch (error) {
+                set.status = 500;
+                return formatError(`Failed to delete user: ${getErrorMessage(error)}`, 500);
+            }
+        },
+        {
+            params: t.Object({ id: t.String() }),
             detail: { tags: ["admin"] }
         }
     );
