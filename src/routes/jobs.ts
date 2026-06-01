@@ -19,6 +19,18 @@ import { config } from "../config";
 import { getUserProfile } from "../services/users/user.service";
 import { authMiddleware } from "../middleware/auth";
 
+/**
+ * Start of the user's local calendar day, expressed as a UTC instant. Mirrors
+ * the `dateRange: 'today'` logic in job.service. tzOffsetMin is
+ * Date.getTimezoneOffset() (minutes to add to local to reach UTC, e.g. -120 for
+ * UTC+2); 0 falls back to UTC midnight.
+ */
+const startOfLocalDay = (tzOffsetMin: number): Date => {
+  const localNowMs = Date.now() - tzOffsetMin * 60000;
+  const localMidnightMs = Math.floor(localNowMs / 86400000) * 86400000;
+  return new Date(localMidnightMs + tzOffsetMin * 60000);
+};
+
 export const jobRoutes = new Elysia({ prefix: "/jobs" })
   /**
    * Use auth middleware to add user to context
@@ -1010,10 +1022,13 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
     "/:id/track",
     async ({ params, body, user, set }) => {
       try {
-        const { type, fingerprint } = body;
+        const { type, fingerprint, tzOffset } = body;
 
         if (type === 'APPLY' && user) {
-          const since = new Date(Date.now() - 86400000);
+          // Calendar-day limit (resets at the user's local midnight), NOT a
+          // rolling 24h window — otherwise yesterday-evening applies still count
+          // against today's quota. tzOffset is Date.getTimezoneOffset() minutes.
+          const since = startOfLocalDay(tzOffset ? parseInt(tzOffset, 10) : 0);
           const todayCount = await prisma.interaction.count({
             where: {
               user_id: user.id,
@@ -1046,7 +1061,10 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
       }),
       body: t.Object({
         type: t.Union([t.Literal('VIEW'), t.Literal('APPLY')]),
-        fingerprint: t.Optional(t.String())
+        fingerprint: t.Optional(t.String()),
+        // Client UTC offset in minutes (Date.getTimezoneOffset()) so the daily
+        // quota resets at the user's local midnight.
+        tzOffset: t.Optional(t.String())
       }),
       response: {
         200: t.Object({
@@ -1079,13 +1097,13 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
    */
   .get(
     "/me/apply-quota",
-    async ({ user, set }) => {
+    async ({ user, query, set }) => {
       try {
         if (!user) {
           set.status = 401;
           return formatError("Unauthorized", 401);
         }
-        const since = new Date(Date.now() - 86400000);
+        const since = startOfLocalDay(query.tzOffset ? parseInt(query.tzOffset, 10) : 0);
         const todayCount = await prisma.interaction.count({
           where: { user_id: user.id, type: "APPLY", created_at: { gte: since } }
         });
@@ -1100,6 +1118,9 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
       }
     },
     {
+      query: t.Object({
+        tzOffset: t.Optional(t.String())
+      }),
       response: {
         200: t.Object({
           success: t.Boolean(),
