@@ -191,7 +191,16 @@ export const getUsers = async (
 ) => {
   const skip = (page - 1) * limit;
   // Exclude soft-deleted accounts from every admin listing.
-  const where: Prisma.UserWhereInput = { deleted_at: null };
+  //
+  // CRITICAL: Prisma + MongoDB does NOT match documents that are MISSING the
+  // field with `{ deleted_at: null }` — it returns ZERO rows, which would hide
+  // every pre-existing user (they predate the column). So we match
+  // `null OR unset`; only accounts explicitly soft-deleted (deleted_at = a
+  // date) are excluded. Placed in `AND` so it composes with the search `OR`
+  // below without clobbering it.
+  const where: Prisma.UserWhereInput = {
+    AND: [{ OR: [{ deleted_at: null }, { deleted_at: { isSet: false } }] }],
+  };
 
   if (filters?.role) {
     where.role = filters.role;
