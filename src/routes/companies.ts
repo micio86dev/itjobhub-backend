@@ -132,6 +132,7 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
               totalRatings: t.Optional(t.Number()),
               totalLikes: t.Optional(t.Number()),
               totalDislikes: t.Optional(t.Number()),
+              jobsCount: t.Optional(t.Number()),
               created_at: t.Union([t.Any(), t.Null(), t.Undefined()]),
               updated_at: t.Union([t.Any(), t.Null(), t.Undefined()])
             })),
@@ -195,6 +196,7 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
             totalRatings: t.Optional(t.Number()),
             totalLikes: t.Optional(t.Number()),
             totalDislikes: t.Optional(t.Number()),
+            jobsCount: t.Optional(t.Number()),
             created_at: t.Union([t.String(), t.Date(), t.Null(), t.Undefined()]),
             updated_at: t.Union([t.String(), t.Date(), t.Null(), t.Undefined()])
           })

@@ -53,12 +53,17 @@ export const getCompanies = async (
       orderBy: {
         created_at: "desc",
       },
+      // Number of jobs linked to each company, surfaced as `jobsCount`.
+      include: { _count: { select: { jobs: true } } },
     }),
     prisma.company.count({ where }),
   ]);
 
   return {
-    companies,
+    companies: companies.map(({ _count, ...company }) => ({
+      ...company,
+      jobsCount: _count.jobs,
+    })),
     pagination: {
       page,
       limit,
@@ -74,9 +79,13 @@ export const getCompanies = async (
  * @returns Company details
  */
 export const getCompanyById = async (id: string) => {
-  return await prisma.company.findUnique({
-    where: { id }
+  const company = await prisma.company.findUnique({
+    where: { id },
+    include: { _count: { select: { jobs: true } } },
   });
+  if (!company) return null;
+  const { _count, ...rest } = company;
+  return { ...rest, jobsCount: _count.jobs };
 };
 
 /**
