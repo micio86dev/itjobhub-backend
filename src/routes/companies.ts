@@ -98,8 +98,18 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
       try {
         const page = parseInt(query.page || "1");
         const limit = parseInt(query.limit || "10");
+        const allowedSort = ["name", "trustScore", "jobsCount", "created_at"] as const;
+        const sortBy = allowedSort.includes(query.sortBy as (typeof allowedSort)[number])
+          ? (query.sortBy as (typeof allowedSort)[number])
+          : undefined;
         const filters = {
-          q: query.q
+          q: query.q,
+          trustMin: query.trustMin !== undefined ? Number(query.trustMin) : undefined,
+          trustMax: query.trustMax !== undefined ? Number(query.trustMax) : undefined,
+          dateFrom: query.dateFrom,
+          dateTo: query.dateTo,
+          sortBy,
+          sortOrder: query.sortOrder === "asc" ? ("asc" as const) : query.sortOrder === "desc" ? ("desc" as const) : undefined,
         };
 
         const result = await getCompanies(page, limit, filters);
@@ -114,7 +124,13 @@ export const companyRoutes = new Elysia({ prefix: "/companies" })
       query: t.Object({
         page: t.Optional(t.String()),
         limit: t.Optional(t.String()),
-        q: t.Optional(t.String())
+        q: t.Optional(t.String()),
+        trustMin: t.Optional(t.String()),
+        trustMax: t.Optional(t.String()),
+        dateFrom: t.Optional(t.String()),
+        dateTo: t.Optional(t.String()),
+        sortBy: t.Optional(t.String()),
+        sortOrder: t.Optional(t.String())
       }),
       response: {
         200: t.Object({
