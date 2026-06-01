@@ -29,7 +29,7 @@ const isProfileComplete = (profile: UserProfile | null | undefined): boolean => 
     Array.isArray(profile.languages) && profile.languages.length > 0 &&
     Array.isArray(profile.skills) && profile.skills.length > 0 &&
     !!profile.seniority &&
-    !!profile.availability
+    Array.isArray(profile.availability) && profile.availability.length > 0
   );
 };
 

@@ -19,6 +19,18 @@ import { config } from "../config";
 import { getUserProfile } from "../services/users/user.service";
 import { authMiddleware } from "../middleware/auth";
 
+/**
+ * Start of the user's local calendar day, expressed as a UTC instant. Mirrors
+ * the `dateRange: 'today'` logic in job.service. tzOffsetMin is
+ * Date.getTimezoneOffset() (minutes to add to local to reach UTC, e.g. -120 for
+ * UTC+2); 0 falls back to UTC midnight.
+ */
+const startOfLocalDay = (tzOffsetMin: number): Date => {
+  const localNowMs = Date.now() - tzOffsetMin * 60000;
+  const localMidnightMs = Math.floor(localNowMs / 86400000) * 86400000;
+  return new Date(localMidnightMs + tzOffsetMin * 60000);
+};
+
 export const jobRoutes = new Elysia({ prefix: "/jobs" })
   /**
    * Use auth middleware to add user to context
@@ -315,6 +327,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           salaryMin?: number;
           salaryMax?: number;
           workModes?: string[];
+          hasLocation?: boolean;
+          personalized?: boolean;
         } = {};
 
         // Status / include_expired are gated to admins so that non-admin
@@ -378,6 +392,7 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
             : query.workModes.split(",");
         }
         if (query.hasLocation === "true") filters.hasLocation = true;
+        if (query.personalized === "true") filters.personalized = true;
 
         const result = await getJobs(page, limit, filters, user?.id);
 
@@ -427,7 +442,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
         salary_max: t.Optional(t.Numeric()),
         status: t.Optional(t.String()),
         include_expired: t.Optional(t.String()),
-        hasLocation: t.Optional(t.String())
+        hasLocation: t.Optional(t.String()),
+        personalized: t.Optional(t.String())
       }),
       response: {
         200: t.Object({
@@ -1006,10 +1022,13 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
     "/:id/track",
     async ({ params, body, user, set }) => {
       try {
-        const { type, fingerprint } = body;
+        const { type, fingerprint, tzOffset } = body;
 
         if (type === 'APPLY' && user) {
-          const since = new Date(Date.now() - 86400000);
+          // Calendar-day limit (resets at the user's local midnight), NOT a
+          // rolling 24h window — otherwise yesterday-evening applies still count
+          // against today's quota. tzOffset is Date.getTimezoneOffset() minutes.
+          const since = startOfLocalDay(tzOffset ? parseInt(tzOffset, 10) : 0);
           const todayCount = await prisma.interaction.count({
             where: {
               user_id: user.id,
@@ -1042,7 +1061,10 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
       }),
       body: t.Object({
         type: t.Union([t.Literal('VIEW'), t.Literal('APPLY')]),
-        fingerprint: t.Optional(t.String())
+        fingerprint: t.Optional(t.String()),
+        // Client UTC offset in minutes (Date.getTimezoneOffset()) so the daily
+        // quota resets at the user's local midnight.
+        tzOffset: t.Optional(t.String())
       }),
       response: {
         200: t.Object({
@@ -1061,6 +1083,57 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
           status: t.Number(),
           message: t.String()
         })
+      },
+      detail: {
+        tags: ["jobs"]
+      }
+    }
+  )
+  /**
+   * Current user's daily application quota (for the frontend to disable the
+   * Apply button preventively once the limit is reached).
+   * @method GET
+   * @path /jobs/me/apply-quota
+   */
+  .get(
+    "/me/apply-quota",
+    async ({ user, query, set }) => {
+      try {
+        if (!user) {
+          set.status = 401;
+          return formatError("Unauthorized", 401);
+        }
+        const since = startOfLocalDay(query.tzOffset ? parseInt(query.tzOffset, 10) : 0);
+        const todayCount = await prisma.interaction.count({
+          where: { user_id: user.id, type: "APPLY", created_at: { gte: since } }
+        });
+        const limit = config.dailyApplyLimit;
+        return formatResponse(
+          { todayCount, limit, remaining: Math.max(0, limit - todayCount) },
+          "Apply quota retrieved"
+        );
+      } catch (error) {
+        set.status = 500;
+        return formatError(`Failed to retrieve apply quota: ${getErrorMessage(error)}`, 500);
+      }
+    },
+    {
+      query: t.Object({
+        tzOffset: t.Optional(t.String())
+      }),
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+          status: t.Number(),
+          message: t.String(),
+          data: t.Object({
+            todayCount: t.Number(),
+            limit: t.Number(),
+            remaining: t.Number()
+          })
+        }),
+        401: t.Object({ success: t.Boolean(), status: t.Number(), message: t.String() }),
+        500: t.Object({ success: t.Boolean(), status: t.Number(), message: t.String() })
       },
       detail: {
         tags: ["jobs"]
@@ -1105,6 +1178,8 @@ export const jobRoutes = new Elysia({ prefix: "/jobs" })
               locationMatch: t.Number(),
               trustScore: t.Number(),
               timeliness: t.Number(),
+              salaryMatch: t.Number(),
+              employmentMatch: t.Number(),
               competition: t.Number(),
               applicationRate: t.Number()
             }),

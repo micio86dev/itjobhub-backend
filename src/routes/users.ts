@@ -136,7 +136,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           (userData.profile.languages?.length > 0 || false) &&
           (userData.profile.skills?.length > 0 || false) &&
           !!userData.profile.seniority &&
-          !!userData.profile.availability;
+          Array.isArray(userData.profile.availability) && userData.profile.availability.length > 0;
 
         const formattedUser = {
           id: userData.id,
@@ -209,7 +209,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
               languages: t.Array(t.String()),
               skills: t.Array(t.String()),
               seniority: t.Optional(t.String()),
-              availability: t.Optional(t.String()),
+              availability: t.Optional(t.Array(t.String())),
               workModes: t.Array(t.String()),
               cvUrl: t.Optional(t.String()),
               portfolioUrl: t.Optional(t.String()),
@@ -297,7 +297,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
             languages: t.Array(t.String()),
             skills: t.Array(t.String()),
             seniority: t.Optional(t.String()),
-            availability: t.Optional(t.String()),
+            availability: t.Optional(t.Array(t.String())),
             cvUrl: t.Optional(t.String()),
             bio: t.Optional(t.String()),
             github: t.Optional(t.String()),
@@ -377,7 +377,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         languages: t.Optional(t.Array(t.String())),
         skills: t.Optional(t.Array(t.String())),
         seniority: t.Optional(t.String()),
-        availability: t.Optional(t.String()),
+        availability: t.Optional(t.Array(t.String())),
         workModes: t.Optional(t.Array(t.String())),
         bio: t.Optional(t.String()),
         github: t.Optional(t.String()),
@@ -402,7 +402,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
             languages: t.Array(t.String()),
             skills: t.Array(t.String()),
             seniority: t.Optional(t.String()),
-            availability: t.Optional(t.String()),
+            availability: t.Optional(t.Array(t.String())),
             cvUrl: t.Optional(t.String()),
             portfolioUrl: t.Optional(t.String()),
             bio: t.Optional(t.String()),
@@ -525,7 +525,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
             languages: t.Array(t.String()),
             skills: t.Array(t.String()),
             seniority: t.Optional(t.String()),
-            availability: t.Optional(t.String()),
+            availability: t.Optional(t.Array(t.String())),
             cvUrl: t.Optional(t.String()),
             bio: t.Optional(t.String()),
             github: t.Optional(t.String()),

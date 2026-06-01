@@ -6,10 +6,15 @@ import {
     getUserByEmail,
     createUser,
     updateUser,
-    upsertUserProfile
+    upsertUserProfile,
+    softDeleteUser
 } from "../services/users/user.service";
 import { getUserCVs } from "../services/cv/cv.service";
 import { hashPassword, generatePassword } from "../utils/password";
+import { ROLES } from "../domain/enums";
+
+/** Validation schema for the user `role`, derived from the canonical taxonomy. */
+const roleSchema = t.Union(ROLES.map((r) => t.Literal(r)));
 
 /**
  * Admin-only user info cards. Lets an admin view and edit a single user's full
@@ -35,7 +40,7 @@ interface UserRecord {
         languages: string[];
         skills: string[];
         seniority: string | null;
-        availability: string | null;
+        availability: string[] | null;
         workModes: string[];
         salaryMin: number | null;
         cv_url: string | null;
@@ -150,7 +155,7 @@ export const adminUsersRoutes = new Elysia({ prefix: "/admin/users" })
                 email: t.String({ format: "email" }),
                 firstName: t.String({ minLength: 1 }),
                 lastName: t.String({ minLength: 1 }),
-                role: t.Union([t.Literal("user"), t.Literal("admin")])
+                role: roleSchema
             }),
             detail: { tags: ["admin"] }
         }
@@ -208,7 +213,7 @@ export const adminUsersRoutes = new Elysia({ prefix: "/admin/users" })
         {
             params: t.Object({ id: t.String() }),
             body: t.Object({
-                role: t.Optional(t.Union([t.Literal("user"), t.Literal("admin")])),
+                role: t.Optional(roleSchema),
                 firstName: t.Optional(t.String()),
                 lastName: t.Optional(t.String()),
                 phone: t.Optional(t.String()),
@@ -218,7 +223,7 @@ export const adminUsersRoutes = new Elysia({ prefix: "/admin/users" })
                 languages: t.Optional(t.Array(t.String())),
                 skills: t.Optional(t.Array(t.String())),
                 seniority: t.Optional(t.String()),
-                availability: t.Optional(t.String()),
+                availability: t.Optional(t.Array(t.String())),
                 workModes: t.Optional(t.Array(t.String())),
                 salaryMin: t.Optional(t.Number()),
                 cvUrl: t.Optional(t.String()),
@@ -227,6 +232,36 @@ export const adminUsersRoutes = new Elysia({ prefix: "/admin/users" })
                 linkedin: t.Optional(t.String()),
                 website: t.Optional(t.String())
             }),
+            detail: { tags: ["admin"] }
+        }
+    )
+    /**
+     * Soft delete a user. The account is flagged with `deleted_at` (preserved
+     * in the DB) and excluded from listings, lookups and login. Admins cannot
+     * delete their own account to avoid locking themselves out.
+     */
+    .delete(
+        "/:id",
+        async ({ params, set, user }) => {
+            try {
+                if (user?.id === params.id) {
+                    set.status = 400;
+                    return formatError("You cannot delete your own account", 400);
+                }
+                const existing = await getUserById(params.id);
+                if (!existing) {
+                    set.status = 404;
+                    return formatError("User not found", 404);
+                }
+                await softDeleteUser(params.id);
+                return formatResponse(null, "User deleted successfully");
+            } catch (error) {
+                set.status = 500;
+                return formatError(`Failed to delete user: ${getErrorMessage(error)}`, 500);
+            }
+        },
+        {
+            params: t.Object({ id: t.String() }),
             detail: { tags: ["admin"] }
         }
     );

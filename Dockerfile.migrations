@@ -6,8 +6,10 @@ WORKDIR /app
 COPY package.json bun.lock ./
 COPY prisma ./prisma/
 
-# Copy data fix + seed scripts
+# Copy index-cleanup, data fix + seed scripts
+COPY abort_unfinished_indexes.ts ./
 COPY fix_requirements.ts ./
+COPY fix_availability.ts ./
 COPY seed_admin.ts ./
 
 # Install dependencies
@@ -16,5 +18,6 @@ RUN bun install --frozen-lockfile
 # Generate Prisma client (dummy DATABASE_URL for generation only)
 RUN DATABASE_URL="mongodb://dummy:27017/dummy" bunx prisma generate
 
-# Run prisma db push, data fixes, then ensure the admin account
-CMD ["sh", "-c", "bunx prisma db push --accept-data-loss && bun run fix_requirements.ts && bun run seed_admin.ts"]
+# Abort any in-progress index builds (scraper race), run prisma db push,
+# data fixes, then ensure the admin account
+CMD ["sh", "-c", "bun run abort_unfinished_indexes.ts && bunx prisma db push --accept-data-loss && bun run fix_requirements.ts && bun run fix_availability.ts && bun run seed_admin.ts"]

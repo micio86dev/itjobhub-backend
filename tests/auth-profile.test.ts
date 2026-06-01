@@ -81,7 +81,7 @@ describe('Auth Profile Completion Tests', () => {
             where: { user_id: user!.id },
             data: {
                 seniority: 'senior',
-                availability: 'full-time'
+                availability: ['full-time']
             }
         });
 
@@ -95,6 +95,6 @@ describe('Auth Profile Completion Tests', () => {
         expect(userData.languages).toContain('en');
         expect(userData.skills).toContain('typescript');
         expect(userData.seniority).toBe('senior');
-        expect(userData.availability).toBe('full-time');
+        expect(userData.availability).toEqual(['full-time']);
     });
 });

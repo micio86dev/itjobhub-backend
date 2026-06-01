@@ -142,20 +142,24 @@ describe('Match Score Algorithm Tests', () => {
         // 6. Competition: 0 views -> 100%
         expect(factors.competition).toBe(100);
 
-        // 7. App Rate: 0/0 -> 0 ratio -> 100%
+        // 7. Application demand: 0 applies -> 100% (best opportunity)
         expect(factors.applicationRate).toBe(100);
 
-        // Calculate expected weighted score
-        // Skills: 66.666 * 0.42 = 28.00
-        // Seniority: 100 * 0.20 = 20.00
-        // Location: 100 * 0.14 = 14.00
-        // Trust: 70 * 0.09 = 6.30
-        // Timeliness: 100 * 0.08 = 8.00
-        // Competition: 100 * 0.04 = 4.00
-        // App Rate: 100 * 0.03 = 3.00
+        // 8. Employment match: user has no type preference -> neutral 100%
+        expect(factors.employmentMatch).toBe(100);
 
-        // Total: 28 + 20 + 14 + 6.3 + 8 + 4 + 3 = 83.3
+        // Calculate expected weighted score (May 2026 weights)
+        // Skills:        66.666 * 0.38 = 25.333
+        // Seniority:     100    * 0.18 = 18.00
+        // Location/mode: 100    * 0.12 = 12.00
+        // Trust:         70     * 0.08 = 5.60
+        // Timeliness:    100    * 0.06 = 6.00
+        // Salary:        100    * 0.06 = 6.00
+        // EmploymentType:100    * 0.06 = 6.00
+        // App demand:    100    * 0.06 = 6.00
 
-        expect(score).toBe(83);
+        // Total: 25.333 + 18 + 12 + 5.6 + 6 + 6 + 6 + 6 = 84.93 -> 85
+
+        expect(score).toBe(85);
     });
 });

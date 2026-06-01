@@ -46,7 +46,7 @@ export const testProfile = {
   languages: ["English", "Italian"],
   skills: ["JavaScript", "TypeScript", "Node.js"],
   seniority: "SENIOR",
-  availability: "AVAILABLE",
+  availability: ["AVAILABLE"],
   bio: "Experienced software developer",
   github: "https://github.com/testuser",
   linkedin: "https://linkedin.com/in/testuser",

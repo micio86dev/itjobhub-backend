@@ -17,6 +17,9 @@ model User {
   role       String    @default("user")
   created_at DateTime? @default(now())
   updated_at DateTime? @updatedAt
+  // Soft delete: when set, the account is treated as removed (excluded from
+  // listings, lookups and login) but the document is preserved.
+  deleted_at DateTime?
 
   // OAuth fields
   oauth_provider String? // 'github' | 'linkedin' | 'google'
@@ -44,6 +47,7 @@ model User {
   cvs             UserCV[]
 
   @@index([reset_password_token])
+  @@index([deleted_at])
   @@map("users")
 }
 
@@ -239,7 +243,7 @@ model UserProfile {
   languages    String[]
   skills       String[]
   seniority    String?
-  availability String?
+  availability String[]
   workModes    String[]
   salaryMin    Int?         @default(0)
   cv_url        String?

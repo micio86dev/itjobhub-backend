@@ -26,17 +26,48 @@ export const createCompany = async (data: CompanyCreateInput) => {
   });
 };
 
+export type CompanySortBy = "name" | "trustScore" | "jobsCount" | "created_at";
+
+export interface CompanyListFilters {
+  q?: string;
+  /** Inclusive lower bound on trustScore (0–100). */
+  trustMin?: number;
+  /** Inclusive upper bound on trustScore (0–100). */
+  trustMax?: number;
+  /** Inclusive lower bound on created_at (ISO string or Date). */
+  dateFrom?: string | Date;
+  /** Inclusive upper bound on created_at (ISO string or Date). */
+  dateTo?: string | Date;
+  sortBy?: CompanySortBy;
+  sortOrder?: "asc" | "desc";
+}
+
 /**
- * Get all companies with pagination
- * @param page - Page number
+ * Build the Prisma `orderBy` for the companies list. `jobsCount` is a relation
+ * aggregate, so it uses the `{ jobs: { _count } }` form; every other key maps to
+ * a scalar column. Defaults to newest-first.
+ */
+const buildCompanyOrderBy = (
+  sortBy: CompanySortBy = "created_at",
+  sortOrder: "asc" | "desc" = "desc"
+): Prisma.CompanyOrderByWithRelationInput => {
+  if (sortBy === "jobsCount") {
+    return { jobs: { _count: sortOrder } };
+  }
+  return { [sortBy]: sortOrder } as Prisma.CompanyOrderByWithRelationInput;
+};
+
+/**
+ * Get all companies with pagination, server-side filtering and sorting.
+ * @param page - Page number (1-based)
  * @param limit - Number of items per page
- * @param filters - Optional filters
+ * @param filters - Optional search/trust/date filters + sort
  * @returns Companies with pagination info
  */
 export const getCompanies = async (
   page = 1,
   limit = 10,
-  filters?: { q?: string }
+  filters?: CompanyListFilters
 ) => {
   const skip = (page - 1) * limit;
   const where: Prisma.CompanyWhereInput = {};
@@ -45,20 +76,39 @@ export const getCompanies = async (
     where.name = { contains: filters.q, mode: "insensitive" };
   }
 
+  // Trust score range (model stores a non-null Float, default 80).
+  if (filters?.trustMin !== undefined || filters?.trustMax !== undefined) {
+    where.trustScore = {};
+    if (filters.trustMin !== undefined) where.trustScore.gte = filters.trustMin;
+    if (filters.trustMax !== undefined) where.trustScore.lte = filters.trustMax;
+  }
+
+  // Creation date range.
+  if (filters?.dateFrom || filters?.dateTo) {
+    where.created_at = {};
+    if (filters.dateFrom) where.created_at.gte = new Date(filters.dateFrom);
+    if (filters.dateTo) where.created_at.lte = new Date(filters.dateTo);
+  }
+
+  const orderBy = buildCompanyOrderBy(filters?.sortBy, filters?.sortOrder);
+
   const [companies, total] = await Promise.all([
     prisma.company.findMany({
       where,
       skip,
       take: limit,
-      orderBy: {
-        created_at: "desc",
-      },
+      orderBy,
+      // Number of jobs linked to each company, surfaced as `jobsCount`.
+      include: { _count: { select: { jobs: true } } },
     }),
     prisma.company.count({ where }),
   ]);
 
   return {
-    companies,
+    companies: companies.map(({ _count, ...company }) => ({
+      ...company,
+      jobsCount: _count.jobs,
+    })),
     pagination: {
       page,
       limit,
@@ -74,9 +124,13 @@ export const getCompanies = async (
  * @returns Company details
  */
 export const getCompanyById = async (id: string) => {
-  return await prisma.company.findUnique({
-    where: { id }
+  const company = await prisma.company.findUnique({
+    where: { id },
+    include: { _count: { select: { jobs: true } } },
   });
+  if (!company) return null;
+  const { _count, ...rest } = company;
+  return { ...rest, jobsCount: _count.jobs };
 };
 
 /**

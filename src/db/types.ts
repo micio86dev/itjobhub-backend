@@ -63,7 +63,7 @@ export interface UserProfile {
   languages: string[];
   skills: string[];
   seniority?: string;
-  availability?: string;
+  availability?: string[];
   cv_url?: string;
   bio?: string;
   github?: string;
