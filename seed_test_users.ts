@@ -39,7 +39,7 @@ async function main() {
             skills: ["Admin", "Security"],
             languages: ["Italian", "English"],
             seniority: "senior",
-            availability: "full-time",
+            availability: ["full-time"],
             workModes: ["office", "remote"]
         }
     });
@@ -71,7 +71,7 @@ async function main() {
             skills: ["JavaScript", "TypeScript", "React", "Qwik"],
             languages: ["Italian", "English"],
             seniority: "mid",
-            availability: "full-time",
+            availability: ["full-time"],
             workModes: ["remote", "hybrid"]
         },
         create: {
@@ -81,7 +81,7 @@ async function main() {
             skills: ["JavaScript", "TypeScript", "React", "Qwik"],
             languages: ["Italian", "English"],
             seniority: "mid",
-            availability: "full-time",
+            availability: ["full-time"],
             workModes: ["remote", "hybrid"]
         }
     });

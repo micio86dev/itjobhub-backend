@@ -2,3 +2,6 @@
 # preload.ts MUST come first: it forces an isolated *_test database into
 # process.env.DATABASE_URL before setup.ts imports the Prisma/Mongo clients.
 preload = ["./tests/preload.ts", "./tests/setup.ts"]
+
+# Coverage gate: `bun test --coverage` fails if the suite drops below 85%.
+coverageThreshold = { line = 0.85, function = 0.85 }
