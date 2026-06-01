@@ -11,6 +11,10 @@ import {
 } from "../services/users/user.service";
 import { getUserCVs } from "../services/cv/cv.service";
 import { hashPassword, generatePassword } from "../utils/password";
+import { ROLES } from "../domain/enums";
+
+/** Validation schema for the user `role`, derived from the canonical taxonomy. */
+const roleSchema = t.Union(ROLES.map((r) => t.Literal(r)));
 
 /**
  * Admin-only user info cards. Lets an admin view and edit a single user's full
@@ -151,7 +155,7 @@ export const adminUsersRoutes = new Elysia({ prefix: "/admin/users" })
                 email: t.String({ format: "email" }),
                 firstName: t.String({ minLength: 1 }),
                 lastName: t.String({ minLength: 1 }),
-                role: t.Union([t.Literal("user"), t.Literal("admin")])
+                role: roleSchema
             }),
             detail: { tags: ["admin"] }
         }
@@ -209,7 +213,7 @@ export const adminUsersRoutes = new Elysia({ prefix: "/admin/users" })
         {
             params: t.Object({ id: t.String() }),
             body: t.Object({
-                role: t.Optional(t.Union([t.Literal("user"), t.Literal("admin")])),
+                role: t.Optional(roleSchema),
                 firstName: t.Optional(t.String()),
                 lastName: t.Optional(t.String()),
                 phone: t.Optional(t.String()),
